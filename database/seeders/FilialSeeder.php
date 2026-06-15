@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Filial;
 
 class FilialSeeder extends Seeder
 {
@@ -12,6 +13,6 @@ class FilialSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        Filial::factory(10)->create();
     }
 }

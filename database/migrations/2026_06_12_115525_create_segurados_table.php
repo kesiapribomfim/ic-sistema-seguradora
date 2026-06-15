@@ -16,10 +16,13 @@ return new class extends Migration
             $table->string('tipo', length: 4);
             $table->string('telefone', length: 11);
             $table->string('email')->unique();
+
             $table->string('endereco');
             $table->string('bairro');
             $table->string('cidade');
             $table->string('uf', length: 2);
+            $table->string('cep', length: 8);
+
             $table->unsignedInteger('score'); 
             $table->boolean('status')->default(true);
 

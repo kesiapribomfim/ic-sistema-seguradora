@@ -18,7 +18,14 @@ class FilialFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'nome' => $this->faker->company(),
+            'cnpj' => $this->faker->cnpj(false),
+            'telefone' => $this->faker->cellphoneNumber(false),
+            'endereco' => $this->faker->streetAddress(),
+            'bairro' => $this->faker->citySuffix(),
+            'cidade' => $this->faker->city(),
+            'uf' => $this->faker->stateAbbr(),
+            'cep' => $this->faker->numerify('########'),
         ];
     }
 }
