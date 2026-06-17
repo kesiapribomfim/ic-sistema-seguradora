@@ -25,4 +25,12 @@ class Filial extends Model
     protected $casts = [
         'telefone' => 'string',
     ];
+    
+    //Many-to-Many relationship with User model
+    public function users()
+    {
+        return $this->belongsToMany(User::class,'filial_user')
+        ->withPivot('perfil_acesso')
+        ->withTimestamps();
+    }
 }

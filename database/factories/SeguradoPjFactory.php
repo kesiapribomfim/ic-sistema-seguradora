@@ -18,7 +18,9 @@ class SeguradoPjFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'cnpj'=> $this->faker->cnpj(false),
+            'razao_social' =>$this->faker->company(),
+            'inscricao_estadual'=> $this ->faker->numerify('##############'),
         ];
     }
 }

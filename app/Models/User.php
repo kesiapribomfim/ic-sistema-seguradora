@@ -49,4 +49,16 @@ class User extends Authenticatable
             'tipo' => 'string',
         ];
     }
+
+    public function filiais()
+    {
+        return $this->belongsToMany(Filial::class, 'filial_user')
+        ->withPivot('perfil_acesso')
+        ->withTimestamps();
+    }
+
+    public function segurados()
+    {
+        return $this->hasMany(SeguradoPj::class);
+    }
 }

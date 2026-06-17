@@ -9,8 +9,6 @@ class Segurado extends Model
 {   use HasFactory;
 
         protected $fillable = [
-            'nome',
-            'cpf',
             'tipo',
             'telefone',
             'email',
@@ -25,7 +23,18 @@ class Segurado extends Model
 
         protected $casts = [
             'telefone' => 'string',
-            'cpf' => 'string',
             'score' => 'integer',
         ];
+        public function seguradopj()
+        {
+            return $this->hasOne(SeguradoPj::class);
+        }
+        public function seguradopf()
+        {
+            return $this->hasOne(SeguradoPf::class);
+        }
+
+        public function user(){
+            return $this->belongsTo(User::class);
+        }
 }

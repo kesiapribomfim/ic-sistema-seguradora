@@ -24,6 +24,9 @@ return new class extends Migration
             $table->foreignId('filial_id')
                 ->constrained('filiais')
                 ->onDelete('cascade');
+            $table->foreignId('cotacao_id')
+                ->constrained('cotacoes')
+                ->restrictedonDelete();
             $table->foreignId('apolice_origem_id')
                 ->nullable()
                 ->constrained('apolices')

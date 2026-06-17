@@ -26,4 +26,10 @@ class Produto extends Model
         'coberturas' => 'array',
         'parametros_calculo' => 'array',
     ];
+
+    public function cotacao(){
+        return $this->hasMany(Cotacao::class);
+    }
+
+
 }

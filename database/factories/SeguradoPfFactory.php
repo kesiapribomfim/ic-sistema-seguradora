@@ -18,7 +18,11 @@ class SeguradoPfFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'cpf' => $this->faker->numerify('###########'),
+            'rg' => $this->faker->numerify('MG-##.###.###'),
+            'nome' =>$this->faker->name(),
+            'data_nascimento' => $this->faker->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
+            'profissao'=>$this->faker->jobTitle(),
         ];
     }
 }
