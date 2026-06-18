@@ -27,7 +27,7 @@ class Produto extends Model
         'parametros_calculo' => 'array',
     ];
 
-    public function cotacao(){
+    public function cotacoes(){
         return $this->hasMany(Cotacao::class);
     }
 

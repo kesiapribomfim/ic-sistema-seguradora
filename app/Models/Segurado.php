@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Segurado extends Model
-{   use HasFactory;
+{   
+    use HasFactory;
 
         protected $fillable = [
             'tipo',
@@ -25,16 +26,20 @@ class Segurado extends Model
             'telefone' => 'string',
             'score' => 'integer',
         ];
-        public function seguradopj()
+        public function seguradoPj()
         {
-            return $this->hasOne(SeguradoPj::class);
+            return $this->hasOne(SeguradoPj::class); //um segurado tem um tipo pj
         }
-        public function seguradopf()
+        public function seguradoPf()
         {
-            return $this->hasOne(SeguradoPf::class);
+            return $this->hasOne(SeguradoPf::class); //um seguraod tem um tipo pf
         }
 
         public function user(){
-            return $this->belongsTo(User::class);
+            return $this->belongsTo(User::class); //Muitos segurados pertencem a um user
+        }
+
+        public function cotacoes(){
+            return $this->hasMany(Cotacao::class); //
         }
 }

@@ -15,20 +15,7 @@ class FilialSeeder extends Seeder
     public function run(): void
     {
         Filial::factory()
-        ->count(10)
-        ->hasAttached(
-            User::factory()->count(1),
-            ['perfil_acesso' => array_rand(array_flip([ 
-                    'Gestor de Filial', 
-                    'Subscritor',
-                    'Corretor',
-                    'Analista de Sinistro',
-                    'Financeiro',
-                    'Cliente'
-                ]))]
-
-            )
-            
+        ->count(10)            
         ->create();
 
     }

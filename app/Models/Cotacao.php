@@ -28,23 +28,22 @@ class Cotacao extends Model
 
     //fk
     public function segurado(){
-        return $this->belongsTo(Segurado::class);
-
+        return $this->belongsTo(Segurado::class); //muitos para um segurado
     }
 
     public function produto(){
-        return $this->belongsTo(Produto::class);
+        return $this->belongsTo(Produto::class); //muitos para um produto
     }
 
     public function user(){
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class);//muitos para um usuario
     }
 
     public function filial(){
-        return $this->belongsTo(Filial::class);
+        return $this->belongsTo(Filial::class); //muitos para uma filial
     }
 
-    public function apolice(){
-        return $this->hasOne(Apolice::class);
+    public function apolices(){
+        return $this->hasOne(Apolice::class); //uma para uma apolice
     }
 }

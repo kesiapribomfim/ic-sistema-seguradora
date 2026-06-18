@@ -33,4 +33,8 @@ class Filial extends Model
         ->withPivot('perfil_acesso')
         ->withTimestamps();
     }
+
+    public function cotacoes(){
+        return $this->hasMany(Cotacao::class); //uma filial tem muitas cotações
+    }
 }

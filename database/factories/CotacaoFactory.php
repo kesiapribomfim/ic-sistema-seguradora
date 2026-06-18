@@ -4,6 +4,10 @@ namespace Database\Factories;
 
 use App\Models\Cotacao;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Segurado;
+use App\Models\User;
+use App\Models\Filial;
+use App\Models\Produto;
 
 /**
  * @extends Factory<Cotacao>
@@ -18,6 +22,12 @@ class CotacaoFactory extends Factory
     public function definition(): array
     {
         return [
+            //fk
+            'segurado_id' => Segurado::factory(),
+            'user_id' => User::factory(),
+            'filial_id' => Filial::factory(),
+            'produto_id' => Produto::factory(),
+
             //ajustar dados jsonb depois
             'dados_especificos' => [
                 'categoria' => $this->faker->randomElement(['Veículo', 'Imóvel Residencial', 'Equipamento Solar', 'Frota Corporativa']),
