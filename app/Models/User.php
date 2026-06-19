@@ -61,4 +61,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(SeguradoPj::class);
     }
+
+    public function movimentacoes(){
+        return $this->hasMany(SinistroMovimentacao::class);
+    }
 }

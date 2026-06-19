@@ -10,6 +10,10 @@ class Apolice extends Model
     use HasFactory;
 
    protected $fillable = [
+        'segurado_id',
+        'user_id',
+        'filial_id',
+        'apolice_origem_id',
         'numero_apolice',
         'data_emissao',
         'data_inicio',
@@ -45,11 +49,17 @@ class Apolice extends Model
 
     public function cotacao()
     {
-        return $this->hasOne(Cotacao::class);
+        return $this->belongsTo(Cotacao::class);
     }
 
-    public function apolice(){
-        return $this->hasOne(Apolice::class);
+    public function apoliceOrigem()
+    {
+        return $this->belongsTo(Apolice::class, 'apolice_origem_id');
+    }
+
+    public function renovacoes()
+    {
+        return $this->hasMany(Apolice::class, 'apolice_origem_id');
     }
 }
 

@@ -19,7 +19,12 @@ return new class extends Migration
                 ->restrictOnDelete();
             
             $table->dateTime('data_hora_ocorrencia');
-            $table->string('local_ocorrencia');
+
+            $table->string('endereco');
+            $table->string('bairro');
+            $table->string('cidade');
+            $table->string('uf', length: 2);
+            $table->string('cep', length: 8);
 
             $table->text('descricao');
             

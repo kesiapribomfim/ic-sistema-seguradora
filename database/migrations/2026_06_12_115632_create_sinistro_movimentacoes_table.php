@@ -20,7 +20,8 @@ return new class extends Migration
             $table->foreignId('user_id')
                 ->constrained('users')
                 ->restrictOnDelete();
-
+            
+            $table->dateTime('data_hr_movimentacao');
             $table->string('descricao');
             $table->string('acao_realizada', length: 50); //Ex: Análise, Perícia, Aprovação, Negação, Pagamento, Encerramento
             $table->jsonb('anexos')->nullable(); //Para armazenar evidências, laudos, fotos, etc.

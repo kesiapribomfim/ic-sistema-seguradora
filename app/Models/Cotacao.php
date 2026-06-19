@@ -44,6 +44,6 @@ class Cotacao extends Model
     }
 
     public function apolices(){
-        return $this->hasOne(Apolice::class); //uma para uma apolice
+        return $this->hasMany(Apolice::class); //uma para uma apolice
     }
 }
