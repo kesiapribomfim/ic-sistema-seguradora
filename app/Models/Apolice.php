@@ -29,6 +29,9 @@ class Apolice extends Model
     ];
 
     protected $casts = [
+        'data_emissao' =>'date',
+        'data_inicio' => 'date',
+        'data_fim'=> 'date',
         'snapshot'=> 'array',
         'dados_bem_assegurado'=>'array',
         'beneficiarios'=>'array',

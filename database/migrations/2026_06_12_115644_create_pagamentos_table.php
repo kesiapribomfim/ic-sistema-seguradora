@@ -13,6 +13,25 @@ return new class extends Migration
     {
         Schema::create('pagamentos', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('apolice_id')
+                ->constrained('apolices')
+                ->restrictedOnDelete();
+            $table->foreignId('sinistro_id')
+                ->constrained('sinistros')
+                ->nullable()
+                ->restrictedOnDelete();
+            
+            $table->string('tipo_movimentacao', length:30); // Ex: 'Recebimento', 'Pagamento Indenização'
+            $table->decimal('valor', 10,2);
+            $table->integer('num_parcela')
+                ->nullable();
+            $table->date('data_vencimento');
+            $table->date('data_pagamento')
+                ->nullable();
+            $table->string('status',length:10); //'Aberta, Paga, Vencida, Cancelada'
+            $table->string('caminho_fatura_pdf');
+            $table->string('metodo_baixa', 20)->nullable(); // Ex: 'Manual', 'Automática'
             $table->timestamps();
         });
     }
