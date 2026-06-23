@@ -13,8 +13,10 @@ class Sinistro extends Model
         'apolice_id',
         'data_hora_ocorrencia',
 
-        'endereco',
+        'rua',
+        'numero',
         'bairro',
+        'complemento',
         'cidade',
         'uf',
         'cep',

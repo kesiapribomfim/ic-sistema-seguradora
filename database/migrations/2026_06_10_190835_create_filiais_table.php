@@ -17,8 +17,10 @@ return new class extends Migration
             $table->string('cnpj', length: 14)->unique();
             $table->string('telefone', length: 11);
             
-            $table->string('endereco');
+            $table->string('rua');
+            $table->string('numero', length: 20);
             $table->string('bairro');
+            $table->string('complemento',100) ->nullable();
             $table->string('cidade');
             $table->string('uf', length: 2);
             $table->string('cep', length: 8);

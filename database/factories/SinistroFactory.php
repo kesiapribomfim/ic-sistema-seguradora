@@ -35,8 +35,10 @@ class SinistroFactory extends Factory
 
             'data_hora_ocorrencia' => $this->faker->dateTimeBetween('-1 year', 'now')->format('Y-m-d H:i:s'),
 
-            'endereco' => $this->faker->streetAddress(),
+            'rua' => $this->faker->streetName(),
+            'numero' => $this->faker->numberBetween(1,1000),
             'bairro' => $this->faker->citySuffix(),
+            'complemento' => $this->faker->optional(0.5)->randomElement(['Sala 1', 'Andar 3', 'Galpão B', 'Térreo']),
             'cidade' => $this->faker->city(),
             'uf' => $this->faker->stateAbbr(),
             'cep' => $this->faker->numerify('########'),

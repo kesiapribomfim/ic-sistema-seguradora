@@ -57,6 +57,11 @@ class User extends Authenticatable
         ->withTimestamps();
     }
 
+    public function filials()
+    {
+        return $this->filiais();
+    }
+
     public function segurados()
     {
         return $this->hasMany(SeguradoPj::class);
