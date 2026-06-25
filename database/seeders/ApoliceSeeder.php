@@ -45,7 +45,7 @@ class ApoliceSeeder extends Seeder
             'user_id'           => $cotacaoRenovacao->user_id,
             'valor_total'       => $cotacaoRenovacao->valor_total,
             'status'            => 'Vigente',
-            'apolice_origem_id' => $apoliceAntiga->id, // <--- AQUI ESTÁ O VÍNCULO!
+            'apolice_origem_id' => $apoliceAntiga->id,
         ]);
 
         $apoliceAntiga->update(['status' => 'Renovada']);

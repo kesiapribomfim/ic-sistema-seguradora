@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->boolean('status')->default(true);
-            $table->string('tipo');
             $table->timestamps();
         });
 

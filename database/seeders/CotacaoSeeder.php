@@ -9,6 +9,7 @@ use App\Models\Segurado;
 use App\Models\Produto;
 use App\Models\User;
 use App\Models\Filial;
+use Illuminate\Database\Eloquent\Builder;
 
 class CotacaoSeeder extends Seeder
 {
@@ -17,7 +18,9 @@ class CotacaoSeeder extends Seeder
      */
     public function run(): void
     {
-        $corretores= User::where('tipo','corretor')->get();
+        $corretores = User::whereHas('filiais', function (Builder $query) {
+            $query->where('filial_user.perfil_acesso', 'Corretor');
+        })->get();
 
         $segurados = Segurado::all();
         $produtos = Produto::all();

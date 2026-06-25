@@ -13,12 +13,14 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\ActionGroup;
 
 class FilialResource extends Resource
 {
     protected static ?string $model = Filial::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Filiais';
 
     public static function form(Form $form): Form
     {
@@ -74,7 +76,7 @@ class FilialResource extends Resource
                                 
             ])
             ->filters([
-                //
+                    
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

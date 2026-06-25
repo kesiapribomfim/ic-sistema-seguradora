@@ -19,7 +19,6 @@ class UserSeeder extends Seeder
             'email' => 'admin_test@exemplo.com',
             'password' => 'password',
             'status' => true,
-            'tipo' => 'Administrador Geral',
         ]);
 
         $filiais = Filial::all();
@@ -46,9 +45,27 @@ class UserSeeder extends Seeder
             $user->filiais()->attach($filialSorteada->id, [
                 'perfil_acesso' => $perfilSorteado
             ]);
-
-
         
+        }
+
+        //criando especificamente corretores
+        $usuariosCorretores = User::factory()->count(50)->create();
+
+        foreach ($usuariosCorretores as $user){
+            $filialSorteada = $filiais->random();
+
+            $user->filiais()->attach($filialSorteada->id, [
+                'perfil_acesso' => 'Corretor'
+            ]);
+        }
+
+        $usuariosClientes = User::factory()->count(70)->create();
+        foreach ($usuariosClientes as $user){
+            $filialSorteada = $filiais->random();
+
+            $user->filiais()->attach($filialSorteada->id, [
+                'perfil_acesso' => 'Cliente'
+            ]);
         }
     }
 }

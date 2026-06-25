@@ -22,7 +22,6 @@ class User extends Authenticatable
         'email',
         'password',
         'status',
-        'tipo',
     ];
 
     /**
@@ -64,7 +63,7 @@ class User extends Authenticatable
 
     public function segurados()
     {
-        return $this->hasMany(SeguradoPj::class);
+        return $this->hasMany(Segurado::class);
     }
 
     public function movimentacoes(){
