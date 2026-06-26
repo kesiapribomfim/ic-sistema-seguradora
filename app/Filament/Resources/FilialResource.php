@@ -19,7 +19,7 @@ class FilialResource extends Resource
 {
     protected static ?string $model = Filial::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
     protected static ?string $navigationLabel = 'Filiais';
 
     public static function form(Form $form): Form
@@ -73,6 +73,7 @@ class FilialResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nome')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('telefone'),
                                 
             ])
             ->filters([

@@ -7,9 +7,11 @@ use App\Filament\Resources\SeguradoResource\RelationManagers;
 use App\Models\Segurado;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\FormsComponent;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Components\Toggle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -23,7 +25,85 @@ class SeguradoResource extends Resource
     {
         return $form
             ->schema([
-                //
+                //selecionar tipo para modificar campos do fomulario
+                Forms\Components\Select::make('tipo')
+                    ->label('Tipo de Cliente')
+                    ->options([
+                        'PF' => 'Pessoa Física',
+                        'PJ' => 'Pessoa Jurídica',
+                    ])
+                    ->required()
+                    ->live(),
+
+                //Atributos PF
+                Forms\Components\Fieldset::make('Dados de Pessoa Física')
+                    ->relationship('seguradoPf') // ATENÇÃO: Tem que ser o nome exato do método de relacionamento na Model Segurado!
+                    ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PF') // A mágica visual
+                    ->schema([
+                        Forms\Components\TextInput::make('nome')
+                            ->required(),
+                        Forms\Components\TextInput::make('cpf')
+                            ->label('CPF')  
+                            ->required(),
+                        Forms\Components\TextInput::make('rg')
+                            ->label('RG')
+                            ->required(),
+                        Forms\Components\DatePicker::make('data_nascimento')
+                            ->label('Data de Nascimento')
+                            ->required(),
+                        Forms\Components\TextInput::make('profissao')
+                            ->label('Profissão')
+                            ->required(),
+                    ]),
+
+                //Atributos PJ
+                Forms\Components\Fieldset::make('Dados de Pessoa Juridica')
+                    ->relationship('seguradoPj')
+                    ->visible(fn(Forms\Get $get): bool => $get('tipo') === 'PJ')
+                    ->schema([
+                        Forms\Components\TextInput::make('cnpj')
+                            ->label('CNPJ')
+                            ->required()
+                            ->unique(),
+                        Forms\Components\TextInput::make('razao_social')
+                            ->required(),
+                        Forms\Components\TextInput::make('inscricao_estadual')
+                            ->required()
+                            ->unique(),
+                    ]),
+
+                //Aributos comuns
+                Forms\Components\Fieldset::make('Dados de Contato')
+                    ->schema([
+                        Forms\Components\TextInput::make('telefone')
+                            ->required()
+                            ->unique(),
+                        Forms\Components\TextInput::make('email')
+                            ->required()
+                            ->unique(),
+                    ]),
+                
+
+                //Endereço FieldSet
+                Forms\Components\Fieldset::make('Endereço')
+                    ->schema([
+                        Forms\Components\TextInput::make('rua'),
+                        Forms\Components\TextInput::make('numero'),
+                        Forms\Components\TextInput::make('bairro'),
+                        Forms\Components\TextInput::make('complemento'),
+                        Forms\Components\TextInput::make('cidade'),
+                        Forms\Components\TextInput::make('uf'),
+                        Forms\Components\TextInput::make('cep')
+                            ->label('CEP'),
+
+                    ]),           
+                
+                Forms\Components\TextInput::make('score'),
+                Toggle::make('status')
+                    ->label('Ativo'),
+
+
+                
             ]);
     }
 
@@ -31,10 +111,40 @@ class SeguradoResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('tipo')
+                    ->label('Tipo')
+                    ->badge() // Transforma o texto numa "etiqueta" colorida bonitinha
+                    ->color(fn (string $state): string => match ($state) {
+                        'PF' => 'info',    // Azul para PF
+                        'PJ' => 'warning', // Amarelo para PJ
+                    }),
+                Tables\Columns\TextColumn::make('identificacao_cliente')
+                    ->label('Nome / Razão Social')
+                    ->state(function (Segurado $record) {
+                        return $record->tipo === 'PF' 
+                            ? $record->seguradoPf?->nome 
+                            : $record->seguradoPj?->razao_social;
+                    })
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        // pesquisa no banco
+                        return $query
+                            ->whereHas('seguradoPf', fn ($q) => $q->where('nome', 'like', "%{$search}%"))
+                            ->orWhereHas('seguradoPj', fn ($q) => $q->where('razao_social', 'like', "%{$search}%"));
+                    }),
+                    Tables\Columns\TextColumn::make('email'),
+
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('tipo')
+                    ->options([
+                        'PF' => 'CPF',
+                        'PJ' => 'CNPJ',
+                    ]),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        1 => 'Ativo',
+                        0 => 'Inativo',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -63,7 +63,11 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('email'),
             ])
             ->filters([
-                //
+                Tables\Filters\selectFilter::make('status')
+                    ->options([
+                        1 => 'Ativo',
+                        0 => 'Inativo',
+                    ])
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
