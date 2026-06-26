@@ -31,7 +31,10 @@ class ProdutoResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('nome')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('codigo')
+                    ->searchable(),
             ])
             ->filters([
                 //

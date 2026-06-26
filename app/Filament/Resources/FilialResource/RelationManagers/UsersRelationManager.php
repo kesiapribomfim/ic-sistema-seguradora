@@ -52,7 +52,6 @@ class UsersRelationManager extends RelationManager
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
                         $action->getRecordSelect(), // O campo obrigatório que escolhe "quem" é a pessoa
                         
-                        // O campo extra para o "Livro da Recepção"
                         Forms\Components\Select::make('perfil_acesso')
                             ->label('Perfil na Filial')
                             ->options([
