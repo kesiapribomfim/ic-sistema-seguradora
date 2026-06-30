@@ -70,7 +70,7 @@ class UsersRelationManager extends RelationManager
                     //se corretor
                     Action::make('ver_carteira')
                         ->label('Ver Carteira')
-                        ->icon('heroicon-o-users')
+                        ->icon('heroicon-o-identification')
                         ->visible(fn (Model $record): bool => $record->perfil_acesso === 'Corretor') //IMPORTANTE: Add Badges para incluir numero de segurdos aqui
                         ->action(function (Model $record) {
                             // Aqui é onde definiremos o que o botão FAZ quando for clicado.

@@ -19,7 +19,7 @@ class SeguradoResource extends Resource
 {
     protected static ?string $model = Segurado::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-identification';
 
     public static function form(Form $form): Form
     {
@@ -38,7 +38,7 @@ class SeguradoResource extends Resource
                 //Atributos PF
                 Forms\Components\Fieldset::make('Dados de Pessoa Física')
                     ->relationship('seguradoPf') // ATENÇÃO: Tem que ser o nome exato do método de relacionamento na Model Segurado!
-                    ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PF') // A mágica visual
+                    ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PF')
                     ->schema([
                         Forms\Components\TextInput::make('nome')
                             ->required(),
