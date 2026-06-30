@@ -27,6 +27,8 @@ class ProdutoResource extends Resource
                 Forms\Components\Section::make('Informações Básicas')
                     ->columns(2) 
                     ->schema([
+                                              
+
                         Forms\Components\TextInput::make('nome')
                             ->required()
                             ->maxLength(255),
@@ -37,14 +39,7 @@ class ProdutoResource extends Resource
                             ->unique(ignoreRecord: true) 
                             ->maxLength(50),
                             
-                        Forms\Components\Select::make('ramo')
-                            ->label('Ramo')
-                            ->options([
-                                'Auto' => 'Seguro Auto',
-                                'Vida' => 'Seguro de Vida',
-                                'Residencial' => 'Seguro Residencial',
-                            ])
-                            ->required(),
+                        
                             
                         Forms\Components\TextInput::make('versao')
                             ->label('Versão')
@@ -56,6 +51,17 @@ class ProdutoResource extends Resource
                             ->columnSpanFull(),
                     ]),
 
+                //campos especificos por ramo
+                Forms\Components\Select::make('ramo')
+                ->label('Ramo')
+                ->options([
+                    'Auto' => 'Seguro Auto',
+                    'Vida' => 'Seguro de Vida',
+                    'Residencial' => 'Seguro Residencial',
+                ])
+                ->required()
+                ->live(),
+                
                 Forms\Components\Section::make('Parâmetros Financeiros (Base)')
                     ->columns(2)
                     ->schema([

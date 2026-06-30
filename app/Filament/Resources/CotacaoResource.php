@@ -24,7 +24,14 @@ class CotacaoResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('ramo')
-                    ->label('ramo')
+                    ->label('Ramo')
+                    ->relationship('produto')
+                    ->options([
+                        'Auto' => 'Seguro Auto',
+                        'Vida' => 'Seguro de Vida',
+                        'Residencial' => 'Seguro Residencial',
+                    ])
+                    ->required(),
             ]);
     }
 
@@ -32,7 +39,13 @@ class CotacaoResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('id')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Corretor Responsável'),
+                //mexer nisso aqui
+                Tables\Columns\TextColumn::make('segurado_pf.nome') 
+                    ->label('Cliente'),
             ])
             ->filters([
                 //
