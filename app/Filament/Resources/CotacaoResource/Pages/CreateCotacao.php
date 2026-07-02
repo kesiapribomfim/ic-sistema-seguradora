@@ -9,4 +9,5 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateCotacao extends CreateRecord
 {
     protected static string $resource = CotacaoResource::class;
+    
 }

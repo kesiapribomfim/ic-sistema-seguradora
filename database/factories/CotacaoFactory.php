@@ -50,11 +50,11 @@ class CotacaoFactory extends Factory
             ],
             
             'status' => $this->faker->randomElement([
-                'em elaboração', 
-                'enviado ao cliente', 
-                'aceita', 
-                'recusada', 
-                'expirada'
+                'Em Elaboração', 
+                'Enviado ao Cliente', 
+                'Aceita', 
+                'Recusada', 
+                'Expirada'
             ]),
             'valor_total'=> $this->faker->randomFloat(2,1000,5000),
             'validade'=> $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),

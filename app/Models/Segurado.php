@@ -22,6 +22,7 @@ class Segurado extends Model
             'cep',
             'score',
             'status',
+            'user_id',
         ];
 
         protected $casts = [

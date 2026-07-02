@@ -14,7 +14,7 @@ class FilialSeeder extends Seeder
     public function run(): void
     {
         Filial::factory()
-        ->count(10)            
+        ->count(9)            
         ->create();
 
     }

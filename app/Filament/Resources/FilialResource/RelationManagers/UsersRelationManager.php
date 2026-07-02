@@ -71,7 +71,7 @@ class UsersRelationManager extends RelationManager
                     Action::make('ver_carteira')
                         ->label('Ver Carteira')
                         ->icon('heroicon-o-identification')
-                        ->visible(fn (Model $record): bool => $record->perfil_acesso === 'Corretor') //IMPORTANTE: Add Badges para incluir numero de segurdos aqui
+                        ->visible(fn (Model $record): bool => $record->perfil_acesso === 'Corretor') //IMPORTANTE: Add Badges para incluir numero de segurados aqui
                         ->action(function (Model $record) {
                             // Aqui é onde definiremos o que o botão FAZ quando for clicado.
                             // No futuro, ele vai redirecionar para a tela de Segurados filtrando por este corretor.

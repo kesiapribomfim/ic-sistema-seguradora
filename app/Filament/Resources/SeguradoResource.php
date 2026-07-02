@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Filament\Forms\Components\Toggle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Select;
 
 class SeguradoResource extends Resource
 {
@@ -37,7 +38,7 @@ class SeguradoResource extends Resource
 
                 //Atributos PF
                 Forms\Components\Fieldset::make('Dados de Pessoa Física')
-                    ->relationship('seguradoPf') // ATENÇÃO: Tem que ser o nome exato do método de relacionamento na Model Segurado!
+                    ->relationship('seguradoPf') 
                     ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PF')
                     ->schema([
                         Forms\Components\TextInput::make('nome')
@@ -97,6 +98,24 @@ class SeguradoResource extends Resource
                             ->label('CEP'),
 
                     ]),           
+                
+                //linkando com a tabela Users
+                Select::make('user_id')
+                            ->label('Selecione o Corretor Responsável')
+                            ->relationship(
+                                name: 'user',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where('status', true)
+                                    ->whereHas('filiais', function (Builder $q) {
+                                        $q->where('filial_user.perfil_acesso', 'Corretor');
+                                    })
+                            )
+                            ->default(fn () => auth()->id())
+                            ->searchable() 
+                            ->preload()   
+                            ->required(),
+
                 
                 Forms\Components\TextInput::make('score'),
                 Toggle::make('status')

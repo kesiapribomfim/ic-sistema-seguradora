@@ -27,12 +27,17 @@ return new class extends Migration
                 ->constrained('filiais')
                 ->onDelete('cascade');
 
-            $table->jsonb('dados_especificos'); //dados específicos do produto, como marca e modelo para veículos, ou cobertura para residências
-            $table->jsonb('cobertura_selecionada');
-            $table->string('status', length: 18); //em elaboração, enviado ao cliente, aceita, recusada, expirada
+            $table->jsonb('dados_especificos')
+                ->nullable(); //dados específicos do produto, como marca e modelo para veículos, ou cobertura para residências
+            $table->jsonb('cobertura_selecionada')
+                ->nullable(); //cobertura selecionada pelo cliente, caso seja um produto com várias coberturas
+            $table->string('status', length: 18)
+                ->default('Em Elaboração'); //em elaboração, enviado ao cliente, aceita, recusada, expirada
 
-            $table->decimal('valor_total', 10, 2);
-            $table->date('validade');
+            $table->decimal('valor_total', 10, 2)
+                ->nullable(); //valor total da cotação, caso seja um produto com várias coberturas
+            $table->date('validade')
+                ->nullable(); //validade da cotação, caso seja um produto com várias coberturas
             $table->timestamps();
         });
     }
