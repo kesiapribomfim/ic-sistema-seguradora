@@ -149,7 +149,10 @@ class SeguradoResource extends Resource
                         return $query
                             ->whereHas('seguradoPf', fn ($q) => $q->where('nome', 'like', "%{$search}%"))
                             ->orWhereHas('seguradoPj', fn ($q) => $q->where('razao_social', 'like', "%{$search}%"));
-                    }),
+                    })
+                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                    //->sortable() (em ordem alfabetica)
+                    ->description(fn ($record) => $record->user->name),
                     Tables\Columns\TextColumn::make('email'),
 
             ])
