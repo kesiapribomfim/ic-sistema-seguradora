@@ -13,6 +13,10 @@ class Cotacao extends Model
 
 
     protected $fillable = [
+        'segurado_id',
+        'produto_id',
+        'user_id',
+        'filial_id',
         'dados_especificos',
         'cobertura_selecionada',
         'status',
