@@ -36,14 +36,16 @@ class CotacaoResource extends Resource
                         ->statePath('dados_especificos')
                         ->schema([
                             self::getAutoSchema(),
-                            self::getVidaSchema(),
                             self::getResidencialSchema(),
+                            self::getVidaSchema(),
                         ]),
 
                     Wizard\Step::make('Coberturas')
                         ->statePath('dados_especificos')
                         ->schema([
                             self::getCoberturasAutoSchema(),
+                            self::getResidencialSchema(),
+                            self::getVidaSchema()
                         ]),
 
                     Wizard\Step::make('Status e Validade')
@@ -101,7 +103,11 @@ class CotacaoResource extends Resource
                 ->required(),
         ];
     }
+    // =========================================================================
+    // DADOS ESPECIFICOS (Auto, Vida, Residencial)
+    // =========================================================================
 
+    //AUTO
     private static function getAutoSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
@@ -135,7 +141,8 @@ class CotacaoResource extends Resource
                                     ->label('O Veículo é utilizado para alguma das atividades abaixo?')
                                     ->multiple()
                                     ->options(['comercial' => 'Atividade Comercial', 'trabalho' => 'Ir ao Trabalho', 'estudo' => 'Ir a faculdade, escola ou pós-graduação'])
-                                    ->live()->nullable(),
+                                    ->live()
+                                    ->nullable(),
                                 Forms\Components\Select::make('detalhe_uso_comercial')
                                     ->label('Qual o tipo de uso comercial?')
                                     ->visible(fn (Get $get): bool => in_array('comercial', $get('uso') ?? []))
@@ -145,7 +152,8 @@ class CotacaoResource extends Resource
                                     ->label('Durante o trabalho/estudo, fica estacionado onde?')
                                     ->visible(fn (Get $get): bool => in_array('trabalho', $get('uso') ?? []) || in_array('estudo', $get('uso') ?? []))
                                     ->options(['garagem' => 'Garagem', 'rua' => 'Rua', 'estacionamento' => 'Estacionamento'])
-                                    ->inline()->multiple(),
+                                    ->inline()
+                                    ->multiple(),
                             ]),
                         Forms\Components\Fieldset::make('noite')
                             ->label('Onde o veículo fica à noite?')
@@ -179,6 +187,73 @@ class CotacaoResource extends Resource
             ]);
     }
 
+    //RESIDENCIAL
+    private static function getResidencialSchema(): Forms\Components\Component
+    {
+        return Forms\Components\Group::make()
+            ->visible(function (Get $get) {
+                $produtoId = $get('../produto_id');
+                if (! $produtoId) return false;
+                return \App\Models\Produto::find($produtoId)?->ramo === 'Residencial';
+            })
+            ->schema([
+                Forms\Components\Section::make('Dados da Residência')->icon('heroicon-o-home')
+                ->schema([
+                    Forms\Components\Section::make('Dados do Imóvel')
+                        ->icon('heroicon-o-home')
+                        ->schema([
+                            Forms\Components\Select::make('tipo_moradia')
+                                ->label('Tipo de residência')
+                                ->required()
+                                ->options([
+                                    'casa' => 'Casa',
+                                    'apartamento' => 'Apartamento',
+                                    'condominio_horizontal' => 'Condomínio Horizontal',
+                                ])
+                                ->live(),
+                            Forms\Components\Select::make('detalhe_apartamento')
+                                ->label('Tipo de Apartamento')
+                                ->visible(fn (Forms\Get $get): bool => $get('tipo_moradia') === 'apartamento')
+                                ->options([
+                                    'pavimento_terreo' => 'Pavimento Térreo',
+                                    'pavimento_superior' => 'Pavimento Superior',
+                                    'cobertura' => 'Cobertura',
+                                    'sobrado' => 'Sobrado',
+                                ]),
+                            Forms\Components\Fieldset::make('Endereço do Imóvel')
+                                ->schema([
+                                    Forms\Components\TextInput::make('rua')->label('Rua')->required(),
+                                    Forms\Components\TextInput::make('numero')->label('Número')->required(),
+                                    Forms\Components\TextInput::make('bairro')->label('Bairro')->required(),
+                                    Forms\Components\TextInput::make('complemento')->label('Complemento'),
+                                    Forms\Components\TextInput::make('cidade')->label('Cidade')->required(),
+                                    Forms\Components\TextInput::make('uf')->label('UF')->required()->maxLength(2)->extraAttributes(['style'=>'text-transform: uppercase']),
+                                    Forms\Components\TextInput::make('cep')->label('CEP')->required()->mask('99.999-999')->stripCharacters(['.', '-']),
+                                ]),
+                        ]),
+                        Forms\Components\Section::make('Região')
+                        ->icon('heroicon-o-home')
+                        ->schema([
+                            Forms\Components\Select::make('regiao')
+                                ->label('Qual o local?')
+                                ->required()
+                                ->options([
+                                    'urbano' => 'Urbano',
+                                    'rural' => 'Rural',
+                                ]),
+                            Forms\Components\Select::make('uso_residencia')
+                                ->label('Detalhe da Região')
+                                ->options([
+                                    'habitavel' => 'Habitável',
+                                    'veraneio' => 'Veraneio',
+                                ]),
+                        ]),
+                ]),
+            ]);
+    }
+
+
+    //VIDA
     private static function getVidaSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
@@ -196,21 +271,9 @@ class CotacaoResource extends Resource
             ]);
     }
 
-    private static function getResidencialSchema(): Forms\Components\Component
-    {
-        return Forms\Components\Group::make()
-            ->visible(function (Get $get) {
-                $produtoId = $get('../produto_id');
-                if (! $produtoId) return false;
-                return \App\Models\Produto::find($produtoId)?->ramo === 'Residencial';
-            })
-            ->schema([
-                Forms\Components\Section::make('Dados da Residência')->icon('heroicon-o-home')
-                ->schema([
-                    //FIELDS
-                ]),
-            ]);
-    }
+    // =========================================================================
+    // COBERTURAS
+    // =========================================================================
 
     private static function getCoberturasAutoSchema(): Forms\Components\Component
     {

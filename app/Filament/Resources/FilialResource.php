@@ -18,9 +18,10 @@ use Filament\Tables\Actions\ActionGroup;
 class FilialResource extends Resource
 {
     protected static ?string $model = Filial::class;
-
+    protected static ?string $modelLabel = 'Filial';
+    protected static ?string $pluralModelLabel = 'Filiais';
+    protected static ?string $slug = 'filiais';
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
-    protected static ?string $navigationLabel = 'Filiais';
 
     public static function form(Form $form): Form
     {
