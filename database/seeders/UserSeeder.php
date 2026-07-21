@@ -67,5 +67,13 @@ class UserSeeder extends Seeder
                 'perfil_acesso' => 'Cliente'
             ]);
         }
+
+        User::factory()->create([
+            'name' => 'Corretor Teste',
+            'email' => 'corretor_test@exemplo.com',
+            'password' => 'password',
+            'status' => true,
+        ]);
+
     }
 }

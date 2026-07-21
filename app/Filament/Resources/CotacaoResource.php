@@ -289,7 +289,14 @@ class CotacaoResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('cobertura_id')
                             ->label('Cobertura')
-                            ->options(['colisao' => 'Colisão (Casco)', 'terceiros' => 'Danos a Terceiros', 'vidros' => 'Vidros'])
+                            ->options([
+                                'colisao' => 'Colisão (Casco)',
+                                'terceiros' => 'Danos a Terceiros',
+                                'vidros' => 'Vidros',
+                                'roubo_furto' => 'Roubo e Furto',
+                                'assistencia_24h' => 'Assistência 24h',
+                                'carro_reserva' => 'Carro Reserva',
+                                ])
                             ->required(),
                         Forms\Components\TextInput::make('lmi')
                             ->label('Limite Máximo de Indenização (R$)')
