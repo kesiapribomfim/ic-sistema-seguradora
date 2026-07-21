@@ -152,7 +152,7 @@ class SeguradoResource extends Resource
                     })
                     ->weight(\Filament\Support\Enums\FontWeight::Bold)
                     //->sortable() (em ordem alfabetica)
-                    ->description(fn ($record) => $record->user->name),
+                    ->description(fn ($record) => "Corretor: {$record->user->name}"),
                     Tables\Columns\TextColumn::make('email'),
 
             ])
