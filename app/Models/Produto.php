@@ -14,21 +14,24 @@ class Produto extends Model
         'codigo',
         'ramo',
         'descricao',
-        'lista_resumida',
         'status',
         'versao',
-        'coberturas',
         'parametros_calculo',
     ];
 
     protected $casts = [
         'status' => 'boolean',
-        'coberturas' => 'array',
         'parametros_calculo' => 'array',
     ];
 
     public function cotacoes(){
         return $this->hasMany(Cotacao::class);
+    }
+
+    public function coberturas(){
+        return $this->belongsToMany(Cobertura::class, 'cobertura_produto')
+        ->withPivot('limite_maximo')
+        ->withTimestamps();
     }
 
 

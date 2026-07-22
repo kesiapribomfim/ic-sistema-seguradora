@@ -11,18 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('produtos', function (Blueprint $table) {
+        Schema::create('coberturas', function (Blueprint $table) {
             $table->id();
+            $table->string('ramo');
             $table->string('nome');
-            $table->string('codigo', length: 20)->unique();
-            $table->string('ramo', length: 11); //auto, vida ou residencial
-            
             $table->text('descricao');
-            $table->boolean('status')->default(false);
-            $table->string('versao', length: 15);
-            
-            $table->jsonb('parametros_calculo');
-
             $table->timestamps();
         });
     }
@@ -32,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('produtos');
+        Schema::dropIfExists('coberturas');
     }
 };

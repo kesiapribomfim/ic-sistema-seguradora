@@ -348,7 +348,9 @@ class CotacaoResource extends Resource
                         $ramoEscolhido = $get ('../ramo');
                         if (! $ramoEscolhido) return[];
 
-                        return \App\Models\Produto::where('ramo', $ramoEscolhido)->pLuck('nome','id');
+                        return \App\Models\Produto::where('ramo', $ramoEscolhido)
+                            ->where('status', true)
+                            ->pLuck('nome','id');
                     })
                     ->inline()
                     ->live()
@@ -356,37 +358,41 @@ class CotacaoResource extends Resource
                     ->afterStateUpdated(function (Forms\Set $set, $state){
                         if (! $state) {
                             $set ('coberturas_selecionadas', []);
-                            return;
+                             return;
                         }
 
-                        $produto = \App\Models\Produto::find($state);
+                        $produto = \App\Models\Produto::with('coberturas')->find($state);
 
-                        if ($produto) {
-                           if (!empty($produto->coberturas) && is_array($produto->coberturas)) {
-                                $set('coberturas_selecionadas', $produto->coberturas);
-                            } else {
-                                $set('coberturas_selecionadas', []);
-                            }
+                        if ($produto && $produto->coberturas->isNotEmpty()) {
+
+                           $coberturasFormatadas = $produto->coberturas->map(function ($cobertura) {
+                                return [
+                                    'cobertura_id' => $cobertura->id, 
+                                    'nome_cobertura' => $cobertura->nome, 
+                                    'limite_maximo' => $cobertura->pivot->limite_maximo, 
+                                ];
+                            })->toArray(); 
+
+                            $set('coberturas_selecionadas', $coberturasFormatadas);
+                            
+                        } else {
+                            $set('coberturas_selecionadas', []);
                         }
                     }),
 
                 Forms\Components\Repeater::make('coberturas_selecionadas')
                     ->label('Coberturas da Cotação')
                     ->schema([
-                        Forms\Components\Select::make('cobertura_id')
+                        // Campo invisível, serve só para guardar o ID no banco na hora de salvar
+                        Forms\Components\Hidden::make('cobertura_id'), 
+
+                        // Mostra o nome, mas bloqueia para o corretor não alterar a regra do produto
+                        Forms\Components\TextInput::make('nome_cobertura')
                             ->label('Cobertura')
-                            ->options([
-                                'colisao' => 'Colisão (Casco)',
-                                'terceiros' => 'Danos a Terceiros',
-                                'vidros' => 'Vidros',
-                                'roubo_furto' => 'Roubo e Furto',
-                                'assistencia_24h' => 'Assistência 24h',
-                                'carro_reserva' => 'Carro Reserva',
-                                'incendio' => 'Incêndio',
-                                'natureza' => 'Danos da natureza',
-                            ]) 
-                            ->required(),
-                        Forms\Components\TextInput::make('lmi')
+                            ->disabled(),
+                            
+                        // Campo livre para o corretor ajustar o LMI se for necessário
+                        Forms\Components\TextInput::make('limite_maximo')
                             ->label('Limite Máximo de Indenização (R$)')
                             ->numeric()
                             ->prefix('R$')
@@ -394,6 +400,9 @@ class CotacaoResource extends Resource
                     ])
                     ->columns(2)
                     ->defaultItems(0)
+                    // Travas de segurança opcionais, mas recomendadas:
+                    ->addable(false) // Impede de criar linhas vazias
+                    ->deletable(false) // Impede de apagar as coberturas obrigatórias do plano
             ]);
     }
 

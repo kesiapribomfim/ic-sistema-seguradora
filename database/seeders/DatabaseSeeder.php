@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             FilialSeeder::class,
             UserSeeder::class,
             SeguradoSeeder::class,
+            CoberturaSeeder::class,
             ProdutoSeeder::class,
         ]);
 

@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Toggle;
+use Filament\Resources\RelationManagers\RelationManager;
 
 class ProdutoResource extends Resource
 {
@@ -65,12 +66,12 @@ class ProdutoResource extends Resource
                 Forms\Components\Section::make('Parâmetros Financeiros (Base)')
                     ->columns(2)
                     ->schema([
-                        Forms\Components\TextInput::make('taxa_base')
+                        Forms\Components\TextInput::make('parametros_calculo.taxa_base')
                             ->label('Taxa Base (%)')
                             ->numeric()
                             ->required(),
                             
-                        Forms\Components\TextInput::make('valor_franquia')
+                        Forms\Components\TextInput::make('parametros_calculo.valor_franquia')
                             ->label('Valor Base da Franquia (R$)')
                             ->numeric(),
                     ]),
@@ -79,7 +80,9 @@ class ProdutoResource extends Resource
                     ->schema([
                         Toggle::make('status')
                             ->label('Produto Ativo')
-                            ->default(true),
+                            ->default(false) 
+                            ->hiddenOn('create') 
+                            ->helperText('O produto só deve ser ativado após o cadastro das coberturas.'),
                     ]),
             ]);
     }
@@ -129,7 +132,7 @@ class ProdutoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\CoberturasRelationManager::class,
         ];
     }
 
