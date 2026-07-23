@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Get;
 use Filament\Forms\Components\Wizard;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,9 +29,8 @@ class CotacaoResource extends Resource
         return $form
             ->schema([
                 Wizard::make([
-                    Wizard\Step::make('Cliente e Ramo')
-                        ->schema(self::getClienteRamoSchema())
-                        ->columns(2),
+                    Wizard\Step::make('Cliente e Produto')
+                        ->schema(self::getClienteRamoSchema()),
 
                     Wizard\Step::make('Dados Específicos')
                         ->statePath('dados_especificos')
@@ -41,16 +41,15 @@ class CotacaoResource extends Resource
                         ]),
 
                     Wizard\Step::make('Coberturas')
-                        ->statePath('dados_especificos')
+                        //->statePath('dados_especificos')
                         ->schema([
-                            self::getCoberturasAutoSchema(),
-                            self::getCoberturasResidencialSchema(),
-                            self::getCoberturasVidaSchema()
+                            self::getCoberturasSchema(),
                         ]),
 
                     Wizard\Step::make('Status e Validade')
-                        ->schema(self::getStatusValidadeSchema())
-                        ->columns(2),
+                        ->schema([
+                            self::getResumoSchema()
+                        ]),
 
                 ])->columnSpanFull(),
             ]);
@@ -73,8 +72,7 @@ class CotacaoResource extends Resource
                 ->preload()   
                 ->required()
                 ->helperText(fn () => new HtmlString('Cadastrar novo cliente <a href="' . \App\Filament\Resources\SeguradoResource::getUrl('create') . '" class="text-primary-600 underline">aqui</a>.')),
-            
-            Forms\Components\Select::make('ramo')
+            Forms\Components\ToggleButtons::make('ramo')
                 ->label('Selecione o Ramo do Produto')
                 ->options([
                     'Auto' => 'Auto',
@@ -82,28 +80,58 @@ class CotacaoResource extends Resource
                     'Vida' => 'Vida',
                 ])
                 ->live()
+                ->inline()
                 ->required()
-                ->dehydrated(false),
+                ->dehydrated(false)
+                ->afterStateUpdated(fn (Forms\Set $set) => $set('produto_id', null)),
 
-            Forms\Components\Select::make('user_id')
-                ->label('Corretor Responsável')
-                ->relationship('user', 'name')
-                ->default(fn () => Auth::id())
-                ->disabled()
-                ->dehydrated()
-                ->required(),
+            Forms\Components\Select::make('produto_id')
+                ->label('Selecione o produto')
+                ->options(function (Forms\Get $get) {
+                    $ramoEscolhido = $get('ramo');
+                    if (! $ramoEscolhido) return [];
 
-            Forms\Components\Select::make('filial_id')
-                ->label('Filial')
-                ->relationship('filial', 'nome')
-                ->default(function () {
-                    /** @var \App\Models\User $user */
-                    $user = Auth::user();
-                    return $user?->filiais()->first()?->id;
+                    return \App\Models\Produto::where('ramo', $ramoEscolhido)
+                        ->where('status', true)
+                        ->pluck('nome','id');
                 })
-                ->disabled()
-                ->dehydrated()
+                ->live()
                 ->required(),
+                
+            Forms\Components\Fieldset::make('Vínculos')
+                ->schema([
+                        Forms\Components\Placeholder::make('user_visual')
+                            ->label('Corretor Responsável')
+                            ->content(fn () => \Illuminate\Support\Facades\Auth::user()->name),
+                
+                        //salva no banco
+                        Forms\Components\Hidden::make('user_id')
+                            ->default(fn () => \Illuminate\Support\Facades\Auth::id()),
+
+                        Forms\Components\Placeholder::make('filial_visual')
+                            ->label('Filial')
+                            ->content(function(){
+                                $user = \Illuminate\Support\Facades\Auth::user();
+
+                                $filial = $user->filiais()
+                                    ->wherePivot('perfil_acesso','Corretor')
+                                    ->first();
+                                return $filial ? $filial->nome :  new \Illuminate\Support\HtmlString(
+                                                    '<span style="color: #ef4444; font-weight: bold;">
+                                                    ⚠️ Nenhuma filial vinculada ao corretor</span>');
+                            }),
+
+                        //salva no banco
+                        Forms\Components\Hidden::make('filial_id')
+                            ->default(function(){
+                                $user = \Illuminate\Support\Facades\Auth::user();
+
+                                $filial = $user->filiais()
+                                            ->wherePivot('perfil_acesso', 'Corretor')
+                                            ->first();
+                                return $filial?->id;
+                            }) ->columns(2),
+                ]), 
         ];
     }
     // =========================================================================
@@ -315,17 +343,46 @@ class CotacaoResource extends Resource
     private static function getVidaSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(function (Get $get) {
-                $ramo = $get('../ramo');
-                if (! $ramo) return false;
-                return $ramo === 'Vida';
-            })
+            ->visible(fn (Forms\Get $get) => $get('ramo') === 'Vida')
+            // O dehydrated garante que esses dados só vão pro JSON se o ramo for Vida
+            ->dehydrated(fn (Forms\Get $get) => $get('ramo') === 'Vida')
             ->schema([
-                Forms\Components\Section::make('Dados do Segurado')
-                    ->icon('heroicon-o-user')
+                Forms\Components\Repeater::make('composicao_plano')
+                    ->label('Pessoas Seguradas (Titular e Dependentes)')
                     ->schema([
-                        //FIELDS
-                    ]),
+                        Forms\Components\TextInput::make('nome')
+                            ->label('Nome Completo')
+                            ->required(),
+                            
+                        Forms\Components\Select::make('parentesco')
+                            ->options([
+                                'titular' => 'Titular Principal',
+                                'conjuge' => 'Cônjuge',
+                                'filho' => 'Filho(a)',
+                                'outro' => 'Outro',
+                            ])
+                            ->required(),
+
+                        Forms\Components\DatePicker::make('data_nascimento')
+                            ->label('Data de Nascimento')
+                            ->required(),
+
+                        Forms\Components\Select::make('profissao_risco')
+                            ->label('Profissão de Risco?')
+                            ->options([
+                                'nao' => 'Não',
+                                'sim' => 'Sim',
+                            ])
+                            ->required(),
+
+                        Forms\Components\Toggle::make('fumante')
+                            ->label('Fumante?'),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(1) // Começa com 1 item em branco
+                    ->minItems(1) // Obriga ter pelo menos o titular
+                    ->addActionLabel('Adicionar Dependente')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -333,19 +390,15 @@ class CotacaoResource extends Resource
     // COBERTURAS
     // =========================================================================
 
-    private static function getCoberturasAutoSchema(): Forms\Components\Component
+    private static function getCoberturasSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(function (Get $get) {
-                $ramo = $get('../ramo');
-                if (! $ramo) return false;
-                return $ramo === 'Auto';
-            })
+            ->visible(fn (Forms\Get $get) => filled(($get('ramo'))))
             ->schema([
                 Forms\Components\ToggleButtons::make('produto_id')
                     ->label('Selecione um plano')
                     ->options(function (Forms\Get $get) {
-                        $ramoEscolhido = $get ('../ramo');
+                        $ramoEscolhido = $get ('ramo');
                         if (! $ramoEscolhido) return[];
 
                         return \App\Models\Produto::where('ramo', $ramoEscolhido)
@@ -383,15 +436,12 @@ class CotacaoResource extends Resource
                 Forms\Components\Repeater::make('coberturas_selecionadas')
                     ->label('Coberturas da Cotação')
                     ->schema([
-                        // Campo invisível, serve só para guardar o ID no banco na hora de salvar
                         Forms\Components\Hidden::make('cobertura_id'), 
 
-                        // Mostra o nome, mas bloqueia para o corretor não alterar a regra do produto
                         Forms\Components\TextInput::make('nome_cobertura')
                             ->label('Cobertura')
                             ->disabled(),
                             
-                        // Campo livre para o corretor ajustar o LMI se for necessário
                         Forms\Components\TextInput::make('limite_maximo')
                             ->label('Limite Máximo de Indenização (R$)')
                             ->numeric()
@@ -400,152 +450,91 @@ class CotacaoResource extends Resource
                     ])
                     ->columns(2)
                     ->defaultItems(0)
-                    // Travas de segurança opcionais, mas recomendadas:
-                    ->addable(false) // Impede de criar linhas vazias
-                    ->deletable(false) // Impede de apagar as coberturas obrigatórias do plano
+                    ->addable(false)
+                    ->deletable(false),
             ]);
     }
 
-    private static function getCoberturasResidencialSchema(): Forms\Components\Component
+    // =========================================================================
+    // RESUMO E FINALIZAÇÃO
+    // =========================================================================
+
+    private static function getResumoSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(function (Get $get) {
-                $ramo = $get('../ramo');
-                if (! $ramo) return false;
-                return $ramo === 'Residencial';
-            })
             ->schema([
-                Forms\Components\ToggleButtons::make('produto_id')
-                    ->label('Selecione um plano')
-                    ->options(function (Forms\Get $get) {
-                        $ramoEscolhido = $get ('../ramo');
-                        if (! $ramoEscolhido) return[];
-
-                        return \App\Models\Produto::where('ramo', $ramoEscolhido)->pLuck('nome','id');
-                    })
-                    ->inline()
-                    ->live()
-                    ->required()
-                    ->afterStateUpdated(function (Forms\Set $set, $state){
-                        if (! $state) {
-                            $set ('coberturas_selecionadas', []);
-                            return;
-                        }
-
-                        $produto = \App\Models\Produto::find($state);
-
-                        if ($produto) {
-                           if (!empty($produto->coberturas) && is_array($produto->coberturas)) {
-                                $set('coberturas_selecionadas', $produto->coberturas);
-                            } else {
-                                $set('coberturas_selecionadas', []);
-                            }
-                        }
-                    }),
-
-                Forms\Components\Repeater::make('coberturas_selecionadas')
-                    ->label('Coberturas da Cotação')
+                Forms\Components\Section::make('Revisão dos Dados')
                     ->schema([
-                        Forms\Components\Select::make('cobertura_id')
-                            ->label('Cobertura')
-                            ->options([
-                                'danos_eletricos' => 'Danos Elétricos',
-                                'incendio_raio_explosao' => 'Incêncio, raio e explosão',
-                                'roubo_furto' => 'Roubo e Furto',
-                                'resp_civil' => 'Responsabilidade Civil',
-                                'danos_vidros' => 'Danos a Vidros',
-                                'impacto_veiculo' => 'Impacto de auto ou avião',
-                                'vendaval_granizo_tornado' => 'Vendaval, granizo e tornado',
-                            ]) 
-                            ->required(),
-                        Forms\Components\TextInput::make('lmi')
-                            ->label('Limite Máximo de Indenização (R$)')
-                            ->numeric()
-                            ->prefix('R$')
-                            ->required(),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
-            ]);
-    }
+                        Forms\Components\Placeholder::make('resumo_cliente')
+                            ->label('Cliente Selecionado')
+                            ->content( function (Forms\Get $get){
+                                $seguradoId = $get('segurado_id');
 
-    private static function getCoberturasVidaSchema(): Forms\Components\Component
-    {
-        return Forms\Components\Group::make()
-            ->visible(function (Get $get) {
-                $ramo = $get('../ramo');
-                if (! $ramo) return false;
-                return $ramo === 'Vida';
-            })
-            ->schema([
-                Forms\Components\ToggleButtons::make('produto_id')
-                    ->label('Selecione um plano')
-                    ->options(function (Forms\Get $get) {
-                        $ramoEscolhido = $get ('../ramo');
-                        if (! $ramoEscolhido) return[];
+                                if (! $seguradoId) {
+                                    return 'Nenhum cliente selecionado';
+                                }
 
-                        return \App\Models\Produto::where('ramo', $ramoEscolhido)->pLuck('nome','id');
-                    })
-                    ->inline()
-                    ->live()
-                    ->required()
-                    ->afterStateUpdated(function (Forms\Set $set, $state){
-                        if (! $state) {
-                            $set ('coberturas_selecionadas', []);
-                            return;
-                        }
+                                $cliente = \App\Models\Segurado::with(['seguradoPf','seguradoPj'])->find($seguradoId);
 
-                        $produto = \App\Models\Produto::find($state);
+                                if(! $cliente){
+                                    return 'Erro ao buscar cliente';
+                                }
+                                if($cliente->tipo === 'PF'){
+                                    return "{$cliente->seguradoPf?->nome} (CPF:{$cliente->seguradoPf->cpf})";
+                                } else{
+                                    return "{$cliente->seguradoPj?->razao_social} (CNPJ:{$cliente->seguradoPj->cnpj})";
+                                }
 
-                        if ($produto) {
-                           if (!empty($produto->coberturas) && is_array($produto->coberturas)) {
-                                $set('coberturas_selecionadas', $produto->coberturas);
-                            } else {
-                                $set('coberturas_selecionadas', []);
-                            }
-                        }
-                    }),
+                            }),
 
-                Forms\Components\Repeater::make('coberturas_selecionadas')
-                    ->label('Coberturas da Cotação')
+                        // Mostra o Produto
+                        Forms\Components\Placeholder::make('resumo_produto')
+                            ->label('Plano Escolhido')
+                            ->content(function (Forms\Get $get) {
+                                if (!$get('produto_id')) return 'Nenhum plano selecionado';
+                                $produto = \App\Models\Produto::find($get('produto_id'));
+                                return $produto ? $produto->nome : 'Erro ao buscar';
+                            }),
+
+                        // O Alerta Inteligente de Alçada (O pulo do gato!)
+                        Forms\Components\Placeholder::make('analise_risco')
+                            ->label('Análise Preliminar de Risco')
+                            ->content(function (Forms\Get $get) {
+                                $coberturas = $get('coberturas_selecionadas') ?? [];
+                                
+                                // Soma todos os Limites Máximos preenchidos no Repeater
+                                $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
+
+                                // Se a soma dos limites passar de 500 mil (exemplo), dispara o alerta
+                                if ($somaLmi > 500000) {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<span style="color: #ef4444; font-weight: bold;">
+                                        ⚠️ O valor total de risco (R$ ' . number_format($somaLmi, 2, ',', '.') . ') excede a alçada automática. Esta cotação será enviada para aprovação do Subscritor.
+                                        </span>'
+                                    );
+                                }
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<span style="color: #10b981; font-weight: bold;">
+                                    ✅ Risco dentro da alçada operacional. A cotação será liberada diretamente para o cliente.
+                                    </span>'
+                                );
+                            })
+                            ->columnSpanFull(),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Finalização')
                     ->schema([
-                        Forms\Components\Select::make('cobertura_id')
-                            ->label('Cobertura')
-                            ->options([
-                                'morte' => 'Morte (qualquer causa)',
-                                'invalidez_permanente_total' => 'Invalidez permanente total por acidente',
-                                'dobro_morte_acidental' => 'Indenização em Dobro por Morte Acidental',
-                                'antecipacao_doenca' => 'Antecipação Especial por Doença',
-                                'diaria_incapacidade_temp' => 'Diárias por Incapacidade Temporária',
-                                'despesa_hospitalar_odonto' => 'Despesas Médico-hospitalares e Odontológicas',
-                                'assistencia_funeral' => 'Assistência Funeral',
-                                'invalidez_pernamente' => 'Invalidez permanente por acidente',
-                            ]) 
+                        // O documento exige a validade padrão de 30 dias
+                        Forms\Components\DatePicker::make('validade')
+                            ->label('Validade da Proposta')
+                            ->default(now()->addDays(30)) 
                             ->required(),
-                        Forms\Components\TextInput::make('lmi')
-                            ->label('Limite Máximo de Indenização (R$)')
-                            ->numeric()
-                            ->prefix('R$')
-                            ->required(),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
+                            
+                        // Mantemos o status como invisível no formulário para ser preenchido via código
+                        Forms\Components\Hidden::make('status')
+                    ]),
             ]);
-    }
-
-    private static function getStatusValidadeSchema(): array
-    {
-        return [
-            Forms\Components\Select::make('status')
-                ->label('Status da Cotação')
-                ->options(['Em Elaboração' => 'Em Elaboração', 'Enviado ao Cliente' => 'Enviado ao Cliente', 'Aceita' => 'Aceita', 'Recusada' => 'Recusada', 'Expirada' => 'Expirada'])
-                ->default('Em Elaboração'),
-            Forms\Components\DatePicker::make('validade')
-                ->label('Validade da Cotação')
-                ->required()
-                ->default(now()->addDays(30))
-                ->minDate(now()),
-        ];
     }
 
     // =========================================================================
@@ -556,10 +545,14 @@ class CotacaoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('Cotação')->weight(\Filament\Support\Enums\FontWeight::Bold)->description(fn ($record) => $record->produto->nome)->sortable(),
-                Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável'),
+                Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável')
+                    ->sortable(),
+                    // ->searchable(),
                 Tables\Columns\TextColumn::make('identificacao_segurado')->label('Cliente')
-                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social),
+                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social)
+                    ->sortable(),
+                    // ->searchable(),
+                Tables\Columns\TextColumn::make('produto.nome')->label('Produto')->sortable(),
                 Tables\Columns\TextColumn::make('status')->badge()
                     ->colors(['info' => 'Em Elaboração', 'success' => 'Aceita', 'danger' => 'Recusada', 'warning' => 'Enviado ao Cliente', 'primary' => 'Expirada']),
             ])

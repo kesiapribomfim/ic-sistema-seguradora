@@ -20,8 +20,19 @@ class UserSeeder extends Seeder
             'password' => 'password',
             'status' => true,
         ]);
+        
+        $corretor = User::factory()->create([
+            'name' => 'Elean',
+            'email' => 'elean@corretor.com',
+            'password' => 'password',
+            'status' => true,
+        ]);
 
         $filiais = Filial::all();
+
+        $corretor->filiais()->attach($filiais->random()->id, [
+            'perfil_acesso' => 'Corretor'
+        ]);
 
         $perfis = [
             'Gestor de Filial', 

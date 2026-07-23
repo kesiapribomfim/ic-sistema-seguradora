@@ -75,6 +75,9 @@ class FilialResource extends Resource
                 Tables\Columns\TextColumn::make('nome')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('telefone'),
+                Tables\Columns\TextColumn::make('uf')
+                    ->label('UF'),
+                //ADICIONAR COLUNA COM NOME DO GESTOR DA FILIAL
                                 
             ])
             ->filters([
