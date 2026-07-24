@@ -15,6 +15,7 @@ use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
+use Filament\Infolists\Components\Tabs;
 
 class CotacaoResource extends Resource
 {
@@ -41,12 +42,11 @@ class CotacaoResource extends Resource
                         ]),
 
                     Wizard\Step::make('Coberturas')
-                        //->statePath('dados_especificos')
                         ->schema([
                             self::getCoberturasSchema(),
                         ]),
 
-                    Wizard\Step::make('Status e Validade')
+                    Wizard\Step::make('Validade')
                         ->schema([
                             self::getResumoSchema()
                         ]),
@@ -83,7 +83,10 @@ class CotacaoResource extends Resource
                 ->inline()
                 ->required()
                 ->dehydrated(false)
-                ->afterStateUpdated(fn (Forms\Set $set) => $set('produto_id', null)),
+                ->afterStateUpdated(function (Forms\Set $set) {
+                    $set('produto_id', null);
+                    $set('cobertura_selecionada', []);
+                }),
 
             Forms\Components\Select::make('produto_id')
                 ->label('Selecione o produto')
@@ -96,42 +99,90 @@ class CotacaoResource extends Resource
                         ->pluck('nome','id');
                 })
                 ->live()
-                ->required(),
-                
-            Forms\Components\Fieldset::make('Vínculos')
+                ->required()
+                ->afterStateUpdated(function (Forms\Set $set, $state) {
+                    if (! $state) {
+                        $set('cobertura_selecionada', []); 
+                         return;
+                    }
+
+                    $produto = \App\Models\Produto::with('coberturas')->find($state);
+
+                    if ($produto && $produto->coberturas->isNotEmpty()) {
+                       $coberturasFormatadas = [];
+                       
+                       foreach ($produto->coberturas as $cobertura) {
+                           $uuid = (string) \Illuminate\Support\Str::uuid();
+                           $isObrigatoria = (bool) $cobertura->pivot->obrigatoria;
+                           $coberturasFormatadas[$uuid] = [
+                               'cobertura_id' => $cobertura->id, 
+                               'nome_cobertura' => $cobertura->nome, 
+                               'limite_maximo'  => $cobertura->pivot->limite_maximo,
+                               'obrigatoria'    => $isObrigatoria, 
+                               'contratada'     => true,
+                           ];
+                       }
+                        $set('cobertura_selecionada', $coberturasFormatadas);
+                    } else {
+                        $set('cobertura_selecionada', []);
+                    }
+                }),
+                Forms\Components\Fieldset::make('Informações do Sistema')
                 ->schema([
-                        Forms\Components\Placeholder::make('user_visual')
-                            ->label('Corretor Responsável')
-                            ->content(fn () => \Illuminate\Support\Facades\Auth::user()->name),
-                
-                        //salva no banco
-                        Forms\Components\Hidden::make('user_id')
-                            ->default(fn () => \Illuminate\Support\Facades\Auth::id()),
+                    Forms\Components\Placeholder::make('status_visual')
+                        ->label('Status da Cotação')
+                        ->content(function ($record) {
+                            $status = $record ? $record->status : 'Em Elaboração';
+                            
+                            $cor = match($status) {
+                                'Em Elaboração' => '#3b82f6',      // Corresponde ao 'info' (Azul)
+                                'Enviado ao Cliente' => '#f59e0b', // Corresponde ao 'warning' (Laranja)
+                                'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
+                                'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
+                                'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)
+                                default => '#6b7280',              
+                            };
+                            
+                            return new \Illuminate\Support\HtmlString(
+                                "<span style='color: {$cor}; font-weight: bold;'>{$status}</span>"
+                            );
+                        }),
 
-                        Forms\Components\Placeholder::make('filial_visual')
-                            ->label('Filial')
-                            ->content(function(){
-                                $user = \Illuminate\Support\Facades\Auth::user();
+                    Forms\Components\Hidden::make('status')
+                        ->default('Em Elaboração'),
+                        
+                    Forms\Components\Hidden::make('user_id')
+                        ->default(fn () => \Illuminate\Support\Facades\Auth::id()),
 
-                                $filial = $user->filiais()
-                                    ->wherePivot('perfil_acesso','Corretor')
-                                    ->first();
-                                return $filial ? $filial->nome :  new \Illuminate\Support\HtmlString(
-                                                    '<span style="color: #ef4444; font-weight: bold;">
-                                                    ⚠️ Nenhuma filial vinculada ao corretor</span>');
-                            }),
+                    Forms\Components\Placeholder::make('user_visual')
+                        ->label('Corretor Responsável')
+                        ->content(fn () => \Illuminate\Support\Facades\Auth::user()->name),
+            
+                    Forms\Components\Hidden::make('user_id')
+                        ->default(fn () => \Illuminate\Support\Facades\Auth::id()),
 
-                        //salva no banco
-                        Forms\Components\Hidden::make('filial_id')
-                            ->default(function(){
-                                $user = \Illuminate\Support\Facades\Auth::user();
+                    Forms\Components\Placeholder::make('filial_visual')
+                        ->label('Filial')
+                        ->content(function(){
+                            $user = \Illuminate\Support\Facades\Auth::user();
+                            $filial = $user->filiais()
+                                ->wherePivot('perfil_acesso','Corretor')
+                                ->first();
+                                
+                            return $filial ? $filial->nome :  new \Illuminate\Support\HtmlString(
+                                '<span style="color: #ef4444; font-weight: bold;">⚠️ Nenhuma filial vinculada ao corretor</span>'
+                            );
+                        }),
 
-                                $filial = $user->filiais()
-                                            ->wherePivot('perfil_acesso', 'Corretor')
-                                            ->first();
-                                return $filial?->id;
-                            }) ->columns(2),
-                ]), 
+                    Forms\Components\Hidden::make('filial_id')
+                        ->default(function(){
+                            $user = \Illuminate\Support\Facades\Auth::user();
+                            $filial = $user->filiais()
+                                        ->wherePivot('perfil_acesso', 'Corretor')
+                                        ->first();
+                            return $filial?->id;
+                        }),
+                ])->columns(2),
         ];
     }
     // =========================================================================
@@ -340,118 +391,222 @@ class CotacaoResource extends Resource
 
 
     //VIDA
+    private static function getPerguntasComunsSchema(): array
+    {
+        return [
+            Forms\Components\Grid::make(2)->schema([
+                
+                Forms\Components\TextInput::make('peso')
+                    ->label('Peso (kg)')
+                    ->numeric()
+                    ->required(),
+                    
+                Forms\Components\TextInput::make('altura')
+                    ->label('Altura (cm)')
+                    ->numeric()
+                    ->required(),
+            ]),
+
+            Forms\Components\Select::make('profissao_risco')
+                ->label('Profissão de Risco?')
+                ->options(['nao' => 'Não', 'sim' => 'Sim'])
+                ->required(),
+                
+        ];
+    }
+
+    private static function getPerguntasSaudeSchema(): array
+    {
+        return [
+            Forms\Components\Grid::make(2)
+                ->schema([
+                    Forms\Components\Toggle::make('possui_doenca_preexistente')
+                        ->label('O proponente possui alguma doença preexistente?')
+                        ->live()
+                        ->columnSpanFull(),
+
+                    Forms\Components\CheckboxList::make('doencas_diagnosticadas')
+                        ->label('Selecione as condições já diagnosticadas')
+                        ->options([
+                            'cancer' => 'Câncer / Tumores',
+                            'avc' => 'Acidente Vascular Cerebral (AVC)',
+                            'infarto' => 'Infarto Agudo do Miocárdio',
+                            'alzheimer' => 'Doença de Alzheimer',
+                            'parkinson' => 'Mal de Parkinson',
+                            'esclerose_multipla' => 'Esclerose Múltipla',
+                            'osteomielite' => 'Osteomielite',
+                            'embolia_pulmonar' => 'Embolia Pulmonar',
+                            'outras' => 'Outras Condições (Especificar abaixo)',
+                        ])
+                        ->columns(2)
+                        ->default([])
+                        ->visible(fn (Forms\Get $get) => $get('possui_doenca_preexistente') === true),
+
+                    Forms\Components\Textarea::make('detalhes_saude')
+                                    ->label('Detalhes Adicionais do Histórico Médico')
+                                    ->placeholder('Informe a data do diagnóstico, tratamentos realizados, uso contínuo de medicamentos, etc.')
+                                    ->visible(fn (Forms\Get $get) => $get('possui_doenca_preexistente') === true)
+                                    ->columnSpanFull(),
+
+                                // Fatores de risco (Essenciais para a subscrição de Vida)
+                                Forms\Components\Fieldset::make('Hábitos e Fatores de Risco')
+                                    ->schema([
+                                        Forms\Components\Toggle::make('fumante')
+                                            ->label('Fumante?'),
+                                            
+                                        Forms\Components\Toggle::make('consome_alcool')
+                                            ->label('Consome bebida alcoólica?'),
+                                            
+                                        Forms\Components\Toggle::make('pratica_esportes_radicais')
+                                            ->label('Pratica esportes radicais?'),
+                                    ])->columns(3),
+                ])
+        ];
+    }
+
     private static function getVidaSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(fn (Forms\Get $get) => $get('ramo') === 'Vida')
-            // O dehydrated garante que esses dados só vão pro JSON se o ramo for Vida
+            ->visible(function (Forms\Get $get) {
+                $ramo = $get('../ramo');
+                if (! $ramo) return false;
+                return $ramo === 'Vida';
+            })
             ->dehydrated(fn (Forms\Get $get) => $get('ramo') === 'Vida')
             ->schema([
-                Forms\Components\Repeater::make('composicao_plano')
-                    ->label('Pessoas Seguradas (Titular e Dependentes)')
+                // ---------------------------------------------------------
+                // 1. DADOS DO TITULAR
+                // ---------------------------------------------------------
+                Forms\Components\Section::make('Dados de Saúde do Titular')
+                    ->icon('heroicon-o-user')
                     ->schema([
-                        Forms\Components\TextInput::make('nome')
-                            ->label('Nome Completo')
-                            ->required(),
-                            
-                        Forms\Components\Select::make('parentesco')
-                            ->options([
-                                'titular' => 'Titular Principal',
-                                'conjuge' => 'Cônjuge',
-                                'filho' => 'Filho(a)',
-                                'outro' => 'Outro',
+                        Forms\Components\Tabs::make('TabsTitular')
+                            ->tabs([
+                                Forms\Components\Tabs\Tab::make('Dados Pessoais')
+                                    ->icon('heroicon-o-users')
+                                    ->schema(self::getPerguntasComunsSchema()) 
+                                    ->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Saúde')
+                                    ->icon('heroicon-o-heart')
+                                    ->schema(self::getPerguntasSaudeSchema())
+                                    ->columns(2),
                             ])
-                            ->required(),
+                    ]),
 
-                        Forms\Components\DatePicker::make('data_nascimento')
-                            ->label('Data de Nascimento')
-                            ->required(),
+                // ---------------------------------------------------------
+                // 2. DEPENDENTES (Repeater, sem repetir o titular)
+                // ---------------------------------------------------------
+                Forms\Components\Repeater::make('dependentes_vida')
+                    ->label('Dependentes do Plano')
+                    ->schema([
+                        Forms\Components\Tabs::make('TabsDependente')
+                            ->tabs([
+                                Forms\Components\Tabs\Tab::make('Dados Pessoais')
+                                    ->icon('heroicon-o-users')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('nome')
+                                            ->label('Nome Completo')
+                                            ->required(),
+                                            
+                                        Forms\Components\Select::make('parentesco')
+                                            ->options([
+                                                'conjuge' => 'Cônjuge/Companheiro(a)',
+                                                'filho' => 'Filho(a)/Enteado(a)',
+                                            ])
+                                            ->live()
+                                            ->required(),
 
-                        Forms\Components\Select::make('profissao_risco')
-                            ->label('Profissão de Risco?')
-                            ->options([
-                                'nao' => 'Não',
-                                'sim' => 'Sim',
+                                        Forms\Components\DatePicker::make('data_nascimento')
+                                            ->label('Data de Nascimento')
+                                            ->required()
+                                            ->rules([
+                                                fn (Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $parentesco = $get('parentesco');
+                                                    if ($parentesco === 'filho') {
+                                                        $idade = \Carbon\Carbon::parse($value)->age;
+                                                        if ($idade > 21) {
+                                                            $fail('Filhos e enteados dependentes devem ter no máximo 21 anos.');
+                                                        }
+                                                    }
+                                                },
+                                            ]),
+                                    ])->columns(2),
+
+                                Forms\Components\Tabs\Tab::make('Saúde do Dependente')
+                                    ->icon('heroicon-o-heart')
+                                    ->schema(self::getPerguntasSaudeSchema()) 
+                                    ->columns(2),
                             ])
-                            ->required(),
-
-                        Forms\Components\Toggle::make('fumante')
-                            ->label('Fumante?'),
                     ])
-                    ->columns(2)
-                    ->defaultItems(1) // Começa com 1 item em branco
-                    ->minItems(1) // Obriga ter pelo menos o titular
+                    ->defaultItems(0) 
                     ->addActionLabel('Adicionar Dependente')
-                    ->columnSpanFull(),
+                    ->collapsible()
+                    ->itemLabel(fn (array $state): ?string => $state['nome'] ?? null),
+
+                // ---------------------------------------------------------
+                // 3. BENEFICIÁRIOS (Repeater Manual Simples)
+                // ---------------------------------------------------------
+                Forms\Components\Section::make('Destinação da Indenização')
+                    ->schema([
+                        Forms\Components\Repeater::make('beneficiarios_vida')
+                            ->label('Lista de Beneficiários')
+                            ->schema([
+                                Forms\Components\TextInput::make('nome')->required(),
+                                Forms\Components\TextInput::make('cpf')->mask('999.999.999-99'),
+                                Forms\Components\TextInput::make('percentual_rateio')
+                                    ->label('Rateio (%)')
+                                    ->numeric()->suffix('%')->maxValue(100)->required(),
+                            ])
+                            ->columns(3)
+                            ->defaultItems(1)
+                            ->helperText('A soma dos percentuais deve totalizar 100%.'),
+                    ]),
             ]);
     }
 
     // =========================================================================
     // COBERTURAS
     // =========================================================================
-
     private static function getCoberturasSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
             ->visible(fn (Forms\Get $get) => filled(($get('ramo'))))
             ->schema([
-                Forms\Components\ToggleButtons::make('produto_id')
-                    ->label('Selecione um plano')
-                    ->options(function (Forms\Get $get) {
-                        $ramoEscolhido = $get ('ramo');
-                        if (! $ramoEscolhido) return[];
 
-                        return \App\Models\Produto::where('ramo', $ramoEscolhido)
-                            ->where('status', true)
-                            ->pLuck('nome','id');
-                    })
-                    ->inline()
-                    ->live()
-                    ->required()
-                    ->afterStateUpdated(function (Forms\Set $set, $state){
-                        if (! $state) {
-                            $set ('coberturas_selecionadas', []);
-                             return;
-                        }
-
-                        $produto = \App\Models\Produto::with('coberturas')->find($state);
-
-                        if ($produto && $produto->coberturas->isNotEmpty()) {
-
-                           $coberturasFormatadas = $produto->coberturas->map(function ($cobertura) {
-                                return [
-                                    'cobertura_id' => $cobertura->id, 
-                                    'nome_cobertura' => $cobertura->nome, 
-                                    'limite_maximo' => $cobertura->pivot->limite_maximo, 
-                                ];
-                            })->toArray(); 
-
-                            $set('coberturas_selecionadas', $coberturasFormatadas);
-                            
-                        } else {
-                            $set('coberturas_selecionadas', []);
-                        }
-                    }),
-
-                Forms\Components\Repeater::make('coberturas_selecionadas')
-                    ->label('Coberturas da Cotação')
+                Forms\Components\Repeater::make('cobertura_selecionada')
+                    ->label('Coberturas Disponíveis no Plano')
                     ->schema([
                         Forms\Components\Hidden::make('cobertura_id'), 
+                        Forms\Components\Hidden::make('obrigatoria'), 
+
+                        // O GATILHO DE CONTRATAÇÃO
+                        Forms\Components\Toggle::make('contratada')
+                            ->label(fn (Forms\Get $get) => $get('obrigatoria') ? 'Obrigatória' : 'Opcional (Contratar?)')
+                            ->live()
+                            // Se for obrigatória, tranca o botão para o corretor não desligar
+                            ->disabled(fn (Forms\Get $get) => $get('obrigatoria') === true)
+                            // O dehydrated garante que, mesmo trancado, o valor 'true' vá para o banco
+                            ->dehydrated(),
 
                         Forms\Components\TextInput::make('nome_cobertura')
                             ->label('Cobertura')
-                            ->disabled(),
+                            ->readOnly(),
                             
                         Forms\Components\TextInput::make('limite_maximo')
-                            ->label('Limite Máximo de Indenização (R$)')
+                            ->label('Limite Máximo (R$)')
                             ->numeric()
                             ->prefix('R$')
-                            ->required(),
+                            // Se o corretor desligar a cobertura opcional, esse campo apaga/desabilita
+                            ->disabled(fn (Forms\Get $get) => $get('contratada') === false)
+                            ->required(fn (Forms\Get $get) => $get('contratada') === true)
+                            ->dehydrated(),
                     ])
-                    ->columns(2)
+                    ->columns(3) // Mudou para 3 colunas para acomodar o botão Toggle
                     ->defaultItems(0)
                     ->addable(false)
-                    ->deletable(false),
+                    ->deletable(false)
+                    ->reorderable(false),
             ]);
     }
 
@@ -531,8 +686,6 @@ class CotacaoResource extends Resource
                             ->default(now()->addDays(30)) 
                             ->required(),
                             
-                        // Mantemos o status como invisível no formulário para ser preenchido via código
-                        Forms\Components\Hidden::make('status')
                     ]),
             ]);
     }
@@ -553,8 +706,16 @@ class CotacaoResource extends Resource
                     ->sortable(),
                     // ->searchable(),
                 Tables\Columns\TextColumn::make('produto.nome')->label('Produto')->sortable(),
-                Tables\Columns\TextColumn::make('status')->badge()
-                    ->colors(['info' => 'Em Elaboração', 'success' => 'Aceita', 'danger' => 'Recusada', 'warning' => 'Enviado ao Cliente', 'primary' => 'Expirada']),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Em Elaboração' => 'info',
+                        'Enviado ao Cliente' => 'warning',
+                        'Aceita' => 'success',
+                        'Recusada' => 'danger',
+                        'Expirada' => 'gray',
+                        default => 'gray',
+                    }),
             ])
             ->filters([])->actions([Tables\Actions\EditAction::make()])->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
     }

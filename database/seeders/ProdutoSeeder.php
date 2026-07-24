@@ -60,7 +60,8 @@ class ProdutoSeeder extends Seeder
 
             foreach($coberturasDoRamo as $cobertura) {
                 $produto->coberturas()->attach($cobertura->id, [
-                    'limite_maximo' => rand(10,150) * 1000
+                    'limite_maximo' => rand(10,150) * 1000,
+                    'obrigatoria' => (bool) rand(0, 1)
                 ]);
             }
 

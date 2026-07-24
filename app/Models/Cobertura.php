@@ -18,7 +18,7 @@ class Cobertura extends Model
 
     public function produtos (){
         return $this->belongsToMany(Produto::class, 'cobertura_produto')
-                    ->withPivot('limite_maximo')
+                    ->withPivot('limite_maximo','obrigatoria')
                     ->withTimestamps();
     }
 

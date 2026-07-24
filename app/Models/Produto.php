@@ -30,7 +30,7 @@ class Produto extends Model
 
     public function coberturas(){
         return $this->belongsToMany(Cobertura::class, 'cobertura_produto')
-        ->withPivot('limite_maximo')
+        ->withPivot('limite_maximo','obrigatoria')
         ->withTimestamps();
     }
 

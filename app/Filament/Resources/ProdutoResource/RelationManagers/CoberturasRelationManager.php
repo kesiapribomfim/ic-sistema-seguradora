@@ -31,6 +31,9 @@ class CoberturasRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('nome'),
                 Tables\Columns\TextColumn::make('limite_maximo'),
+                Tables\Columns\IconColumn::make('obrigatoria')
+                    ->label('Obrigatoriedade')
+                    ->boolean(),
             ])
             ->filters([
                 //
