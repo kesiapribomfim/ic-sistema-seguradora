@@ -62,7 +62,10 @@ class UsersRelationManager extends RelationManager
                                 'Financeiro' => 'Financeiro',
                             ])
                             ->required(),
-                    ]),
+                    ])
+                    ->after(function (array $data, Model $record) {
+                        $record->assignRole($data['perfil_acesso']);
+                    }),
             ])
             ->actions([
                 ActionGroup::make([
@@ -71,12 +74,16 @@ class UsersRelationManager extends RelationManager
                     Action::make('ver_carteira')
                         ->label('Ver Carteira')
                         ->icon('heroicon-o-identification')
-                        ->visible(fn (Model $record): bool => $record->perfil_acesso === 'Corretor') //IMPORTANTE: Add Badges para incluir numero de segurados aqui
-                        ->action(function (Model $record) {
-                            // Aqui é onde definiremos o que o botão FAZ quando for clicado.
-                            // No futuro, ele vai redirecionar para a tela de Segurados filtrando por este corretor.
+                        ->visible(fn (Model $record): bool => $record->pivot->perfil_acesso === 'Corretor')
+                        ->url(fn (Model $record): string => \App\Filament\Resources\SeguradoResource::getUrl('index', [
+                            'tableFilters' => [
+                                'user_id' => ['value' => $record->id],
+                            ],
+                        ])),
+                    DetachAction::make()
+                        ->before(function (Model $record){
+                            $record->removeRole($record->perfil_acesso);
                         }),
-                    DetachAction::make(),
 
                     
                 ])

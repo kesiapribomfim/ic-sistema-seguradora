@@ -154,9 +154,20 @@ class SeguradoResource extends Resource
                     //->sortable() (em ordem alfabetica)
                     ->description(fn ($record) => "Corretor: {$record->user->name}"),
                     Tables\Columns\TextColumn::make('email'),
+                
+                Tables\Columns\IconColumn::make('status')
+                ->label('Ativo')
+                ->boolean(),
 
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Carteira do Corretor')
+                    ->options(
+                        // Aqui buscamos no banco: a Chave será o ID (oculto) e o Valor será o Nome (visível)
+                        \App\Models\User::role('Corretor')->pluck('name', 'id')->toArray()
+                    )
+                    ->searchable(),
                 Tables\Filters\SelectFilter::make('tipo')
                     ->options([
                         'PF' => 'CPF',
@@ -167,6 +178,7 @@ class SeguradoResource extends Resource
                         1 => 'Ativo',
                         0 => 'Inativo',
                     ]),
+                
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
