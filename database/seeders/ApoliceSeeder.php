@@ -16,28 +16,34 @@ class ApoliceSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
-    {
-        $cotacoes = Cotacao::all();
+{
+    // 1. Busca APENAS as cotações que têm status 'Aceita'
+    $cotacoesAceitas = Cotacao::where('status', 'Aceita')->get();
 
-        foreach ($cotacoes as $cotacao){
-            Apolice::factory()->create([
-                'cotacao_id'  => $cotacao->id,
-                'segurado_id' => $cotacao->segurado_id,
-                'filial_id'   => $cotacao->filial_id,
-                'user_id'     => $cotacao->user_id,
-                'valor_total' => $cotacao->valor_total,
-            ]);
-        }
+    // 2. Pega apenas a METADE dessas cotações para gerar apólices automáticas
+    // A outra metade vai ficar sem apólice para podermos ver o botão no painel!
+    $metade = (int) ($cotacoesAceitas->count() / 2);
+    $cotacoesParaEmitir = $cotacoesAceitas->take($metade);
 
-        $apoliceAntiga = Apolice::first();
+    foreach ($cotacoesParaEmitir as $cotacao){
+        Apolice::factory()->create([
+            'cotacao_id'  => $cotacao->id,
+            'segurado_id' => $cotacao->segurado_id,
+            'filial_id'   => $cotacao->filial_id,
+            'user_id'     => $cotacao->user_id,
+            'valor_total' => $cotacao->valor_total,
+        ]);
+    }
+
+    // A sua lógica de renovação que já estava ótima continua aqui
+    $apoliceAntiga = Apolice::first();
 
     if ($apoliceAntiga) {
-        // Criamos uma nova cotação para a renovação
         $cotacaoRenovacao = Cotacao::factory()->create([
             'segurado_id' => $apoliceAntiga->segurado_id,
+            'status'      => 'Aceita', // Garantindo que a de renovação também nasce aceita
         ]);
 
-        // Emitimos a Apólice de Renovação apontando para a antiga
         Apolice::factory()->create([
             'cotacao_id'        => $cotacaoRenovacao->id,
             'segurado_id'       => $cotacaoRenovacao->segurado_id,
@@ -49,7 +55,6 @@ class ApoliceSeeder extends Seeder
         ]);
 
         $apoliceAntiga->update(['status' => 'Renovada']);
-
-        }
     }
+}
 }

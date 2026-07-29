@@ -110,7 +110,7 @@ class ApoliceResource extends Resource
     {
         return [
             'index' => Pages\ListApolices::route('/'),
-            'create' => Pages\CreateApolice::route('/create'),
+            //'create' => Pages\CreateApolice::route('/create'),
             'edit' => Pages\EditApolice::route('/{record}/edit'),
         ];
     }

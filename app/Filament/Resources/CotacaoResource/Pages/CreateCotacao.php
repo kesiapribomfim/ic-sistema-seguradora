@@ -15,7 +15,15 @@ class CreateCotacao extends CreateRecord
         return parent::getCreateFormAction()
             ->label('Enviar Proposta')
             ->icon('heroicon-o-paper-airplane')
-            ->color('success');
+            ->color('info');
+    }
+
+    protected function getCreateApolice(): \Filament\Actions\Action
+    {
+        return parent::getCreateApolice()
+            ->label('Criar cotação')
+            //->icon ('heroic-o-papper-arplane')
+            ->color ('sucess');
     }
 
     // 2. Intercepta os dados antes do INSERT no banco para definir o status correto

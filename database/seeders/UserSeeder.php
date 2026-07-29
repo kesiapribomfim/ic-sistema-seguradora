@@ -14,12 +14,14 @@ class UserSeeder extends Seeder
     public function run(): void
     {   
         //criar o administrador geral
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Admin Geral',
             'email' => 'admin_test@exemplo.com',
             'password' => 'password',
             'status' => true,
         ]);
+
+        $admin->assignRole('super_admin');
         
         $corretor = User::factory()->create([
             'name' => 'Elean',
@@ -33,12 +35,13 @@ class UserSeeder extends Seeder
         $corretor->filiais()->attach($filiais->random()->id, [
             'perfil_acesso' => 'Corretor'
         ]);
+        $corretor->assignRole('Corretor');
 
         $perfis = [
             'Gestor de Filial', 
             'Subscritor',
             'Corretor',
-            'Analista de Sinistro',
+            'Analista de Sinistros',
             'Financeiro',
             'Cliente'
         ];
@@ -56,6 +59,8 @@ class UserSeeder extends Seeder
             $user->filiais()->attach($filialSorteada->id, [
                 'perfil_acesso' => $perfilSorteado
             ]);
+
+            $user->assignRole($perfilSorteado);
         
         }
 
@@ -68,6 +73,8 @@ class UserSeeder extends Seeder
             $user->filiais()->attach($filialSorteada->id, [
                 'perfil_acesso' => 'Corretor'
             ]);
+
+            $user->assignRole('Corretor');
         }
 
         $usuariosClientes = User::factory()->count(70)->create();
@@ -77,14 +84,9 @@ class UserSeeder extends Seeder
             $user->filiais()->attach($filialSorteada->id, [
                 'perfil_acesso' => 'Cliente'
             ]);
-        }
 
-        User::factory()->create([
-            'name' => 'Corretor Teste',
-            'email' => 'corretor_test@exemplo.com',
-            'password' => 'password',
-            'status' => true,
-        ]);
+            $user->assignRole('Cliente');
+        }
 
     }
 }

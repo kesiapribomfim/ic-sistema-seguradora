@@ -51,7 +51,7 @@ class CotacaoFactory extends Factory
             
             'status' => $this->faker->randomElement([
                 'Em Elaboração', 
-                'Enviado ao Cliente', 
+                'Enviada ao Cliente', 
                 'Aceita', 
                 'Recusada', 
                 'Expirada'

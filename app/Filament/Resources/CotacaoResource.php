@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CotacaoResource\Pages;
 use App\Models\Cotacao;
+use Filament\Actions\DeleteAction;
+use Filament\Tables\Actions\EditAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,6 +18,10 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Filament\Infolists\Components\Tabs;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Notifications\Notification;
 
 class CotacaoResource extends Resource
 {
@@ -149,7 +155,7 @@ class CotacaoResource extends Resource
                             
                             $cor = match($status) {
                                 'Em Elaboração' => '#3b82f6',      // Corresponde ao 'info' (Azul)
-                                'Enviado ao Cliente' => '#f59e0b', // Corresponde ao 'warning' (Laranja)
+                                'Enviada ao Cliente' => '#f59e0b', // Corresponde ao 'warning' (Laranja)
                                 'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
                                 'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
                                 'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)
@@ -724,16 +730,60 @@ class CotacaoResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Em Elaboração' => 'info',
-                        'Enviado ao Cliente' => 'warning',
+                        'Enviada ao Cliente' => 'warning',
                         'Aceita' => 'success',
                         'Recusada' => 'danger',
                         'Expirada' => 'gray',
                         default => 'gray',
                     }),
             ])
-            ->filters([])->actions([Tables\Actions\EditAction::make()])->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->filters([])
+            ->actions([
+                ActionGroup::make([
+                    EditAction::make(),
+
+                    // Nosso botão customizado
+                    Action::make('emitir_apolice')
+                        ->label('Emitir Apólice')
+                        ->icon('heroicon-o-document-check')
+                        ->color('success')
+                        ->requiresConfirmation() // Exige que o usuário confirme antes de rodar
+                        ->modalHeading('Confirmar Emissão')
+                        ->modalDescription('Tem certeza que deseja converter esta cotação em apólice? O snapshot do produto será congelado.')
+                        ->visible(function (Model $record) {
+                            return $record->status === 'Aceita' && $record->apolice()->doesntExist();
+                        })
+                        ->action(function (Model $record) {
+                            // Aqui dentro vai nascer a lógica bruta de inserção no banco
+                            
+                            Notification::make()
+                                ->title('Apólice Emitida com Sucesso!')
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('ver_apolice')
+                        ->label('Ver Apólice')
+                        ->icon('heroicon-o-eye')
+                        ->color ('info')
+                        ->visible(function (Model $record){
+                            return $record->apolice()->exists();
+                        })
+                        ->url(function (Model $record) {
+                            // O Filament gera a URL automaticamente para a tela de edição daquela apólice específica
+                            return ApoliceResource::getUrl('edit', ['record' => $record->apolice->id]);
+                        }),
+
+                ])
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
     }
 
-    public static function getRelations(): array { return []; }
-    public static function getPages(): array { return ['index' => Pages\ListCotacaos::route('/'), 'create' => Pages\CreateCotacao::route('/create'), 'edit' => Pages\EditCotacao::route('/{record}/edit')]; }
+    public static function getRelations(): array { 
+        return []; }
+    public static function getPages(): array { 
+        return [
+            'index' => Pages\ListCotacaos::route('/'), 
+            'create' => Pages\CreateCotacao::route('/create'), 
+            'edit' => Pages\EditCotacao::route('/{record}/edit')]; }
 }
