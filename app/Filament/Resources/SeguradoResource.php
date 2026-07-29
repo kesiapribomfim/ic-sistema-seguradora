@@ -126,6 +126,19 @@ class SeguradoResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $user = auth()->user();
+
+        if ($user->hasRole('Corretor') && ! $user->hasRole('super_admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
+    }
+
     public static function table(Table $table): Table
     {
         return $table

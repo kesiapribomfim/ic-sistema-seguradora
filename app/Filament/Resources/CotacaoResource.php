@@ -55,6 +55,19 @@ class CotacaoResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        $user = auth()->user();
+
+        if ($user->hasRole('Corretor') && ! $user->hasRole('super_admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
+    }
+
     // =========================================================================
     // BLOCOS MODULARIZADOS DO FORMULÁRIO
     // =========================================================================
@@ -698,11 +711,12 @@ class CotacaoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável')
+                Tables\Columns\TextColumn::make('identificacao_segurado')
+                    ->label('Cliente')
+                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social)
                     ->sortable(),
                     // ->searchable(),
-                Tables\Columns\TextColumn::make('identificacao_segurado')->label('Cliente')
-                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social)
+                Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável')
                     ->sortable(),
                     // ->searchable(),
                 Tables\Columns\TextColumn::make('produto.nome')->label('Produto')->sortable(),
