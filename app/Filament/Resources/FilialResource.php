@@ -14,6 +14,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+use Illuminate\Database\Eloquent\Model;
 
 class FilialResource extends Resource
 {
@@ -74,17 +77,44 @@ class FilialResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nome')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('telefone'),
+                Tables\Columns\TextColumn::make('telefone')
+                    ->formatStateUsing(function (string $state) {
+                        // Limpa qualquer caractere que não seja número (caso tenha vindo sujo do banco)
+                        $limpo = preg_replace('/\D/', '', $state);
+                        if (strlen($limpo) === 11) {
+                            return preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $limpo);
+                        }
+                        if (strlen($limpo) === 10) {
+                            return preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $limpo);
+                        }
+                        return $state;
+                    }),
                 Tables\Columns\TextColumn::make('uf')
                     ->label('UF'),
-                //ADICIONAR COLUNA COM NOME DO GESTOR DA FILIAL
-                                
+                Tables\Columns\TextColumn::make('gestor')
+                    ->label('Gestor da Filial')
+                    ->searchable()
+                    ->default('Não definido')
+                    ->color(fn (string $state): string => $state === 'Não definido' ? 'gray' : 'primary')
+                    ->state(function ($record) {
+                        $gestor = $record
+                                ->users()
+                                ->wherePivot('perfil_acesso', 'Gestor de Filial')
+                                ->first();
+        
+                        return $gestor ? $gestor->name : null;
+                    }),                                
             ])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                     
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    ViewAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -105,6 +135,7 @@ class FilialResource extends Resource
         return [
             'index' => Pages\ListFilials::route('/'),
             'create' => Pages\CreateFilial::route('/create'),
+            'view' => Pages\ViewFilial::route('/{record}/view'),            
             'edit' => Pages\EditFilial::route('/{record}/edit'),
         ];
     }

@@ -16,7 +16,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 
+// TODO: Arranjar uma forma de colocar uma relação das filiais dentro dos usuários, com o perfil de acesso
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
@@ -59,9 +63,15 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nome Completo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email'),
+                Tables\Columns\IconColumn::make('status')
+                    ->label('Ativo')
+                    ->boolean(),
             ])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                 Tables\Filters\selectFilter::make('status')
                     ->options([
@@ -70,7 +80,12 @@ class UserResource extends Resource
                     ])
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    ViewAction::make()
+                        ->label('Ver Perfil'),
+                    // TODO: Ver carteira para corretores e etc
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -91,6 +106,7 @@ class UserResource extends Resource
         return [
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
+            'view' => Pages\ViewUser::route('/{record}/view'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }

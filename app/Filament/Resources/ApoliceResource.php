@@ -13,12 +13,18 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+
+// TODO: Ajeitar os nomes de Apolices na interface visual e os icons (cotação, produto e apolice)
 
 class ApoliceResource extends Resource
 {
     protected static ?string $model = Apolice::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $modelLabel = 'Apólices';
+    protected static ?string $pluralModelLabel = 'Apólices';
+    protected static ?string $navigationIcon = 'heroicon-o-document-check';
 
     public static function form(Form $form): Form
     {
@@ -86,11 +92,25 @@ class ApoliceResource extends Resource
                     ->date('d/m/Y')
                     ->sortable(),
             ])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    ViewAction::make(),
+                    Tables\Actions\Action::make('ver_cotacao')
+                        ->label('Abrir Cotação')
+                        ->icon('heroicon-o-calculator')
+                        ->color ('info')
+                        ->visible(fn (Model $record) => $record->cotacao()->exists())
+                        ->url(fn (Model $record) => CotacaoResource::getUrl('view', ['record' => $record->cotacao->id]))
+                        ->openUrlInNewTab(),
+
+
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -110,7 +130,7 @@ class ApoliceResource extends Resource
     {
         return [
             'index' => Pages\ListApolices::route('/'),
-            //'create' => Pages\CreateApolice::route('/create'),
+            'view' => Pages\ViewApolice::route('/{record}/view'),
             'edit' => Pages\EditApolice::route('/{record}/edit'),
         ];
     }

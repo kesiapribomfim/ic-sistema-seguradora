@@ -6,6 +6,7 @@ use App\Filament\Resources\CotacaoResource\Pages;
 use App\Models\Cotacao;
 use Filament\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -29,7 +30,7 @@ class CotacaoResource extends Resource
     protected static ?string $modelLabel = 'Cotação';
     protected static ?string $pluralModelLabel = 'Cotações';
     protected static ?string $slug = 'cotacoes';
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-calculator';
 
     public static function form(Form $form): Form
     {
@@ -102,6 +103,11 @@ class CotacaoResource extends Resource
                 ->inline()
                 ->required()
                 ->dehydrated(false)
+                ->afterStateHydrated(function (Forms\Components\ToggleButtons $component, $record) {
+                    if ($record) {
+                        $component->state($record->produto?->ramo);
+                    }
+                })
                 ->afterStateUpdated(function (Forms\Set $set) {
                     $set('produto_id', null);
                     $set('cobertura_selecionada', []);
@@ -575,7 +581,11 @@ class CotacaoResource extends Resource
                                 Forms\Components\TextInput::make('cpf')->mask('999.999.999-99'),
                                 Forms\Components\TextInput::make('percentual_rateio')
                                     ->label('Rateio (%)')
-                                    ->numeric()->suffix('%')->maxValue(100)->required(),
+                                    ->numeric()
+                                    ->suffix('%')
+                                    ->maxValue(100)
+                                    ->required(),
+                                // TODO: Adicionar lógica para barrar soma total menor que 100%
                             ])
                             ->columns(3)
                             ->defaultItems(1)
@@ -587,6 +597,8 @@ class CotacaoResource extends Resource
     // =========================================================================
     // COBERTURAS
     // =========================================================================
+
+    // TODO: Adicionar campo com a listagem das coberturas opcionais que podem ser adicionadas a depender do plano
     private static function getCoberturasSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
@@ -737,10 +749,13 @@ class CotacaoResource extends Resource
                         default => 'gray',
                     }),
             ])
-            ->filters([])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
+            ->filters([]) // TODO: Filters
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
+                    ViewAction::make(),
 
                     // Nosso botão customizado
                     Action::make('emitir_apolice')
@@ -762,15 +777,15 @@ class CotacaoResource extends Resource
                                 ->send();
                         }),
                     Action::make('ver_apolice')
-                        ->label('Ver Apólice')
-                        ->icon('heroicon-o-eye')
+                        ->label('Abrir Apólice')
+                        ->icon('heroicon-o-document-check')
                         ->color ('info')
                         ->visible(function (Model $record){
                             return $record->apolice()->exists();
                         })
                         ->url(function (Model $record) {
-                            // O Filament gera a URL automaticamente para a tela de edição daquela apólice específica
-                            return ApoliceResource::getUrl('edit', ['record' => $record->apolice->id]);
+                            //mudei para edit->view
+                            return ApoliceResource::getUrl('view', ['record' => $record->apolice->id]);
                         }),
 
                 ])
@@ -785,5 +800,8 @@ class CotacaoResource extends Resource
         return [
             'index' => Pages\ListCotacaos::route('/'), 
             'create' => Pages\CreateCotacao::route('/create'), 
-            'edit' => Pages\EditCotacao::route('/{record}/edit')]; }
+            'view' => Pages\ViewCotacao::route('/{record}/view'),
+            'edit' => Pages\EditCotacao::route('/{record}/edit')
+        ];
+    }
 }

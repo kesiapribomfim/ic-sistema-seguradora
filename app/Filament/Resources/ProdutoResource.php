@@ -14,12 +14,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 
 class ProdutoResource extends Resource
 {
     protected static ?string $model = Produto::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-cube';
 
     public static function form(Form $form): Form
     {
@@ -106,6 +109,8 @@ class ProdutoResource extends Resource
                     ->label('Ativo')
                     ->boolean(),
             ])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('ramo')
                     ->options([
@@ -120,7 +125,10 @@ class ProdutoResource extends Resource
                     ])
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    ViewAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -141,6 +149,7 @@ class ProdutoResource extends Resource
         return [
             'index' => Pages\ListProdutos::route('/'),
             'create' => Pages\CreateProduto::route('/create'),
+            'view' => Pages\ViewProduto::route('/{record}/view'),
             'edit' => Pages\EditProduto::route('/{record}/edit'),
         ];
     }

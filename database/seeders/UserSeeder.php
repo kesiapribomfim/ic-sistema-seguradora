@@ -46,6 +46,7 @@ class UserSeeder extends Seeder
             'Cliente'
         ];
 
+        // TODO: Lógica para criar apenas um gestor por filia.
         //criar outros usuários comuns
         $usuariosCriados = User::factory()->count(20)->create();
 

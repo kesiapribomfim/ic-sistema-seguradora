@@ -15,6 +15,10 @@ use Filament\Forms\Components\Toggle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
+use Filament\Pages\Page;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
 
 class SeguradoResource extends Resource
 {
@@ -173,6 +177,8 @@ class SeguradoResource extends Resource
                 ->boolean(),
 
             ])
+            ->recordUrl(null)
+            ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Carteira do Corretor')
@@ -194,7 +200,10 @@ class SeguradoResource extends Resource
                 
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    ViewAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -215,6 +224,7 @@ class SeguradoResource extends Resource
         return [
             'index' => Pages\ListSegurados::route('/'),
             'create' => Pages\CreateSegurado::route('/create'),
+            'view' => Pages\ViewSegurado::route('/{record}/view'),
             'edit' => Pages\EditSegurado::route('/{record}/edit'),
         ];
     }
