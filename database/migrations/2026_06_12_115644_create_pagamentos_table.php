@@ -18,8 +18,8 @@ return new class extends Migration
                 ->constrained('apolices')
                 ->restrictedOnDelete();
             $table->foreignId('sinistro_id')
-                ->constrained('sinistros')
                 ->nullable()
+                ->constrained('sinistros')
                 ->restrictedOnDelete();
             
             $table->string('tipo_movimentacao', length:30); // Ex: 'Recebimento', 'Pagamento Indenização'
@@ -29,9 +29,11 @@ return new class extends Migration
             $table->date('data_vencimento');
             $table->date('data_pagamento')
                 ->nullable();
-            $table->string('status',length:10); //'Aberta, Paga, Vencida, Cancelada'
-            $table->string('caminho_fatura_pdf');
-            $table->string('metodo_baixa', 20)->nullable(); // Ex: 'Manual', 'Automática'
+            $table->string('status',length:15); //'Aberta, Paga, Vencida, Cancelada'
+            $table->string('caminho_fatura_pdf')
+                ->nullable();
+            $table->string('metodo_baixa', 20)
+                ->nullable(); // Ex: 'Manual', 'Automática'
             $table->timestamps();
         });
     }

@@ -17,12 +17,9 @@ class ApoliceSeeder extends Seeder
      */
     public function run(): void
 {
-    // 1. Busca APENAS as cotações que têm status 'Aceita'
     $cotacoesAceitas = Cotacao::where('status', 'Aceita')->get();
 
-    // 2. Pega apenas a METADE dessas cotações para gerar apólices automáticas
-    // A outra metade vai ficar sem apólice para podermos ver o botão no painel!
-    $metade = (int) ($cotacoesAceitas->count() / 2);
+    $metade = (int) ($cotacoesAceitas->count());
     $cotacoesParaEmitir = $cotacoesAceitas->take($metade);
 
     foreach ($cotacoesParaEmitir as $cotacao){

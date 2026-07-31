@@ -18,7 +18,7 @@ class Pagamento extends Model
         'data_vencimento',
         'data_pagamento',
         'status',
-        'camiho_fatura_pdf',
+        'caminho_fatura_pdf',
         'metodo_baixa',
 
     ];

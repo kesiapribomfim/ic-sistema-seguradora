@@ -28,7 +28,7 @@ class CotacaoSeeder extends Seeder
 
     
         Cotacao::factory()
-        ->count(20)
+        ->count(80)
         ->recycle($corretores)
         ->recycle($segurados)
         ->recycle($produtos)

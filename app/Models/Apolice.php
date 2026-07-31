@@ -13,6 +13,7 @@ class Apolice extends Model
         'segurado_id',
         'user_id',
         'filial_id',
+        'cotacao_id',
         'apolice_origem_id',
         'numero_apolice',
         'data_emissao',

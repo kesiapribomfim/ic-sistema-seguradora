@@ -13,23 +13,36 @@ class ApoliceObserver
      */
     public function created(Apolice $apolice): void
     {
-        // TODO: criar coluna $apolice->qtd_parcelas
-        $quantidadeParcelas = 3;
+        // Pega a quantidade real da apólice. Se vier vazio por algum motivo, assume 1 (à vista)
+        $quantidadeParcelas = $apolice->quantidade_parcelas ?? 1;
         
-        $valorParcela = $apolice->valor_total / $quantidadeParcelas;
+        // Pega o valor exato da parcela calculado no momento da cotação
+        $valorParcela = $apolice->valor_parcela ?? $apolice->valor_total;
 
         for ($i = 1; $i <= $quantidadeParcelas; $i++) {
             
             $dataVencimento = Carbon::now()->startOfDay()->addDays(30 * $i);
 
             Pagamento::create([
-                'apolice_id'     => $apolice->id,
-                'numero_parcela' => $i,
-                'valor'          => $valorParcela,
-                'vencimento'     => $dataVencimento,
-                'status'         => 'Aberta',
+                'apolice_id'         => $apolice->id,
+                'sinistro_id'        => null, // Não há sinistro na geração da apólice
+                
+                // Dados da Movimentação
+                'tipo_movimentacao'  => 'Recebimento',
+                'valor'              => $valorParcela,
+                'num_parcela'        => $i,
+                
+                // Datas
+                'data_vencimento'    => $dataVencimento,
+                'data_pagamento'     => null, // Será preenchido quando o cliente pagar
+                
+                // Controle
+                'status'             => 'Aberta',
+                'caminho_fatura_pdf' => null, // Será preenchido pelo Job do PDF depois
+                'metodo_baixa'       => null, // Será preenchido na hora da confirmação do pagamento
             ]);
         }
+    
     }
 
     /**

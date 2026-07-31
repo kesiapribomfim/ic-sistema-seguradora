@@ -17,20 +17,20 @@ return new class extends Migration
             //fk
             $table->foreignId('segurado_id')
                 ->constrained('segurados')
-                ->onDelete('cascade');
+                ->restrictOnDelete('cascade');
             $table->foreignId('user_id')
                 ->constrained('users')
-                ->onDelete('cascade');
+                ->restrictOnDelete('cascade');
             $table->foreignId('filial_id')
                 ->constrained('filiais')
-                ->onDelete('cascade');
+                ->restrictOnDelete('cascade');
             $table->foreignId('cotacao_id')
                 ->constrained('cotacoes')
-                ->restrictedonDelete();
+                ->restrictOnDelete();
             $table->foreignId('apolice_origem_id')
                 ->nullable()
                 ->constrained('apolices')
-                ->restrictedonDelete();
+                ->restrictOnDelete();
 
             $table->string('numero_apolice')->unique();
             $table->date('data_emissao');

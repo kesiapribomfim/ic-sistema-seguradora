@@ -18,14 +18,6 @@ class CreateCotacao extends CreateRecord
             ->color('info');
     }
 
-    protected function getCreateApolice(): \Filament\Actions\Action
-    {
-        return parent::getCreateApolice()
-            ->label('Criar cotação')
-            //->icon ('heroic-o-papper-arplane')
-            ->color ('sucess');
-    }
-
     // 2. Intercepta os dados antes do INSERT no banco para definir o status correto
     protected function mutateFormDataBeforeCreate(array $data): array
     {
