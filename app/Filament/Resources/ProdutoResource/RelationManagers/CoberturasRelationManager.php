@@ -39,7 +39,8 @@ class CoberturasRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                // TODO: Melhorar a lógica de criação de cobertura.
+                // Tables\Actions\CreateAction::make(),
                 Tables\Actions\AttachAction::make()
                     ->recordSelectOptionsQuery(fn (Builder $query) => $query->where('ramo', $this->getOwnerRecord()->ramo))
                     
@@ -52,10 +53,28 @@ class CoberturasRelationManager extends RelationManager
                             ->label('Limite Máximo (R$)')
                             ->numeric()
                             ->required(),
+                        Forms\Components\Toggle::make('obrigatoria')
+                            ->label('Obrigatória')
+                            ->required()
+                            ->default(false)
+                            ->inline(false)
+                            ->columnSpan(1),
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->form(fn (Tables\Actions\EditAction $action): array => [
+                        Forms\Components\TextInput::make('limite_maximo')
+                            ->label('Limite Máximo (R$)')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\Toggle::make('obrigatoria')
+                            ->label('Obrigatória')
+                            ->required()
+                            ->default(false)
+                            ->inline(false)
+                            ->columnSpan(1),
+                    ]),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

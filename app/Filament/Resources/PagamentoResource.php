@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class PagamentoResource extends Resource
 {
@@ -35,26 +36,42 @@ class PagamentoResource extends Resource
                             ->required()
                             ->live() // Faz a tela reagir instantaneamente a essa escolha
                             ->afterStateUpdated(function (Forms\Set $set) {
-                                // Limpa os campos se o usuário mudar de ideia no meio do cadastro
+                                $set('apolice_id', null);
                                 $set('sinistro_id', null);
                                 $set('num_parcela', null);
                             }),
 
                         Forms\Components\Select::make('apolice_id')
-                            ->relationship('apolice', 'numero_apolice')
+                            ->relationship('apolice', 'numero_apolice',
+                                    modifyQueryUsing: fn (Builder $query) => $query
+                                        ->where('status', 'Vigente')
+                                ) // Só mostra apólices ativas
                             ->label('Apólice Vinculada')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->visible(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Recebimento') // Só aparece se for um recebimento de apólice
+                            ->required(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Recebimento')
+                            ->hidden(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
+                            // CRÍTICO: Garante que o valor será salvo no banco de dados mesmo estando invisível
+                            ->dehydrated(),
 
                         Forms\Components\Select::make('sinistro_id')
-                            ->relationship('sinistro', 'id')
+                            ->relationship(
+                                name:'sinistro', 
+                                titleAttribute:'id',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where('status', 'Aprovado')) // Só mostra sinistros aprovados
                             ->label('Sinistro Vinculado')
                             ->searchable()
                             ->preload()
+                            ->live()
                             // Só aparece e é obrigatório se for um pagamento de indenização
                             ->visible(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
                             ->required(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização'),
+                        
+                        Forms\Components\Hidden::make('apolice_id')
+                            ->default(fn (Forms\Get $get) => $get('sinistro_id') ? \App\Models\Sinistro::find($get('sinistro_id'))->apolice_id : null),
+                            
                     ])->columns(2),
 
                 Forms\Components\Section::make('Valores e Datas')

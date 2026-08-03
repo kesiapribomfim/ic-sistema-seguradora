@@ -59,12 +59,181 @@ class ProdutoResource extends Resource
                 Forms\Components\Select::make('ramo')
                 ->label('Ramo')
                 ->options([
-                    'Auto' => 'Seguro Auto',
-                    'Vida' => 'Seguro de Vida',
-                    'Residencial' => 'Seguro Residencial',
+                    'Auto' => 'Auto',
+                    'Vida' => 'Vida',
+                    'Residencial' => 'Residencial',
                 ])
                 ->required()
                 ->live(),
+
+                // =========================================================================
+                // SECTIONS: Fatores de Risco e Desconto por perfil de cliente, por ramo de seguro
+                // =========================================================================
+                //AUTO
+                Forms\Components\Section::make('Parâmetros: Seguro Auto')
+                    ->schema([
+                        Forms\Components\Fieldset::make('Fatores de Risco (Agravantes)')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.fator_tipo_moto')
+                                    ->label('Agravante para Motos (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_tipo_caminhao')
+                                    ->label('Agravante para Caminhões (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_kit_gas')
+                                    ->label('Agravante para Veículo com Kit Gás (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_blindado')
+                                    ->label('Agravante para Veículo Blindado (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_uso_comercial')
+                                    ->label('Agravante para Uso Comercial / Aplicativo (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se o cliente usa para entregas, táxi ou app.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_estacionamento_rua')
+                                    ->label('Agravante para Pernoite na Rua (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_sinistro_anterior')
+                                    ->label('Agravante por Acionamento Recente de Sinistro (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se o seguro anterior foi utilizado.'),
+                            ])
+                            ->columns(3),
+
+                        Forms\Components\Fieldset::make('Descontos por Perfil')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_zero_km')
+                                    ->label('Desconto para Veículo Zero KM (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_garagem')
+                                    ->label('Desconto para Garagem (Dia e Noite) (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_por_classe_bonus')
+                                    ->label('Desconto por Classe de Bônus (% por ponto)')
+                                    ->numeric()
+                                    ->helperText('Ex: Se preencher 5%, um cliente com Classe 3 receberá 15% de desconto final.'),
+                            ])
+                            ->columns(3),
+                    ])
+                    ->columns(1)
+                    ->visible(fn (Forms\Get $get) => $get('ramo') === 'Auto'),
+                // VIDA
+                Forms\Components\Section::make('Parâmetros: Seguro de Vida')
+                    ->schema([
+                        Forms\Components\Fieldset::make('Fatores de Risco (Agravantes)')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.fator_profissao_risco')
+                                    ->label('Agravante para Profissão de Risco (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_imc_fora_padrao')
+                                    ->label('Agravante para IMC fora do padrão (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se o cálculo de Peso/Altura indicar obesidade ou baixo peso extremo.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_doenca_preexistente')
+                                    ->label('Agravante Base para Doenças Leves/Moderadas (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_doenca_grave')
+                                    ->label('Agravante Especial para Doenças Graves (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se possuir Câncer, AVC, Infarto, Alzheimer, etc.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_fumante')
+                                    ->label('Agravante para Tabagismo (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_alcool')
+                                    ->label('Agravante para Consumo de Álcool (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_esportes_radicais')
+                                    ->label('Agravante para Esportes Radicais (%)')
+                                    ->numeric(),
+                            ])
+                            ->columns(3),
+
+                        Forms\Components\Fieldset::make('Descontos e Regras')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_perfil_saudavel')
+                                    ->label('Desconto para Perfil Saudável (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se o cliente não fuma, não bebe e não possui doenças preexistentes.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.carencia_dias')
+                                    ->label('Período de Carência (Dias)')
+                                    ->numeric()
+                                    ->required(),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->columns(1)
+                    ->visible(fn (Forms\Get $get) => $get('ramo') === 'Vida'),
+
+                // RESIDENCIAL
+                Forms\Components\Section::make('Parâmetros: Seguro Residencial')
+                    ->schema([
+                        Forms\Components\Fieldset::make('Fatores de Risco (Agravantes)')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.fator_construcao_madeira')
+                                    ->label('Agravante para Construção em Madeira (%)')
+                                    ->numeric()
+                                    ->helperText('Risco elevado de propagação de incêndio.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_uso_veraneio')
+                                    ->label('Agravante para Casa de Veraneio (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado devido ao risco de invasão por longos períodos de vacância.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_imovel_desocupado')
+                                    ->label('Agravante para Imóvel Desocupado (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_regiao_rural')
+                                    ->label('Agravante para Região Rural (%)')
+                                    ->numeric()
+                                    ->helperText('Dificuldade de acesso para bombeiros e polícia.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_agro_comercial')
+                                    ->label('Agravante para Atividade Agropecuária/Comercial (%)')
+                                    ->numeric(),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_terreno_baldio')
+                                    ->label('Agravante para Divisa com Terreno Baldio (%)')
+                                    ->numeric()
+                                    ->helperText('Facilita invasões e risco de queimadas externas.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.fator_sinistro_anterior')
+                                    ->label('Agravante por Histórico de Sinistros (%)')
+                                    ->numeric(),
+                            ])
+                            ->columns(3),
+
+                        Forms\Components\Fieldset::make('Descontos por Perfil')
+                            ->schema([
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_apartamento')
+                                    ->label('Desconto para Apartamentos (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado por possuir menor risco de invasão em relação a casas de rua.'),
+
+                                Forms\Components\TextInput::make('parametros_calculo.desconto_condominio_horizontal')
+                                    ->label('Desconto para Condomínio Fechado (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado devido ao controle de portaria e segurança privada.'),
+                            ])
+                            ->columns(3),
+                    ])
+                    ->columns(1)
+                    ->visible(fn (Forms\Get $get) => $get('ramo') === 'Residencial'),
                 
                 Forms\Components\Section::make('Parâmetros Financeiros (Base)')
                     ->columns(2)
@@ -86,7 +255,9 @@ class ProdutoResource extends Resource
                             ->default(false) 
                             ->hiddenOn('create') 
                             ->helperText('O produto só deve ser ativado após o cadastro das coberturas.'),
-                    ]),
+                    ])
+            
+                
             ]);
     }
 

@@ -255,7 +255,7 @@ public static function form(Form $form): Form
 
                     Tables\Actions\Action::make('gerar_pdf')
                         ->label('Gerar PDF')
-                        ->icon('')
+                        ->icon('heroicon-o-document-check')
                         ->color('danger'),
                         //->action(),
 

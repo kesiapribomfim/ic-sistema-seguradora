@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('complemento',100) ->nullable();
             $table->string('cidade');
             $table->string('uf', length: 2);
-            $table->string('cep', length: 8);
+            $table->string('cep', length: 20);
 
             $table->text('descricao');
             
