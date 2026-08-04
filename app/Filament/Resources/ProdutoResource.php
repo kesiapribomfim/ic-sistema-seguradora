@@ -74,6 +74,17 @@ class ProdutoResource extends Resource
                     ->schema([
                         Forms\Components\Fieldset::make('Fatores de Risco (Agravantes)')
                             ->schema([
+                                // TODO: Ainda não tem campos para coletar dados de motoristas
+                                // Forms\Components\TextInput::make('parametros_calculo.fator_idade')
+                                //     ->label('Agravante por Idade do Condutor (%)')
+                                //     ->numeric()
+                                //     ->helperText('Ex: Se preencher 5%, um cliente com idade 20 anos receberá 100% de acréscimo no prêmio final.'), 
+                                
+                                Forms\Components\TextInput::make('parametros_calculo.fator_veiculo_antigo')
+                                    ->label('Agravante para Veículo Antigo (%)')
+                                    ->numeric()
+                                    ->helperText('Aplicado se o veículo tiver mais de 10 anos de fabricação.'),
+                                
                                 Forms\Components\TextInput::make('parametros_calculo.fator_tipo_moto')
                                     ->label('Agravante para Motos (%)')
                                     ->numeric(),

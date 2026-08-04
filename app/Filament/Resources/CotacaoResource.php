@@ -578,7 +578,9 @@ class CotacaoResource extends Resource
                             ->label('Lista de Beneficiários')
                             ->schema([
                                 Forms\Components\TextInput::make('nome')->required(),
-                                Forms\Components\TextInput::make('cpf')->mask('999.999.999-99'),
+                                Forms\Components\TextInput::make('cpf')
+                                    ->label('CPF')
+                                    ->mask('999.999.999-99'),
                                 Forms\Components\TextInput::make('percentual_rateio')
                                     ->label('Rateio (%)')
                                     ->numeric()
@@ -589,7 +591,16 @@ class CotacaoResource extends Resource
                             ])
                             ->columns(3)
                             ->defaultItems(1)
-                            ->helperText('A soma dos percentuais deve totalizar 100%.'),
+                            ->helperText('A soma dos percentuais deve totalizar 100%.')
+                            ->rule(function () {
+                                return function (string $attribute, $value, \Closure $fail) {
+                                    $totalPercentual = collect($value)->sum('percentual_rateio');
+
+                                    if ($totalPercentual !== 100 && $totalPercentual !== 100.0) {
+                                        $fail("A soma dos rateios deve ser exatamente 100%. (Total atual: {$totalPercentual}%)");
+                                    }
+                                };
+                            }),
                     ]),
             ]);
     }
@@ -613,11 +624,19 @@ class CotacaoResource extends Resource
 
                         // O GATILHO DE CONTRATAÇÃO
                         Forms\Components\Toggle::make('contratada')
-                            ->label(fn (Forms\Get $get) => $get('obrigatoria') ? 'Obrigatória' : 'Opcional (Contratar?)')
+                            ->label(fn (Forms\Get $get) => $get('obrigatoria') ? 'Obrigatória' : 'Opcional')
                             ->live()
-                            // Se for obrigatória, tranca o botão para o corretor não desligar
-                            ->disabled(fn (Forms\Get $get) => $get('obrigatoria') === true)
-                            // O dehydrated garante que, mesmo trancado, o valor 'true' vá para o banco
+                            ->afterStateHydrated(function (Forms\Components\Toggle $component, $state, Forms\Get $get) {
+                                // Se a cobertura for obrigatória, ela nasce ligada independentemente de qualquer coisa
+                                if ($get('obrigatoria')) {
+                                    $component->state(true);
+                                } 
+                                // Se não for obrigatória e o estado estiver vazio (novo form), nasce desligada
+                                elseif ($state === null || $state === '') {
+                                    $component->state(false);
+                                }
+                            })
+                            ->disabled(fn (Forms\Get $get) => (bool) $get('obrigatoria'))
                             ->dehydrated(),
 
                         Forms\Components\TextInput::make('nome_cobertura')
@@ -681,8 +700,32 @@ class CotacaoResource extends Resource
                                 $produto = \App\Models\Produto::find($get('produto_id'));
                                 return $produto ? $produto->nome : 'Erro ao buscar';
                             }),
+                    ])->columns(2),
 
-                        // O Alerta Inteligente de Alçada (O pulo do gato!)
+                Forms\Components\Section::make('Finalização')
+                    ->schema([
+                        Forms\Components\Placeholder::make('premio_total_display')
+                            ->label('Prêmio Total Calculado')
+                            ->content(function (Forms\Get $get, Forms\Set $set) {
+                                $produto = \App\Models\Produto::find($get('produto_id'));
+                                if (!$produto) return 'R$ 0,00';
+
+                                // Pega todos os dados do formulário de uma vez
+                                $dadosDoFormulario = $get(''); 
+                                
+                                // Chama a classe de serviço
+                                $calculadora = new \App\Services\CalculadoraPremioService();
+                                $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario);
+
+                                $set('valor_total', $premioFinal);
+                                return 'R$ ' . number_format($premioFinal, 2, ',', '.');
+                            }),
+
+                        // Campo invisível que recebe o valor final para ser salvo no banco
+                        Forms\Components\Hidden::make('valor_total')
+                            ->dehydrated(),
+                        
+                            // O Alerta Inteligente de Alçada (O pulo do gato!)
                         Forms\Components\Placeholder::make('analise_risco')
                             ->label('Análise Preliminar de Risco')
                             ->content(function (Forms\Get $get) {
@@ -707,10 +750,7 @@ class CotacaoResource extends Resource
                                 );
                             })
                             ->columnSpanFull(),
-                    ])->columns(2),
 
-                Forms\Components\Section::make('Finalização')
-                    ->schema([
                         // O documento exige a validade padrão de 30 dias
                         Forms\Components\DatePicker::make('validade')
                             ->label('Validade da Proposta')
