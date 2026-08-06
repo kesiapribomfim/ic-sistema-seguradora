@@ -269,7 +269,7 @@ class ProdutoResource extends Resource
                     ])
             
                 
-            ]);
+            ]);// TODO: Mudar rediecionamento de produito criado para a edit e não para a view
     }
 
     public static function table(Table $table): Table

@@ -243,13 +243,24 @@ class CotacaoResource extends Resource
                                 ->live() // O 'live()' é a mágica que faz a tela reagir na mesma hora ao clique
                                 ->inline(false),
                         ])->columns(2),
-                        Forms\Components\Select::make('tipo_veiculo')->label('Tipo de Veículo')->options(['carro' => 'Carro', 'moto' => 'Moto', 'caminhao' => 'Caminhão'])->required(),
-                        Forms\Components\TextInput::make('modelo')->label('Modelo do Veículo')->required(),
-                        Forms\Components\TextInput::make('ano')->label('Ano do Veículo')
+                        Forms\Components\Select::make('tipo_veiculo')
+                            ->label('Tipo de Veículo')
+                            ->options(['carro' => 'Carro', 'moto' => 'Moto', 'caminhao' => 'Caminhão'])
+                            ->required(),
+                        Forms\Components\TextInput::make('modelo')
+                            ->label('Modelo do Veículo')
+                            ->required(),
+                        Forms\Components\TextInput::make('ano')
                             ->label('Ano do Veículo')
                             ->numeric()
                             ->minValue(1900)
                             ->maxValue(now()->year + 1)
+                            ->required(),
+                        Forms\Components\TextInput::make('valor_base_risco')
+                            ->label('Valor do Veículo (Ref. FIPE)')
+                            ->numeric()
+                            ->live()
+                            ->prefix('R$')
                             ->required(),
                         Forms\Components\Group::make()->schema([
                             Forms\Components\Toggle::make('zero')->label('É zero km?')->default(false),
@@ -706,14 +717,15 @@ class CotacaoResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('premio_total_display')
                             ->label('Prêmio Total Calculado')
-                            ->content(function (Forms\Get $get, Forms\Set $set) {
+                            ->reactive()
+                            // Injetamos a classe Placeholder do Filament
+                            ->content(function (Forms\Get $get, Forms\Set $set, \Filament\Forms\Components\Placeholder $component) {
                                 $produto = \App\Models\Produto::find($get('produto_id'));
                                 if (!$produto) return 'R$ 0,00';
 
-                                // Pega todos os dados do formulário de uma vez
-                                $dadosDoFormulario = $get(''); 
+                                // O SEGREDO: Pega todos os dados brutos de todos os steps do formulário
+                                $dadosDoFormulario = $component->getLivewire()->form->getRawState(); 
                                 
-                                // Chama a classe de serviço
                                 $calculadora = new \App\Services\CalculadoraPremioService();
                                 $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario);
 
@@ -729,7 +741,7 @@ class CotacaoResource extends Resource
                         Forms\Components\Placeholder::make('analise_risco')
                             ->label('Análise Preliminar de Risco')
                             ->content(function (Forms\Get $get) {
-                                $coberturas = $get('coberturas_selecionadas') ?? [];
+                                $coberturas = $get('cobertura_selecionadas') ?? [];
                                 
                                 // Soma todos os Limites Máximos preenchidos no Repeater
                                 $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));

@@ -27,7 +27,6 @@ class Cotacao extends Model
     protected $casts =[
         'dados_especificos' => 'array',
         'cobertura_selecionada' => 'array',
-
     ];
 
     //fk
