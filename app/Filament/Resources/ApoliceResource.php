@@ -211,7 +211,6 @@ public static function form(Form $form): Form
                     ->fontFamily('mono')
                     ->weight('bold'),
 
-                // Replicando a sua excelente lógica de PF/PJ da Cotação
                 Tables\Columns\TextColumn::make('identificacao_segurado')
                     ->label('Segurado')
                     ->state(fn (Model $record) => $record->segurado?->tipo === 'PF' 

@@ -45,4 +45,18 @@ class Segurado extends Model
         public function cotacoes(){
             return $this->hasMany(Cotacao::class); //
         }
+
+        public function apolices()
+        {
+            return $this->hasMany(Apolice::class);
+        }
+
+        public function sinistros()
+        {
+            // O sinistro geralmente pertence a uma apólice, mas o documento
+            // exige uma visão unificada para o segurado. Se a chave estrangeira
+            // segurado_id existir na tabela sinistros, use hasMany. 
+            // Se o sinistro for ligado apenas à apólice, usamos hasManyThrough:
+            return $this->hasManyThrough(Sinistro::class, Apolice::class);
+        }
 }

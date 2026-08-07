@@ -14,9 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 class PagamentoResource extends Resource
 {
     protected static ?string $model = Pagamento::class;
-    protected static ?string $modelLabel = 'Movimentação Financeira';
-    protected static ?string $pluralModelLabel = 'Financeiro';
-    protected static ?string $slug = 'financeiro';
+    protected static ?string $modelLabel = 'Pagamento';
+    protected static ?string $pluralModelLabel = 'Pagamentos';
+    protected static ?string $slug = 'pagamentos';
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
     public static function form(Form $form): Form
@@ -42,18 +42,23 @@ class PagamentoResource extends Resource
                             }),
 
                         Forms\Components\Select::make('apolice_id')
-                            ->relationship('apolice', 'numero_apolice',
-                                    modifyQueryUsing: fn (Builder $query) => $query
-                                        ->where('status', 'Vigente')
-                                ) // Só mostra apólices ativas
+                            ->relationship(
+                                name: 'apolice', 
+                                titleAttribute: 'numero_apolice',
+                                modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query, Forms\Get $get) => 
+                                    // Só exige que a apólice seja Vigente se for um Recebimento manual.
+                                    // Se for sinistro, aceita a apólice do histórico, mesmo que já expirada.
+                                    $get('tipo_movimentacao') === 'Recebimento' 
+                                        ? $query->where('status', 'Vigente') 
+                                        : $query
+                            )
                             ->label('Apólice Vinculada')
                             ->searchable()
                             ->preload()
-                            ->visible(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Recebimento') // Só aparece se for um recebimento de apólice
-                            ->required(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Recebimento')
-                            ->hidden(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
-                            // CRÍTICO: Garante que o valor será salvo no banco de dados mesmo estando invisível
-                            ->dehydrated(),
+                            ->required()
+                            // Em vez de esconder, bloqueamos o campo. Fica visível como leitura.
+                            ->disabled(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
+                            ->dehydrated(), // Garante o salvamento do campo bloqueado
 
                         Forms\Components\Select::make('sinistro_id')
                             ->relationship(
@@ -67,11 +72,17 @@ class PagamentoResource extends Resource
                             ->live()
                             // Só aparece e é obrigatório se for um pagamento de indenização
                             ->visible(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
-                            ->required(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização'),
-                        
-                        Forms\Components\Hidden::make('apolice_id')
-                            ->default(fn (Forms\Get $get) => $get('sinistro_id') ? \App\Models\Sinistro::find($get('sinistro_id'))->apolice_id : null),
-                            
+                            ->required(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
+                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                                if ($state) {
+                                    $sinistro = \App\Models\Sinistro::find($state);
+                                    if ($sinistro) {
+                                        $set('apolice_id', $sinistro->apolice_id);
+                                    }
+                                } else {
+                                    $set('apolice_id', null);
+                                }
+                            }),                            
                     ])->columns(2),
 
                 Forms\Components\Section::make('Valores e Datas')

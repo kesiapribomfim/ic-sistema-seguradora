@@ -215,7 +215,9 @@ class SeguradoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\CotacoesRelationManager::class,
+            RelationManagers\ApolicesRelationManager::class,
+            RelationManagers\SinistrosRelationManager::class,
         ];
     }
 

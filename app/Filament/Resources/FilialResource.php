@@ -127,6 +127,9 @@ class FilialResource extends Resource
     {
         return [
             RelationManagers\UsersRelationManager::class,
+            RelationManagers\ApolicesRelationManager::class,
+            RelationManagers\SinistrosRelationManager::class,
+            RelationManagers\SeguradosRelationManager::class,
         ];
     }
 

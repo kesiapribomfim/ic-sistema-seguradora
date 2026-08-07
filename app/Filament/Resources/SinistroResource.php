@@ -75,25 +75,25 @@ class SinistroResource extends Resource
                     ->icon('heroicon-o-map-pin')
                     ->schema([
                         Forms\Components\Grid::make(3)->schema([
-                            Forms\Components\TextInput::make('cep')
-                                ->label('CEP')
-                                ->mask('99999-999'),
                             Forms\Components\TextInput::make('rua')
-                                ->label('Rua/Avenida')
-                                ->columnSpan(2),
+                                ->label('Rua')
+                                ->required(),
                             Forms\Components\TextInput::make('numero')
-                                ->label('Número'),
-                            Forms\Components\TextInput::make('bairro')
-                                ->label('Bairro'),
-                            Forms\Components\TextInput::make('complemento')
-                                ->label('Complemento'),
-                            Forms\Components\TextInput::make('cidade')
-                                ->label('Cidade')
-                                ->columnSpan(2),
+                                ->label('Numero')
+                                ->required(),
+                            Forms\Components\TextInput::make('bairro') ->required(),
+                            Forms\Components\TextInput::make('complemento'),
+                            Forms\Components\TextInput::make('cidade') -> required(),
                             Forms\Components\TextInput::make('uf')
                                 ->label('UF')
+                                ->required()
                                 ->maxLength(2)
-                                ->extraAttributes(['style' => 'text-transform: uppercase']),
+                                ->extraAttributes(['style'=>'text-transform: uppercase']),
+                            Forms\Components\TextInput::make('cep')
+                                ->label('CEP')
+                                ->required()
+                                ->mask('99.999-999')
+                                ->stripCharacters(['.', '-']),
                         ]),
                     ]),
 
