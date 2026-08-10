@@ -1,13 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Livewire\CheckoutCotacao;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 
-//nova rota criada
-Route::get('/home', function () {
-    return view('home');
-})->middleware(['auth'])->name('home');
+Route::get('/cotacao/{cotacao}/checkout', CheckoutCotacao::class)
+    ->name('checkout.cotacao')
+    ->middleware('signed');

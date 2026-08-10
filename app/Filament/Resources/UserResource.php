@@ -22,6 +22,7 @@ use Filament\Tables\Actions\ViewAction;
 
 // TODO: Arranjar uma forma de colocar uma relação das filiais dentro dos usuários, com o perfil de acesso
 // TODO: Melhorar essa resource pelo amor de DEUS
+// TODO: Assim que o usuário for criado, criar algum meio para vinculá-lo a uma filial
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;

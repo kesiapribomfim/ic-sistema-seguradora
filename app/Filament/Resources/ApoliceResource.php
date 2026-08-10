@@ -164,7 +164,7 @@ public static function form(Form $form): Form
                 ])->columnSpan(['lg' => 1]),
 
                 Forms\Components\Group::make()->schema([
-                Forms\Components\Section::make('Dados Técnicos (Snapshot)')
+                Forms\Components\Section::make('Snapshot')
                     ->icon('heroicon-o-cpu-chip')
                     ->schema([
                         Forms\Components\KeyValue::make('snapshot')
@@ -176,11 +176,16 @@ public static function form(Form $form): Form
                             ->label('Dados do Bem')
                             ->keyLabel('Campo')
                             ->valueLabel('Informação'),
-                            
-                        Forms\Components\KeyValue::make('beneficiarios')
-                            ->label('Beneficiários')
-                            ->keyLabel('Nome/CPF')
-                            ->valueLabel('Percentual (%)'),
+                    ]),
+                // TODO: Deixar isso aqui editável para preenchimento dos dados corretinhos dos beneficiários
+                // achar um jeito de mandar isso aqui pra tabela de beneficiários e depois puxar de lá para o PDF
+                Forms\Components\Section::make('Beneficiários')
+                    ->icon('heroicon-o-users')
+                    ->schema([
+                            Forms\Components\KeyValue::make('beneficiarios')
+                                ->label('Beneficiários')
+                                ->keyLabel('Nome/CPF')
+                                ->valueLabel('Percentual (%)'),
                     ]),
             ])->columnSpan(['lg' => 3]),
         ])
@@ -216,11 +221,12 @@ public static function form(Form $form): Form
                     ->state(fn (Model $record) => $record->segurado?->tipo === 'PF' 
                         ? $record->segurado?->seguradoPf?->nome 
                         : $record->segurado?->seguradoPj?->razao_social)
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Corretor/Emissor')
-                    ->sortable(),
+                    ->sortable()
+                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                    //->sortable() (em ordem alfabetica)
+                    ->description(fn ($record) => "Corretor: {$record->user->name}"),
+                    
+                    //Talvez voltar com a coluna user para facilitar a filtragem por corretor
 
                 Tables\Columns\TextColumn::make('data_fim')
                     ->label('Fim da Vigência')

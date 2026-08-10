@@ -230,12 +230,8 @@ class CotacaoResource extends Resource
                         Forms\Components\Group::make()->schema([
                             Forms\Components\TextInput::make('placa')
                                 ->label('Placa do Veículo')
-                                // Fica desabilitado (cinza e não clicável) se 'sem_placa' for true
                                 ->disabled(fn (\Filament\Forms\Get $get): bool => $get('sem_placa') === true)
-                                // É obrigatório apenas se 'sem_placa' for false ou nulo
                                 ->required(fn (\Filament\Forms\Get $get): bool => ! $get('sem_placa'))
-                                // IMPORTANTE: Campos disabled não são enviados ao banco por padrão. 
-                                // O dehydrated garante que ele envie 'null' para o banco caso esteja desabilitado.
                                 ->dehydrated(), 
                             
                             Forms\Components\Checkbox::make('sem_placa')
@@ -810,21 +806,50 @@ class CotacaoResource extends Resource
                     ViewAction::make(),
 
                     // Nosso botão customizado
-                    Action::make('emitir_apolice')
+                    Tables\Actions\Action::make('emitir_apolice')
                         ->label('Emitir Apólice')
-                        ->icon('heroicon-o-document-check')
+                        ->icon('heroicon-o-check-badge')
                         ->color('success')
-                        ->requiresConfirmation() // Exige que o usuário confirme antes de rodar
-                        ->modalHeading('Confirmar Emissão')
-                        ->modalDescription('Tem certeza que deseja converter esta cotação em apólice? O snapshot do produto será congelado.')
-                        ->visible(function (Model $record) {
-                            return $record->status === 'Aceita' && $record->apolice()->doesntExist();
-                        })
-                        ->action(function (Model $record) {
-                            // Aqui dentro vai nascer a lógica bruta de inserção no banco
+                        ->requiresConfirmation()
+                        ->modalHeading('Confirmar Aceite e Emissão')
+                        ->modalDescription('Tem certeza que deseja converter esta cotação em uma apólice vigente? O pagamento da primeira parcela será registrado automaticamente.')
+                        ->modalSubmitActionLabel('Sim, emitir apólice')
+                        // Só mostra o botão se a cotação ainda não foi aceita
+                        ->visible(fn (Cotacao $record) => $record->status !== 'Aceita')
+                        ->action(function (Cotacao $record) {
                             
-                            Notification::make()
+                            // Chama a nossa classe de serviço
+                            $servico = new \App\Services\EmissaoApoliceService();
+                            $apolice = $servico->emitir($record);
+
+                            // Mostra notificação de sucesso e redireciona para a nova apólice
+                            \Filament\Notifications\Notification::make()
                                 ->title('Apólice Emitida com Sucesso!')
+                                ->success()
+                                ->send();
+
+                            // Redireciona o usuário direto para a tela de visualização da apólice recém-criada
+                            // (Ajuste o caminho se o nome do seu resource for diferente)
+                            redirect()->to('/admin/apolices/' . $apolice->id . '/view');
+                        }),
+                    Tables\Actions\Action::make('link_checkout')
+                        ->label('Link de Pagamento')
+                        ->icon('heroicon-o-link')
+                        ->color('info')
+                        ->visible(fn (Cotacao $record) => $record->status !== 'Aceita')
+                        ->action(function (Cotacao $record) {
+                            // Gera o link mágico com validade
+                            $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                                'checkout.cotacao', 
+                                now()->addDays(30), // O link expira em 30 dias
+                                ['cotacao' => $record->id]
+                            );
+
+                            // Copia para a área de transferência usando o Clipboard do Filament
+                            // (Opcional, você pode apenas exibir em um modal se preferir)
+                            \Filament\Notifications\Notification::make()
+                                ->title('Link Gerado!')
+                                ->body('URL: ' . $url)
                                 ->success()
                                 ->send();
                         }),

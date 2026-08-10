@@ -16,17 +16,16 @@ class CreateCotacao extends CreateRecord
             ->label('Enviar Proposta')
             ->icon('heroicon-o-paper-airplane')
             ->color('info');
+
+            //Action para cliar um link para aprovação do cliente
     }
 
-    // 2. Intercepta os dados antes do INSERT no banco para definir o status correto
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $coberturas = $data['coberturas_selecionadas'] ?? [];
         
-        // Soma todos os limites (LMI) do Repeater de coberturas
         $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
 
-        // Regra de Alçada: Se passar de 500 mil, trava no Subscritor. Senão, libera.
         if ($somaLmi > 500000) {
             $data['status'] = 'Em Análise (Subscritor)';
         } else {

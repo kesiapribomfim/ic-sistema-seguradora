@@ -20,7 +20,8 @@ use Filament\Tables\Actions\Action;
 class UsersRelationManager extends RelationManager
 {
     protected static string $relationship = 'users';
-    protected static ?string $title = 'Usuarios da Filial';
+    protected static ?string $title = 'Usuários';
+    protected static ?string $icon = 'heroicon-o-users';
 
     public function form(Form $form): Form
     {
@@ -70,7 +71,11 @@ class UsersRelationManager extends RelationManager
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
-                    //se corretor
+                    Action::make('ver_usuario')
+                        ->label('Ver Perfil')
+                        ->icon('heroicon-o-eye')
+                        ->url(fn (Model $record) => \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->id]))
+                        ->openUrlInNewTab(), // Abre em nova aba para não perder a tela da filial
                     Action::make('ver_carteira')
                         ->label('Ver Carteira')
                         ->icon('heroicon-o-identification')

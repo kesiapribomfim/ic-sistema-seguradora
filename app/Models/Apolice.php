@@ -65,5 +65,12 @@ class Apolice extends Model
     {
         return $this->hasMany(Apolice::class, 'apolice_origem_id');
     }
+
+    public function beneficiarios()
+    {
+        return $this->belongsToMany(Beneficiario::class, 'apolice_beneficiario')
+            ->withPivot('percentual_rateio')
+            ->withTimestamps();
+    }
 }
 

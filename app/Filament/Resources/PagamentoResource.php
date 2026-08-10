@@ -149,6 +149,10 @@ class PagamentoResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Data de Criação')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('tipo_movimentacao')
                     ->label('Tipo')
                     ->badge()
