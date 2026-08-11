@@ -17,6 +17,8 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Illuminate\Support\HtmlString;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 
 // TODO: Ajeitar os nomes de Apolices na interface visual e os icons (cotação, produto e apolice)
 
@@ -177,20 +179,178 @@ public static function form(Form $form): Form
                             ->keyLabel('Campo')
                             ->valueLabel('Informação'),
                     ]),
-                // TODO: Deixar isso aqui editável para preenchimento dos dados corretinhos dos beneficiários
-                // achar um jeito de mandar isso aqui pra tabela de beneficiários e depois puxar de lá para o PDF
-                Forms\Components\Section::make('Beneficiários')
-                    ->icon('heroicon-o-users')
-                    ->schema([
-                            Forms\Components\KeyValue::make('beneficiarios')
-                                ->label('Beneficiários')
-                                ->keyLabel('Nome/CPF')
-                                ->valueLabel('Percentual (%)'),
-                    ]),
             ])->columnSpan(['lg' => 3]),
         ])
         ->columns(3);
 }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Infolists\Components\Group::make()->schema([
+                    Infolists\Components\Section::make('Dados da Apólice')
+                        ->description('Informações contratuais e vigência')
+                        ->icon('heroicon-o-document-check')
+                        ->schema([
+                            Infolists\Components\TextEntry::make('numero_apolice')
+                                ->label('Número da Apólice')
+                                ->fontFamily('mono')
+                                ->weight('bold')
+                                ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
+                            
+                            Infolists\Components\TextEntry::make('status')
+                                ->label('Status da Apólice')
+                                ->badge()
+                                ->color(fn (string $state): string => match ($state) {
+                                    'Vigente' => 'info',      
+                                    'Cancelada' => 'warning', 
+                                    'Renovada' => 'success', 
+                                    'Suspensa por inadimplência' => 'danger',
+                                    'Expirada' => 'gray',
+                                    default => 'gray',              
+                                }),
+
+                            Infolists\Components\Grid::make(3)->schema([
+                                Infolists\Components\TextEntry::make('data_emissao')
+                                    ->label('Emissão')
+                                    ->date('d/m/Y')
+                                    ->default('-'),
+                                    
+                                Infolists\Components\TextEntry::make('data_inicio')
+                                    ->label('Início da Vigência')
+                                    ->date('d/m/Y')
+                                    ->default('-'),
+                                    
+                                Infolists\Components\TextEntry::make('data_fim')
+                                    ->label('Fim da Vigência')
+                                    ->date('d/m/Y')
+                                    ->default('-'),
+                            ]),
+                        ]),
+
+                    Infolists\Components\Section::make('Detalhes Financeiros')
+                        ->icon('heroicon-o-currency-dollar')
+                        ->columns(4)
+                        ->schema([
+                            Infolists\Components\TextEntry::make('valor_total')
+                                ->label('Prêmio Total')
+                                ->money('BRL')
+                                ->default('-'),
+                                
+                            Infolists\Components\TextEntry::make('forma_pagamento')
+                                ->label('Forma de Pagto')
+                                ->default('-'),
+                                
+                            Infolists\Components\TextEntry::make('quantidade_parcelas')
+                                ->label('Qtd. Parcelas')
+                                ->default('-'),
+                                
+                            Infolists\Components\TextEntry::make('valor_parcela')
+                                ->label('Valor da Parcela')
+                                ->money('BRL')
+                                ->default('-'),
+                        ]),
+                ])->columnSpan(['lg' => 2]),
+
+                Infolists\Components\Group::make()->schema([
+                    Infolists\Components\Section::make('Vínculos')
+                        ->icon('heroicon-o-users')
+                        ->schema([
+                            Infolists\Components\TextEntry::make('identificacao_segurado')
+                                ->label('Segurado')
+                                ->state(fn (Model $record) => $record->segurado?->tipo === 'PF' 
+                                    ? $record->segurado?->seguradoPf?->nome 
+                                    : $record->segurado?->seguradoPj?->razao_social)
+                                ->url(fn ($record) => $record->segurado_id ? \App\Filament\Resources\SeguradoResource::getUrl('view', ['record' => $record->segurado_id]) : null)
+                                ->color('warning'),
+                                
+                            Infolists\Components\TextEntry::make('user.name')
+                                ->label('Corretor')
+                                ->url(fn ($record) => $record->user_id ? \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->user_id]) : null)
+                                ->color('warning'),
+                                
+                            Infolists\Components\TextEntry::make('filial.nome')
+                                ->label('Filial')
+                                ->url(fn ($record) => $record->filial_id ? \App\Filament\Resources\FilialResource::getUrl('view', ['record' => $record->filial_id]) : null)
+                                ->color('warning'),
+                                
+                            Infolists\Components\TextEntry::make('cotacao_id')
+                                ->label('Cotação')
+                                ->formatStateUsing(fn ($state) => "Cotação #{$state}")
+                                ->url(fn ($record) => $record->cotacao_id ? \App\Filament\Resources\CotacaoResource::getUrl('view', ['record' => $record->cotacao_id]) : null)
+                                ->color('warning'),
+
+                            Infolists\Components\TextEntry::make('apolice_origem_id')
+                                ->label('Apólice de Origem')
+                                ->formatStateUsing(fn ($state) => "Apólice #{$state}")
+                                ->url(fn ($record) => $record->apolice_origem_id ? \App\Filament\Resources\ApoliceResource::getUrl('view', ['record' => $record->apolice_origem_id]) : null)
+                                ->color('warning')
+                                ->visible(fn ($record) => $record->apolice_origem_id !== null),
+                        ]),
+                ])->columnSpan(['lg' => 1]),
+
+                Infolists\Components\Group::make()->schema([
+                    Infolists\Components\Section::make('Snapshot e Dados do Bem')
+                        ->icon('heroicon-o-cpu-chip')
+                        ->schema([
+                            Infolists\Components\TextEntry::make('snapshot.produto.nome')
+                                ->label('Produto Contratado')
+                                ->weight('bold')
+                                ->size(Infolists\Components\TextEntry\TextEntrySize::Large),
+
+                            Infolists\Components\RepeatableEntry::make('snapshot.coberturas')
+                                ->label('Coberturas Contratadas (Snapshot)')
+                                ->schema([
+                                    Infolists\Components\TextEntry::make('nome_cobertura')->label('Cobertura'),
+                                    Infolists\Components\TextEntry::make('limite_maximo')->label('Limite Máximo')->money('BRL'),
+                                ])
+                                ->columns(2),
+                            Infolists\Components\RepeatableEntry::make('dados_bem_assegurado.dependentes_vida')
+                                ->label('Dependentes (Seguro de Vida)')
+                                ->schema([
+                                    Infolists\Components\TextEntry::make('nome')->label('Nome')->weight('bold'),
+                                    Infolists\Components\TextEntry::make('parentesco')->label('Parentesco'),
+                                    Infolists\Components\TextEntry::make('data_nascimento')->label('Nascimento')->date('d/m/Y'),
+                                    Infolists\Components\TextEntry::make('peso')->label('Peso (kg)')->suffix(' kg'),
+                                    Infolists\Components\TextEntry::make('altura')->label('Altura (cm)')->suffix(' cm'),
+                                ])
+                                ->columns(5)
+                                ->visible(fn ($record) => !empty($record->dados_bem_assegurado['dependentes_vida'])),
+
+                            // 3. A TABELA KEY-VALUE LIMPA
+                            Infolists\Components\KeyValueEntry::make('dados_bem_assegurado')
+                                ->label('Dados Específicos do Risco')
+                                ->keyLabel('Campo')
+                                ->valueLabel('Informação')
+                                ->state(function ($record) {
+                                    if (!$record->dados_bem_assegurado) return [];
+                                    
+                                    return collect($record->dados_bem_assegurado)
+                                        // O FILTRO CIRÚRGICO: Adicionamos a variável $key e removemos os arrays indesejados
+                                        ->reject(fn ($value, $key) => 
+                                            is_null($value) || 
+                                            $value === '' || 
+                                            $value === [] || 
+                                            in_array($key, ['dependentes_vida', 'beneficiarios_vida'])
+                                        )
+                                        ->map(function ($value) {
+                                            if (is_array($value)) {
+                                                $isListaSimples = array_is_list($value) && empty(array_filter($value, 'is_array'));
+                                                return $isListaSimples ? implode(', ', $value) : json_encode($value, JSON_UNESCAPED_UNICODE);
+                                            }
+                                            if (is_bool($value)) {
+                                                return $value ? 'Sim' : 'Não';
+                                            }
+                                            return (string) $value;
+                                        })
+                                        ->toArray();
+                                }),
+                        ]),
+                ])->columnSpan(['lg' => 3]),
+            ])
+            ->columns(3);
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -284,7 +444,7 @@ public static function form(Form $form): Form
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\BeneficiariosRelationManager::class,
         ];
     }
 

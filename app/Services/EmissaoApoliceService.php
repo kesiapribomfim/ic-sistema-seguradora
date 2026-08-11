@@ -14,10 +14,8 @@ class EmissaoApoliceService
     {
         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
             
-            // 1. Atualiza o status da Cotação
             $cotacao->update(['status' => 'Aceita']);
 
-            // 2. Monta o Snapshot
             $snapshot = [
                 'produto' => [
                     'id'   => $cotacao->produto->id ?? null,
@@ -30,16 +28,13 @@ class EmissaoApoliceService
                 ? ($cotacao->valor_total / $quantidadeParcelas) 
                 : $cotacao->valor_total;
 
-            // 3. Cria a Apólice
-            // ATENÇÃO: Ao rodar o create() aqui, o seu ApoliceObserver 
-            // vai ser disparado automaticamente e vai criar as parcelas 'Abertas'.
             $apolice = Apolice::create([
                 'segurado_id'          => $cotacao->segurado_id,
                 'user_id'              => $cotacao->user_id,
                 'filial_id'            => $cotacao->filial_id,
                 'cotacao_id'           => $cotacao->id,
                 'apolice_origem_id'    => null, 
-                'numero_apolice'       => 'AP-' . strtoupper(Str::random(8)),
+                'numero_apolice'       => 'AP-' . strtoupper(Str::random(8)), //numeros
                 'data_emissao'         => Carbon::now(),
                 'data_inicio'          => Carbon::now(),
                 'data_fim'             => Carbon::now()->addYear(),
@@ -53,9 +48,29 @@ class EmissaoApoliceService
                 'valor_total'          => $cotacao->valor_total,
             ]);
 
-            // 4. Confirma o pagamento da 1ª Parcela
-            // Como o cliente efetuou o pagamento no checkout, buscamos a parcela 1 
-            // que o Observer acabou de criar e damos baixa nela.
+
+            $beneficiariosJson = $cotacao->dados_especificos['beneficiarios_vida'] ?? [];
+
+            foreach ($beneficiariosJson as $ben) {
+
+            if (empty($ben['cpf']) || empty($ben['nome'])) {
+                continue;
+            }
+                
+                $beneficiario = \App\Models\Beneficiario::firstOrCreate(
+                    ['cpf' => $ben['cpf']],
+                    [
+                        'nome' => $ben['nome'],
+                        'data_nascimento' => null
+                    ]
+                );
+
+                $apolice->beneficiarios()->attach($beneficiario->id, [
+                    'percentual_rateio' => $ben['percentual_rateio'],
+                    'parentesco'        => $ben['parentesco'],
+                ]);
+            }
+
             $primeiraParcela = \App\Models\Pagamento::where('apolice_id', $apolice->id)
                                 ->where('num_parcela', 1)
                                 ->first();

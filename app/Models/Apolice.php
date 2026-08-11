@@ -69,7 +69,7 @@ class Apolice extends Model
     public function beneficiarios()
     {
         return $this->belongsToMany(Beneficiario::class, 'apolice_beneficiario')
-            ->withPivot('percentual_rateio')
+            ->withPivot('percentual_rateio', 'parentesco')
             ->withTimestamps();
     }
 }

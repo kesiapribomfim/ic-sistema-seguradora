@@ -22,18 +22,15 @@ class CalculadoraPremioService
         $dadosEspecificos = $dados['dados_especificos'] ?? [];
         $dados = array_merge($dados, $dadosEspecificos);
         
-        // Agora usamos a função auxiliar para ler a taxa
         $taxaBasePercentual = $this->formatarNumero($parametros['taxa_base'] ?? 0);
-
-        // Lendo o campo do frontend (certifique-se de que ele enviou com ponto ou sem separador)
         $valorBaseRisco = $this->formatarNumero($dados['valor_base_risco'] ?? 0);
 
         // A Base em Reais
         $premioBase = $valorBaseRisco * ($taxaBasePercentual / 100);
 
-        $totalAgravantes = 0;
-        $totalDescontos = 0;
-        $adicionaisCoberturas = 0;
+        $totalAgravantes = 0.0;
+        $totalDescontos = 0.0;
+        $adicionaisCoberturas = 0.0;
 
         // =========================================================================
         // RAMO: AUTO
@@ -81,18 +78,133 @@ class CalculadoraPremioService
             }
         }
 
-        // ... (Deixe os ifs do Residencial e Vida intactos aqui no meio) ...
+        // =========================================================================
+        // RAMO: RESIDENCIAL
+        // =========================================================================
+        elseif ($produto->ramo === 'Residencial') {
+            
+            if (($dados['tipo_construcao'] ?? '') === 'madeira') {
+                $totalAgravantes += (float) ($parametros['fator_construcao_madeira'] ?? 0);
+            }
+
+            if (($dados['uso_residencia'] ?? '') === 'veraneio') {
+                $totalAgravantes += (float) ($parametros['fator_uso_veraneio'] ?? 0);
+            }
+
+            $sobreImovel = $dados['sobre_imovel'] ?? [];
+            if (is_array($sobreImovel) && in_array('desocupado', $sobreImovel)) {
+                $totalAgravantes += (float) ($parametros['fator_imovel_desocupado'] ?? 0);
+            }
+
+            if (($dados['regiao'] ?? '') === 'rural') {
+                $totalAgravantes += (float) ($parametros['fator_regiao_rural'] ?? 0);
+            }
+
+            if (($dados['agro_comercial'] ?? '') === 'com_agro_comercial') {
+                $totalAgravantes += (float) ($parametros['fator_agro_comercial'] ?? 0);
+            }
+
+            if (($dados['terreno_baldio'] ?? '') === 'sim') {
+                $totalAgravantes += (float) ($parametros['fator_terreno_baldio'] ?? 0);
+            }
+
+            $sinistros = $dados['sinistros'] ?? 'nao';
+            if (in_array($sinistros, ['uma_vez', 'duas_vezes', 'tres_mais'])) {
+                $totalAgravantes += (float) ($parametros['fator_sinistro_anterior'] ?? 0);
+            }
+
+            $tipoMoradia = $dados['tipo_moradia'] ?? '';
+            if ($tipoMoradia === 'apartamento') {
+                $totalDescontos += (float) ($parametros['desconto_apartamento'] ?? 0);
+            } elseif ($tipoMoradia === 'condominio_horizontal') {
+                $totalDescontos += (float) ($parametros['desconto_condominio_horizontal'] ?? 0);
+            }
+        }
+
+        // =========================================================================
+        // RAMO: VIDA
+        // =========================================================================
+        elseif ($produto->ramo === 'Vida') {
+            
+            // Lógica isolada para processar a saúde de qualquer pessoa (Titular ou Dependente)
+            $processarRiscoSaude = function (array $pessoa) use ($parametros, &$totalAgravantes, &$totalDescontos) {
+                
+                // 1. Profissão de Risco (Geralmente só aplicável ao titular, mas verificamos de forma segura)
+                if (($pessoa['profissao_risco'] ?? 'nao') === 'sim') {
+                    $totalAgravantes += (float) ($parametros['fator_profissao_risco'] ?? 0);
+                }
+
+                // 2. Cálculo de IMC
+                $peso = $this->formatarNumero($pessoa['peso'] ?? 0);
+                $altura = $this->formatarNumero($pessoa['altura'] ?? 0);
+                
+                if ($peso > 0 && $altura > 0) {
+                    $alturaMetros = $altura / 100;
+                    $imc = $peso / ($alturaMetros ** 2);
+                    
+                    // IMC fora do padrão (abaixo de 18.5 ou acima de 30)
+                    if ($imc < 18.5 || $imc >= 30) {
+                        $totalAgravantes += (float) ($parametros['fator_imc_fora_padrao'] ?? 0);
+                    }
+                }
+
+                // 3. Doenças Preexistentes
+                $possuiDoenca = !empty($pessoa['possui_doenca_preexistente']);
+                if ($possuiDoenca) {
+                    $doencasDiagnosticadas = $pessoa['doencas_diagnosticadas'] ?? [];
+                    $doencasGraves = ['cancer', 'avc', 'infarto', 'alzheimer', 'parkinson', 'esclerose_multipla'];
+                    
+                    // Verifica se há intersecção entre o array de doenças do paciente e a lista de doenças graves
+                    $temDoencaGrave = count(array_intersect($doencasDiagnosticadas, $doencasGraves)) > 0;
+
+                    if ($temDoencaGrave) {
+                        $totalAgravantes += (float) ($parametros['fator_doenca_grave'] ?? 0);
+                    } else {
+                        $totalAgravantes += (float) ($parametros['fator_doenca_preexistente'] ?? 0);
+                    }
+                }
+
+                // 4. Hábitos
+                $fumante = !empty($pessoa['fumante']);
+                $alcool = !empty($pessoa['consome_alcool']);
+                $esportesRadicais = !empty($pessoa['pratica_esportes_radicais']);
+
+                if ($fumante) $totalAgravantes += (float) ($parametros['fator_fumante'] ?? 0);
+                if ($alcool) $totalAgravantes += (float) ($parametros['fator_alcool'] ?? 0);
+                if ($esportesRadicais) $totalAgravantes += (float) ($parametros['fator_esportes_radicais'] ?? 0);
+
+                // 5. Desconto Perfil Saudável
+                if (!$fumante && !$alcool && !$possuiDoenca) {
+                    $totalDescontos += (float) ($parametros['desconto_perfil_saudavel'] ?? 0);
+                }
+            };
+
+            // Avalia o risco do Titular
+            $processarRiscoSaude($dados);
+
+            // Avalia o risco da família (Dependentes)
+            $dependentes = $dados['dependentes_vida'] ?? [];
+            if (is_array($dependentes) && !empty($dependentes)) {
+                foreach ($dependentes as $dependente) {
+                    // Adiciona o agravante percentual base por familiar estar no plano
+                    $parentesco = $dependente['parentesco'] ?? '';
+                    $totalAgravantes += ($parentesco === 'conjuge') ? 10.0 : 5.0; 
+                    
+                    // Avalia a saúde individual deste dependente
+                    $processarRiscoSaude($dependente);
+                }
+            }
+        }
 
         // =========================================================================
         // PROCESSAMENTO DE COBERTURAS
         // =========================================================================
-        // ATENÇÃO AQUI: Corrigimos o nome para o singular que está no seu form
         $coberturasSelecionadas = $dados['cobertura_selecionada'] ?? []; 
         
         if (is_array($coberturasSelecionadas)) {
             foreach ($coberturasSelecionadas as $cob) {
                 if (!empty($cob['contratada']) && empty($cob['obrigatoria'])) {
-                    $limite = (float) ($cob['limite_maximo'] ?? 0);
+                    $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
                     $adicionaisCoberturas += ($limite * 0.01); 
                 }
             }
@@ -102,11 +214,12 @@ class CalculadoraPremioService
         // A MATEMÁTICA FINAL
         // =========================================================================
         $fatorMultiplicador = 1 + ($totalAgravantes / 100) - ($totalDescontos / 100);
+        
+        // Garante que o prêmio nunca fique menor que 10% do valor base em caso de descontos extremos
         $fatorMultiplicador = max($fatorMultiplicador, 0.1); 
 
         Log::info('CalculadoraPremioService::calcular', [
-            'dados_brutos' => $dados,
-            'dados_especificos' => $dadosEspecificos,
+            'ramo_processado' => $produto->ramo,
             'taxaBasePercentual' => $taxaBasePercentual,
             'valorBaseRisco' => $valorBaseRisco,
             'premioBase' => $premioBase,

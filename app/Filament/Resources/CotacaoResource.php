@@ -297,7 +297,11 @@ class CotacaoResource extends Resource
                                 Forms\Components\TextInput::make('bairro')->required(),
                                 Forms\Components\TextInput::make('complemento'),
                                 Forms\Components\TextInput::make('cidade')->required(),
-                                Forms\Components\TextInput::make('uf')->label('UF')->required()->maxLength(2)->extraAttributes(['style'=>'text-transform: uppercase']),
+                                Forms\Components\TextInput::make('uf')
+                                    ->label('UF')
+                                    ->required()
+                                    ->maxLength(2)
+                                    ->extraAttributes(['style'=>'text-transform: uppercase']),
                                 Forms\Components\TextInput::make('CEP')->label('CEP')->required()->mask('99.999-999')->stripCharacters(['.', '-']),
                                 Forms\Components\ToggleButtons::make('estacionamento')->label('Em qual local?')->options(['garagem' => 'Garagem', 'rua' => 'Rua', 'estacionamento' => 'Estacionamento']),
                             ]),
@@ -406,7 +410,7 @@ class CotacaoResource extends Resource
                                 ->label('Faz divisa com terreno baldio ou área descampadas?')
                                 ->options(['sim'=>'Sim','nao'=>'Não'])
                                 ->required(),
-                            Forms\Components\TextInput::make('valor_imovel')
+                            Forms\Components\TextInput::make('valor_base_risco')
                                 ->label('Qual é o valor do imóvel?')
                                 ->numeric()
                                 ->prefix('R$')
@@ -423,30 +427,6 @@ class CotacaoResource extends Resource
 
 
     //VIDA
-    private static function getPerguntasComunsSchema(): array
-    {
-        return [
-            Forms\Components\Grid::make(2)->schema([
-                
-                Forms\Components\TextInput::make('peso')
-                    ->label('Peso (kg)')
-                    ->numeric()
-                    ->required(),
-                    
-                Forms\Components\TextInput::make('altura')
-                    ->label('Altura (cm)')
-                    ->numeric()
-                    ->required(),
-            ]),
-
-            Forms\Components\Select::make('profissao_risco')
-                ->label('Profissão de Risco?')
-                ->options(['nao' => 'Não', 'sim' => 'Sim'])
-                ->required(),
-                
-        ];
-    }
-
     private static function getPerguntasSaudeSchema(): array
     {
         return [
@@ -504,7 +484,7 @@ class CotacaoResource extends Resource
                 if (! $ramo) return false;
                 return $ramo === 'Vida';
             })
-            ->dehydrated(fn (Forms\Get $get) => $get('ramo') === 'Vida')
+            ->dehydrated(fn (Forms\Get $get) => $get('../ramo') === 'Vida')
             ->schema([
                 // ---------------------------------------------------------
                 // 1. DADOS DO TITULAR
@@ -516,7 +496,38 @@ class CotacaoResource extends Resource
                             ->tabs([
                                 Forms\Components\Tabs\Tab::make('Dados Pessoais')
                                     ->icon('heroicon-o-users')
-                                    ->schema(self::getPerguntasComunsSchema()) 
+                                    ->schema([
+                                        Forms\Components\TextInput::make('valor_base_risco')
+                                            ->label('Capital Segurado (R$)')
+                                            ->helperText('Valor principal da cobertura do titular')
+                                            ->numeric()
+                                            ->prefix('R$')
+                                            ->required()
+                                            ->live(),
+                                        //puxar o nome e data de nascimento direto do banco de dados
+                                        // Forms\Components\Placeholder::make('nome')
+                                        //     ->label('Nome Completo')
+                                        //     ->live(),
+                                        // Forms\Components\Placeholder::make('data_nascimento')
+                                        //     ->label('Data de Nascimento')
+                                        //     ->live(),
+                                        Forms\Components\Grid::make(2)->schema([
+                                            Forms\Components\TextInput::make('peso')
+                                                ->label('Peso (kg)')
+                                                ->numeric()
+                                                ->required(),
+                                                
+                                            Forms\Components\TextInput::make('altura')
+                                                ->label('Altura (cm)')
+                                                ->numeric()
+                                                ->required(),
+                                        ]),
+
+                                        Forms\Components\Select::make('profissao_risco')
+                                            ->label('Profissão de Risco?')
+                                            ->options(['nao' => 'Não', 'sim' => 'Sim'])
+                                            ->required(),
+                                    ]) 
                                     ->columns(2),
 
                                 Forms\Components\Tabs\Tab::make('Saúde')
@@ -563,6 +574,17 @@ class CotacaoResource extends Resource
                                                     }
                                                 },
                                             ]),
+                                        Forms\Components\Grid::make(2)->schema([
+                                            Forms\Components\TextInput::make('peso')
+                                                ->label('Peso (kg)')
+                                                ->numeric()
+                                                ->required(),
+                                                
+                                            Forms\Components\TextInput::make('altura')
+                                                ->label('Altura (cm)')
+                                                ->numeric()
+                                                ->required(),
+                                        ]),
                                     ])->columns(2),
 
                                 Forms\Components\Tabs\Tab::make('Saúde do Dependente')
@@ -588,6 +610,9 @@ class CotacaoResource extends Resource
                                 Forms\Components\TextInput::make('cpf')
                                     ->label('CPF')
                                     ->mask('999.999.999-99'),
+                                Forms\Components\TextInput::make('parentesco')
+                                    ->label('Parentesco')
+                                    ->required(),
                                 Forms\Components\TextInput::make('percentual_rateio')
                                     ->label('Rateio (%)')
                                     ->numeric()
@@ -799,7 +824,22 @@ class CotacaoResource extends Resource
             ])
             ->recordUrl(null)
             ->recordAction(Tables\Actions\ViewAction::class)
-            ->filters([]) // TODO: Filters
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Status da Cotação')
+                    ->options([
+                        'Em Elaboração' => 'Em Elaboração',
+                        'Enviada ao Cliente' => 'Enviada ao Cliente',
+                        'Aceita' => 'Aceita',
+                        'Recusada' => 'Recusada',
+                        'Expirada' => 'Expirada',
+                    ]),
+                //filtro para pesquisar nome do corretor responsável
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Corretor Responsável')
+                    ->relationship('user', 'name')
+                    ->searchable(),
+            ]) // TODO: Filters
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
@@ -832,6 +872,7 @@ class CotacaoResource extends Resource
                             // (Ajuste o caminho se o nome do seu resource for diferente)
                             redirect()->to('/admin/apolices/' . $apolice->id . '/view');
                         }),
+                    // TODO: Modificar para envio do link por email
                     Tables\Actions\Action::make('link_checkout')
                         ->label('Link de Pagamento')
                         ->icon('heroicon-o-link')

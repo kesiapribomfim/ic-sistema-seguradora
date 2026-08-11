@@ -13,10 +13,10 @@ class Beneficiario extends Model
         'parentesco',
     ];
 
-    public function apolice()
+    public function apolices()
     {
         return $this->belongsToMany(Apolice::class, 'apolice_beneficiario')
-            ->withPivot('percentual_rateio')
+            ->withPivot('percentual_rateio', 'parentesco')
             ->withTimestamps();
     }
 }

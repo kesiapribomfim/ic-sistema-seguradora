@@ -16,8 +16,8 @@ return new class extends Migration
             $table->timestamps();
             $table->string('nome');
             $table->string('cpf')->unique();
-            $table->date('data_nascimento');
-            $table->string('parentesco');
+            $table->date('data_nascimento')->nullable();
+            $table->string('telefone')->nullable();
         });
     }
 

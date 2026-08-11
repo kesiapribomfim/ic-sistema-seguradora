@@ -20,6 +20,9 @@ return new class extends Migration
             $table->foreignId('beneficiario_id')
                 ->constrained('beneficiarios')
                 ->restrictOnDelete();
+                
+            $table->string('percentual_rateio', 5, 2);
+            $table->string('parentesco')->nullable();
         });
     }
 
