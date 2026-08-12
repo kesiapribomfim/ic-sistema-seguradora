@@ -10,10 +10,10 @@ use Carbon\Carbon;
 
 class EmissaoApoliceService
 {
-    public function emitir(Cotacao $cotacao, string $formaPagamento = 'Cartão de Crédito', int $quantidadeParcelas = 1): Apolice
+    public function emitir(Cotacao $cotacao, string $formaPagamento, int $quantidadeParcelas): Apolice
     {
         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
-            
+
             $cotacao->update(['status' => 'Aceita']);
 
             $snapshot = [
@@ -34,7 +34,7 @@ class EmissaoApoliceService
                 'filial_id'            => $cotacao->filial_id,
                 'cotacao_id'           => $cotacao->id,
                 'apolice_origem_id'    => null, 
-                'numero_apolice'       => 'AP-' . strtoupper(Str::random(8)), //numeros
+                'numero_apolice'       => 'AP-' . str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
                 'data_emissao'         => Carbon::now(),
                 'data_inicio'          => Carbon::now(),
                 'data_fim'             => Carbon::now()->addYear(),
@@ -52,10 +52,9 @@ class EmissaoApoliceService
             $beneficiariosJson = $cotacao->dados_especificos['beneficiarios_vida'] ?? [];
 
             foreach ($beneficiariosJson as $ben) {
-
-            if (empty($ben['cpf']) || empty($ben['nome'])) {
-                continue;
-            }
+                if (empty($ben['cpf']) || empty($ben['nome'])) {
+                    continue;
+                }
                 
                 $beneficiario = \App\Models\Beneficiario::firstOrCreate(
                     ['cpf' => $ben['cpf']],
@@ -71,15 +70,19 @@ class EmissaoApoliceService
                 ]);
             }
 
-            $primeiraParcela = \App\Models\Pagamento::where('apolice_id', $apolice->id)
-                                ->where('num_parcela', 1)
-                                ->first();
+          
+            for ($i = 1; $i <= $quantidadeParcelas; $i++) {
+                $isPrimeiraParcela = ($i === 1);
 
-            if ($primeiraParcela) {
-                $primeiraParcela->update([
-                    'status'         => 'Paga',
-                    'data_pagamento' => Carbon::now(),
-                    'metodo_baixa'   => 'Automática'
+                \App\Models\Pagamento::create([
+                    'apolice_id'     => $apolice->id,
+                    'num_parcela'    => $i,
+                    'valor'          => $valorParcela,
+                    'vencimento'     => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
+                    // A primeira parcela já nasce paga devido ao aceite no checkout
+                    'status'         => $isPrimeiraParcela ? 'Paga' : 'Aberta',
+                    'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
+                    'metodo_baixa'   => $isPrimeiraParcela ? 'Automática' : null,
                 ]);
             }
 

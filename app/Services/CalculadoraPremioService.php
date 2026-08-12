@@ -4,6 +4,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 
 use App\Models\Produto;
+use App\Models\Segurado;
 
 class CalculadoraPremioService
 {
@@ -15,8 +16,19 @@ class CalculadoraPremioService
         return (float) str_replace(',', '.', (string) $valor);
     }
 
-    public function calcular(Produto $produto, array $dados): float
+    public function calcular(Produto $produto, array $dados, Segurado $segurado): float
     {
+        $score = $segurado->score ?? 0;
+
+        $descontoScore = 0.0;
+        $acrescimoScore = 0.0;
+
+        if ($score >= 80) {
+            $descontoScore = 7.5; // 7.5% de desconto para score >= 80
+        }
+        elseif ($score < 50) {
+            $acrescimoScore = 10.0; // 10% de acréscimo para score menor que 50
+        }
         $parametros = $produto->parametros_calculo ?? [];
 
         $dadosEspecificos = $dados['dados_especificos'] ?? [];
@@ -213,7 +225,7 @@ class CalculadoraPremioService
         // =========================================================================
         // A MATEMÁTICA FINAL
         // =========================================================================
-        $fatorMultiplicador = 1 + ($totalAgravantes / 100) - ($totalDescontos / 100);
+        $fatorMultiplicador = 1 + ($totalAgravantes / 100) + ($acrescimoScore / 100) - ($totalDescontos / 100) - ($descontoScore / 100);
         
         // Garante que o prêmio nunca fique menor que 10% do valor base em caso de descontos extremos
         $fatorMultiplicador = max($fatorMultiplicador, 0.1); 

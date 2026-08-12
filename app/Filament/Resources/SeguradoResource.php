@@ -48,8 +48,11 @@ class SeguradoResource extends Resource
                         Forms\Components\TextInput::make('nome')
                             ->required(),
                         Forms\Components\TextInput::make('cpf')
-                            ->label('CPF')  
-                            ->required(),
+                            ->label('CPF') 
+                            ->mask('999.999.999-99')
+                            ->stripCharacters(['.', '-'])
+                            ->required()
+                            ->unique(),
                         Forms\Components\TextInput::make('rg')
                             ->label('RG')
                             ->required(),
@@ -68,6 +71,8 @@ class SeguradoResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('cnpj')
                             ->label('CNPJ')
+                            ->mask('99.999.999/9999-99')
+                            ->stripCharacters(['.', '-', '/'])
                             ->required()
                             ->unique(),
                         Forms\Components\TextInput::make('razao_social')
@@ -82,24 +87,36 @@ class SeguradoResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('telefone')
                             ->required()
-                            ->unique(),
+                            ->mask('(99) 99999-9999')
+                            ->stripCharacters(['(', ')', ' ', '-']),
                         Forms\Components\TextInput::make('email')
                             ->required()
-                            ->unique(),
+                            ->email(),
                     ]),
                 
 
                 //Endereço FieldSet
                 Forms\Components\Fieldset::make('Endereço')
                     ->schema([
-                        Forms\Components\TextInput::make('rua'),
-                        Forms\Components\TextInput::make('numero'),
-                        Forms\Components\TextInput::make('bairro'),
+                        Forms\Components\TextInput::make('rua')
+                            ->required(),
+                        Forms\Components\TextInput::make('numero')
+                            ->required(),
+                        Forms\Components\TextInput::make('bairro')
+                            ->required(),
                         Forms\Components\TextInput::make('complemento'),
-                        Forms\Components\TextInput::make('cidade'),
-                        Forms\Components\TextInput::make('uf'),
+                        Forms\Components\TextInput::make('cidade')
+                            ->required(),
+                        Forms\Components\TextInput::make('uf')
+                            ->label('UF')
+                            ->maxLength(2)
+                            //->Uppercase()
+                            ->required(),
                         Forms\Components\TextInput::make('cep')
-                            ->label('CEP'),
+                            ->label('CEP')
+                            ->mask('99.999-999')
+                            ->stripCharacters(['.','-'])
+                            ->required(),
 
                     ]),           
                 

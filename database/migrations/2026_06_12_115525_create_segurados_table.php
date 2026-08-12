@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('uf', length: 2);
             $table->string('cep', length: 8);
 
-            $table->unsignedInteger('score'); 
+            $table->unsignedInteger('score'); //0 a 100
             $table->boolean('status')->default(true);
 
             //fk

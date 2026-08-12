@@ -742,13 +742,14 @@ class CotacaoResource extends Resource
                             // Injetamos a classe Placeholder do Filament
                             ->content(function (Forms\Get $get, Forms\Set $set, \Filament\Forms\Components\Placeholder $component) {
                                 $produto = \App\Models\Produto::find($get('produto_id'));
-                                if (!$produto) return 'R$ 0,00';
+                                $segurado = \App\Models\Segurado::find($get('segurado_id'));
+                                if (!$produto || !$segurado) return 'R$ 0,00';
 
                                 // O SEGREDO: Pega todos os dados brutos de todos os steps do formulário
                                 $dadosDoFormulario = $component->getLivewire()->form->getRawState(); 
                                 
                                 $calculadora = new \App\Services\CalculadoraPremioService();
-                                $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario);
+                                $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
 
                                 $set('valor_total', $premioFinal);
                                 return 'R$ ' . number_format($premioFinal, 2, ',', '.');

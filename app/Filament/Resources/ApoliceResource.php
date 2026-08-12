@@ -99,6 +99,8 @@ public static function form(Form $form): Form
                     ]),
             ])->columnSpan(['lg' => 2]),
 
+
+            // TODO: melhorar visualização dos dados na hora da edição (problema da infolist com dados de todos os ramos e coberturas não aparecendo)
             Forms\Components\Group::make()->schema([
                 Forms\Components\Section::make('Vinculos')
                     ->icon('heroicon-o-users')
@@ -172,12 +174,14 @@ public static function form(Form $form): Form
                         Forms\Components\KeyValue::make('snapshot')
                             ->label('Snapshot do Produto')
                             ->keyLabel('Atributo')
-                            ->valueLabel('Valor preservado'),
+                            ->valueLabel('Valor preservado')
+                            ->disabled(),
                             
                         Forms\Components\KeyValue::make('dados_bem_assegurado')
                             ->label('Dados do Bem')
                             ->keyLabel('Campo')
-                            ->valueLabel('Informação'),
+                            ->valueLabel('Informação')
+                            ->disabled(),
                     ]),
             ])->columnSpan(['lg' => 3]),
         ])
@@ -318,7 +322,6 @@ public static function form(Form $form): Form
                                 ->columns(5)
                                 ->visible(fn ($record) => !empty($record->dados_bem_assegurado['dependentes_vida'])),
 
-                            // 3. A TABELA KEY-VALUE LIMPA
                             Infolists\Components\KeyValueEntry::make('dados_bem_assegurado')
                                 ->label('Dados Específicos do Risco')
                                 ->keyLabel('Campo')
@@ -326,14 +329,30 @@ public static function form(Form $form): Form
                                 ->state(function ($record) {
                                     if (!$record->dados_bem_assegurado) return [];
                                     
+                                    // 1. Identificamos qual é o ramo do produto desta apólice
+                                    $ramo = $record->cotacao?->produto?->ramo ?? $record->snapshot['produto']['ramo'] ?? null;
+                                    
                                     return collect($record->dados_bem_assegurado)
-                                        // O FILTRO CIRÚRGICO: Adicionamos a variável $key e removemos os arrays indesejados
                                         ->reject(fn ($value, $key) => 
                                             is_null($value) || 
                                             $value === '' || 
                                             $value === [] || 
                                             in_array($key, ['dependentes_vida', 'beneficiarios_vida'])
                                         )
+                                        // 2. O FILTRO DE CONTEXTO: Só exibe o que pertence ao ramo da apólice
+                                        ->filter(function ($value, $key) use ($ramo) {
+                                            if ($ramo === 'Vida') {
+                                                return in_array($key, ['peso', 'altura', 'profissao_risco', 'fumante', 'consome_alcool', 'pratica_esportes_radicais', 'possui_doenca_preexistente', 'doencas_diagnosticadas', 'detalhes_saude', 'valor_base_risco']);
+                                            }
+                                            if ($ramo === 'Auto') {
+                                                return in_array($key, ['ano', 'tipo_veiculo', 'kit_gas', 'blindado', 'zero', 'uso', 'estacionamento', 'uso_anterior', 'seguro_antigo', 'classe_bonus', 'valor_base_risco', 'placa', 'chassi', 'modelo', 'marca', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'sem_placa']);
+                                            }
+                                            if ($ramo === 'Residencial') {
+                                                return in_array($key, ['tipo_moradia', 'detalhe_apartamento', 'uso_residencia', 'tipo_construcao', 'regiao', 'agro_comercial', 'sobre_imovel', 'terreno_baldio', 'sinistros', 'valor_base_risco', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'complemento']);
+                                            }
+                                            return true; // Fallback: se não identificar o ramo, deixa passar tudo
+                                        })
+                                        // 3. O TRADUTOR
                                         ->map(function ($value) {
                                             if (is_array($value)) {
                                                 $isListaSimples = array_is_list($value) && empty(array_filter($value, 'is_array'));

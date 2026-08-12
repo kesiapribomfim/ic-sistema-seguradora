@@ -33,13 +33,30 @@
             </div>
 
             <!-- Botão de Ação -->
-            <button 
-                wire:click="confirmarPagamento" 
-                wire:loading.attr="disabled"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex justify-center items-center"
+            <label class="block text-gray-700 mb-2">Forma de Pagamento:</label>
+            <select 
+                wire:model="formaPagamento"
+                class="w-full border border-gray-300 rounded-lg p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-                <span wire:loading.remove>Simular Pagamento e Aceitar</span>
-                <span wire:loading>Processando...</span>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Boleto Bancário">Boleto Bancário</option>
+                <option value="Pix">Pix</option>
+            </select>
+            <label class="block text-gray-700 mb-2">Quantidade de Parcelas:</label>
+            <select 
+                wire:model="quantidadeParcelas"
+                class="w-full border border-gray-300 rounded-lg p-2 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                @for ($i = 1; $i <= 12; $i++)
+                    <option value="{{ $i }}">{{ $i }}x</option>
+                @endfor
+            </select>
+            <button 
+                wire:click="processarAceite"
+                type="button"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 mt-4"
+            >
+                Confirmar Pagamento e Emitir Apólice
             </button>
             <p class="text-xs text-gray-400 text-center mt-4">Ambiente seguro e criptografado.</p>
         @endif

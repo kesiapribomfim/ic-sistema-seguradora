@@ -28,6 +28,7 @@ Atualmente, o sistema possui a fundamentação estrutural e cadastro incluidos:
 - Gestão de Filiais;
 - Gestão de Produtos;
 - Gestão de Segurados;
+- Fluxo de cotação e geração de apólice
 
 
 
