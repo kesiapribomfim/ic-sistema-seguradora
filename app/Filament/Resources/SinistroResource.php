@@ -100,6 +100,7 @@ class SinistroResource extends Resource
                 Forms\Components\Section::make('Detalhamento do Sinistro')
                     ->icon('heroicon-o-document-text')
                     ->schema([
+                        //TODO: Transformar isso aqui em um select ou um repeater na vibe das cotações. Aí apenas basta o usuário ativar as coberturas
                         Forms\Components\TagsInput::make('coberturas_envolvidas')
                             ->label('Coberturas Acionadas')
                             ->placeholder('Adicione as coberturas')

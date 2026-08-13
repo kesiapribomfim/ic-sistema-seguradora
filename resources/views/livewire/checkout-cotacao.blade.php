@@ -34,7 +34,7 @@
 
             <!-- Botão de Ação -->
             <label class="block text-gray-700 mb-2">Forma de Pagamento:</label>
-            <select 
+            <select
                 wire:model="formaPagamento"
                 class="w-full border border-gray-300 rounded-lg p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -43,6 +43,9 @@
                 <option value="Pix">Pix</option>
             </select>
             <label class="block text-gray-700 mb-2">Quantidade de Parcelas:</label>
+
+            @error('formaPagamento') <span class="text-red-500 text-xs block mb-4">{{ $message }}</span> @enderror
+
             <select 
                 wire:model="quantidadeParcelas"
                 class="w-full border border-gray-300 rounded-lg p-2 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -51,6 +54,9 @@
                     <option value="{{ $i }}">{{ $i }}x</option>
                 @endfor
             </select>
+
+            @error('quantidadeParcelas') <span class="text-red-500 text-xs block mb-6">{{ $message }}</span> @enderror
+            
             <button 
                 wire:click="processarAceite"
                 type="button"

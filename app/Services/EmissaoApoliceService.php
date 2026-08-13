@@ -77,12 +77,14 @@ class EmissaoApoliceService
                 \App\Models\Pagamento::create([
                     'apolice_id'     => $apolice->id,
                     'num_parcela'    => $i,
+                    'tipo_movimentacao' => 'Recebimento',
                     'valor'          => $valorParcela,
-                    'vencimento'     => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
+                    'data_vencimento'     => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
                     // A primeira parcela já nasce paga devido ao aceite no checkout
                     'status'         => $isPrimeiraParcela ? 'Paga' : 'Aberta',
                     'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
                     'metodo_baixa'   => $isPrimeiraParcela ? 'Automática' : null,
+
                 ]);
             }
 

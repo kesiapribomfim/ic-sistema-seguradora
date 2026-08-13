@@ -846,7 +846,7 @@ class CotacaoResource extends Resource
                     EditAction::make(),
                     ViewAction::make(),
 
-                    // Nosso botão customizado
+                    //  TODO: Ainda tenho que acertar isso, mas serve por enquanto
                     Tables\Actions\Action::make('emitir_apolice')
                         ->label('Emitir Apólice')
                         ->icon('heroicon-o-check-badge')
@@ -869,8 +869,6 @@ class CotacaoResource extends Resource
                                 ->success()
                                 ->send();
 
-                            // Redireciona o usuário direto para a tela de visualização da apólice recém-criada
-                            // (Ajuste o caminho se o nome do seu resource for diferente)
                             redirect()->to('/admin/apolices/' . $apolice->id . '/view');
                         }),
                     // TODO: Modificar para envio do link por email
@@ -880,18 +878,15 @@ class CotacaoResource extends Resource
                         ->color('info')
                         ->visible(fn (Cotacao $record) => $record->status !== 'Aceita')
                         ->action(function (Cotacao $record) {
-                            // Gera o link mágico com validade
                             $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                                 'checkout.cotacao', 
                                 now()->addDays(30), // O link expira em 30 dias
-                                ['cotacao' => $record->id]
+                                ['cotacao' => $record->uuid] //aponta para o uuid das cotações
                             );
 
-                            // Copia para a área de transferência usando o Clipboard do Filament
-                            // (Opcional, você pode apenas exibir em um modal se preferir)
                             \Filament\Notifications\Notification::make()
-                                ->title('Link Gerado!')
-                                ->body('URL: ' . $url)
+                                ->title('Link Gerado com sucesso!')
+                                ->body($url)
                                 ->success()
                                 ->send();
                         }),

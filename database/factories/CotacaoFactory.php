@@ -22,6 +22,7 @@ class CotacaoFactory extends Factory
     public function definition(): array
     {
         return [
+            'uuid' => $this->faker->unique()->uuid(),
             //fk
             'segurado_id' => Segurado::factory(),
             'user_id' => User::factory(),

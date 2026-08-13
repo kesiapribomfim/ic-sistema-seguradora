@@ -8,6 +8,6 @@ Route::get('/', function () {
 });
 
 
-Route::get('/cotacao/{cotacao}/checkout', CheckoutCotacao::class)
+Route::get('/cotacao/{cotacao:uuid}/checkout', CheckoutCotacao::class)
     ->name('checkout.cotacao')
-    ->middleware('signed');
+    ->middleware('throttle: 5,1');

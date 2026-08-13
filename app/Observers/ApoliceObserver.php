@@ -13,36 +13,26 @@ class ApoliceObserver
      */
     public function created(Apolice $apolice): void
     {
-        // Pega a quantidade real da apólice. Se vier vazio por algum motivo, assume 1 (à vista)
-        $quantidadeParcelas = $apolice->quantidade_parcelas ?? 1;
-        
-        // Pega o valor exato da parcela calculado no momento da cotação
-        $valorParcela = $apolice->valor_parcela ?? $apolice->valor_total;
-
-        for ($i = 1; $i <= $quantidadeParcelas; $i++) {
+        // Verifica se é uma renovação (ou seja, se possui uma apólice de origem)
+        if ($apolice->apolice_origem_id !== null) {
             
-            $dataVencimento = Carbon::now()->startOfDay()->addDays(30 * $i);
+            // 1. EFEITO COLATERAL: Mudar o status da apólice velha
+            $apoliceOrigem = Apolice::find($apolice->apolice_origem_id);
+            if ($apoliceOrigem) {
+                $apoliceOrigem->update(['status' => 'Renovada']);
+            }
 
-            Pagamento::create([
-                'apolice_id'         => $apolice->id,
-                'sinistro_id'        => null, // Não há sinistro na geração da apólice
-                
-                // Dados da Movimentação
-                'tipo_movimentacao'  => 'Recebimento',
-                'valor'              => $valorParcela,
-                'num_parcela'        => $i,
-                
-                // Datas
-                'data_vencimento'    => $dataVencimento,
-                'data_pagamento'     => null, // Será preenchido quando o cliente pagar
-                
-                // Controle
-                'status'             => 'Aberta',
-                'caminho_fatura_pdf' => null, // Será preenchido pelo Job do PDF depois
-                'metodo_baixa'       => null, // Será preenchido na hora da confirmação do pagamento
-            ]);
+            // 2. EFEITO COLATERAL: Disparar e-mail de agradecimento pela fidelidade
+            // Mail::to($apolice->user->email)->send(new RenovacaoSucessoMail($apolice));
+            
+        } else {
+            // Se NÃO tem apólice de origem, é uma apólice NOVA.
+            // Dispara e-mail de boas-vindas padrão.
+            // Mail::to($apolice->user->email)->send(new BoasVindasSeguradoMail($apolice));
         }
-    
+
+        // 3. EFEITO COLATERAL GLOBAL (Para ambas): Colocar na fila o Job para gerar o PDF
+        // GerarPdfApoliceJob::dispatch($apolice);
     }
 
     /**

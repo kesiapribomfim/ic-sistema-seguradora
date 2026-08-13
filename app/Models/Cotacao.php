@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class Cotacao extends Model
 {
@@ -28,6 +29,14 @@ class Cotacao extends Model
         'dados_especificos' => 'array',
         'cobertura_selecionada' => 'array',
     ];
+
+    protected static function booted()
+    {
+        // Toda vez que uma cotação for criada, o Laravel injeta um UUID nela
+        static::creating(function ($cotacao) {
+            $cotacao->uuid = (string) Str::uuid();
+        });
+    }
 
     //fk
     public function segurado() {
