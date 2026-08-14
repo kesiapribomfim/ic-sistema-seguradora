@@ -15,7 +15,7 @@
             <h2>Seguradora Multi-ramo</h2>
         </div>
         <div class="content">
-            <p>Olá, <strong>{{ $apolice->segurado->seguradoPf>nome ?? $apolice->segurado->seguradoPj->razao_social }}</strong>!</p>
+            <p>Olá, <strong>{{ $apolice->segurado->seguradoPf->nome ?? $apolice->segurado->seguradoPj->razao_social }}</strong>!</p>
             
             <p>Temos uma ótima notícia: o aceite da sua cotação foi confirmado e sua apólice já está vigente!</p>
             

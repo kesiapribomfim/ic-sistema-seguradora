@@ -857,11 +857,15 @@ class CotacaoResource extends Resource
                         ->modalSubmitActionLabel('Sim, emitir apólice')
                         // Só mostra o botão se a cotação ainda não foi aceita
                         ->visible(fn (Cotacao $record) => $record->status !== 'Aceita')
-                        ->action(function (Cotacao $record) {
+                        ->action(function (Cotacao $record, array $data) {
                             
                             // Chama a classe de serviço
                             $servico = new \App\Services\EmissaoApoliceService();
-                            $apolice = $servico->emitir($record);
+                            $apolice = $servico->emitir(
+                                $record,
+                                $data['forma_pagamento'],
+                                (int) $data['quantidade_parcelas']    
+                            );
 
                             // Mostra notificação de sucesso e redireciona para a nova apólice
                             \Filament\Notifications\Notification::make()
@@ -870,7 +874,35 @@ class CotacaoResource extends Resource
                                 ->send();
 
                             redirect()->to('/admin/apolices/' . $apolice->id . '/view');
-                        }),
+                        })
+                        ->form([
+                            Forms\Components\Select::make('forma_pagamento')
+                                ->label('Forma de Pagamento')
+                                ->options([
+                                    'Cartão de Crédito' => 'Cartão de Crédito',
+                                    'Boleto Bancário' => 'Boleto Bancário',
+                                    'Pix' => 'Pix',
+                                ])
+                                ->required(),
+                                
+                            Forms\Components\Select::make('quantidade_parcelas')
+                                ->label('Quantidade de Parcelas')
+                                ->options([
+                                    1 => '1x (À Vista)',
+                                    2 => '2x',
+                                    3 => '3x',
+                                    4 => '4x',
+                                    5 => '5x',
+                                    6 => '6x',
+                                    7 => '7x',
+                                    8 => '8x',
+                                    9 => '9x',
+                                    10 => '10x',
+                                    11 => '11x',
+                                    12 => '12x',
+                                ])
+                                ->required(),
+                        ]),
                     // TODO: Modificar para envio do link por email
                     Tables\Actions\Action::make('link_checkout')
                         ->label('Link de Pagamento')
@@ -881,7 +913,7 @@ class CotacaoResource extends Resource
                             $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                                 'checkout.cotacao', 
                                 now()->addDays(30), // O link expira em 30 dias
-                                ['cotacao' => $record->uuid] //aponta para o uuid das cotações
+                                ['cotacao' => $record] //aponta para o uuid das cotações
                             );
 
                             \Filament\Notifications\Notification::make()
