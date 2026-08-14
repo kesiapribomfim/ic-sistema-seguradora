@@ -19,6 +19,7 @@ use Filament\Tables\Actions\ViewAction;
 use Illuminate\Support\HtmlString;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 // TODO: Ajeitar os nomes de Apolices na interface visual e os icons (cotação, produto e apolice)
 
@@ -437,11 +438,19 @@ public static function form(Form $form): Form
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\ViewAction::make(),
 
-                    Tables\Actions\Action::make('gerar_pdf')
-                        ->label('Gerar PDF')
-                        ->icon('heroicon-o-document-check')
-                        ->color('danger'),
-                        //->action(),
+                    Tables\Actions\Action::make('baixar_pdf')
+                        ->label('Baixar PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('danger')
+                        ->action(function ($record) {
+                            // TODO: Adicionar condicional para não aparecer esse botão para apólices canceladas
+                            $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $record]);
+                            
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()), 
+                                "apolice-{$record->numero_apolice}.pdf"
+                            );
+                        }),
 
                     // O botão inverso: da Apólice para a Cotação
                     Tables\Actions\Action::make('ver_cotacao')

@@ -859,7 +859,7 @@ class CotacaoResource extends Resource
                         ->visible(fn (Cotacao $record) => $record->status !== 'Aceita')
                         ->action(function (Cotacao $record) {
                             
-                            // Chama a nossa classe de serviço
+                            // Chama a classe de serviço
                             $servico = new \App\Services\EmissaoApoliceService();
                             $apolice = $servico->emitir($record);
 

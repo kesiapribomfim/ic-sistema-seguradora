@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use App\Models\Apolice;
 use App\Models\Pagamento;
-use Carbon\Carbon;
+use App\Jobs\EnviarApoliceEmailJob;
 
 class ApoliceObserver
 {
@@ -16,23 +16,16 @@ class ApoliceObserver
         // Verifica se é uma renovação (ou seja, se possui uma apólice de origem)
         if ($apolice->apolice_origem_id !== null) {
             
-            // 1. EFEITO COLATERAL: Mudar o status da apólice velha
+            // Mudar o status da apólice velha
             $apoliceOrigem = Apolice::find($apolice->apolice_origem_id);
             if ($apoliceOrigem) {
                 $apoliceOrigem->update(['status' => 'Renovada']);
             }
 
-            // 2. EFEITO COLATERAL: Disparar e-mail de agradecimento pela fidelidade
-            // Mail::to($apolice->user->email)->send(new RenovacaoSucessoMail($apolice));
-            
-        } else {
-            // Se NÃO tem apólice de origem, é uma apólice NOVA.
-            // Dispara e-mail de boas-vindas padrão.
-            // Mail::to($apolice->user->email)->send(new BoasVindasSeguradoMail($apolice));
+            // TODO: No futuro, criar uma 'RenovacaoEmailJob' específica aqui.
         }
 
-        // 3. EFEITO COLATERAL GLOBAL (Para ambas): Colocar na fila o Job para gerar o PDF
-        // GerarPdfApoliceJob::dispatch($apolice);
+        EnviarApoliceEmailJob::dispatch($apolice);
     }
 
     /**
