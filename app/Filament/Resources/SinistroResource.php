@@ -42,7 +42,8 @@ class SinistroResource extends Resource
                             ->label('Apólice Vinculada')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->live(),
 
                         Forms\Components\DateTimePicker::make('data_hora_ocorrencia')
                             ->label('Data e Hora da Ocorrência')
@@ -100,11 +101,31 @@ class SinistroResource extends Resource
                 Forms\Components\Section::make('Detalhamento do Sinistro')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        //TODO: Transformar isso aqui em um select ou um repeater na vibe das cotações. Aí apenas basta o usuário ativar as coberturas
-                        Forms\Components\TagsInput::make('coberturas_envolvidas')
+                        Forms\Components\CheckboxList::make('coberturas_envolvidas')
                             ->label('Coberturas Acionadas')
-                            ->placeholder('Adicione as coberturas')
-                            ->helperText('Digite a cobertura e pressione Enter para adicionar. Ex: Danos Morais, Colisão.'),
+                            ->options(function (Forms\Get $get) {
+                                $apoliceId = $get('apolice_id');
+                                if (!$apoliceId) {
+                                    return []; // Retorna vazio se não tiver apólice selecionada
+                                }
+
+                                $apolice = \App\Models\Apolice::find($apoliceId);
+                                if (!$apolice || empty($apolice->snapshot['coberturas'])) {
+                                    return [];
+                                }
+
+                                // Mapeia o array de coberturas do snapshot
+                                $opcoes = [];
+                                foreach ($apolice->snapshot['coberturas'] as $cobertura) {
+                                    // AQUI ESTAVA O SEGREDO: 'nome_cobertura'
+                                    $nomeCobertura = $cobertura['nome_cobertura'] ?? 'Cobertura Desconhecida';
+                                    $opcoes[$nomeCobertura] = $nomeCobertura; 
+                                }
+                                return $opcoes;
+                            })
+                            ->required()
+                            ->columns(2)
+                            ->helperText('Selecione as coberturas afetadas por este evento.'),
 
                         Forms\Components\Textarea::make('descricao')
                             ->label('Descrição do Evento')
@@ -173,7 +194,6 @@ public static function table(Table $table): Table
                 ->searchable()
                 ->sortable()
                 ->color('info')
-                // Link direto para a apólice, mantendo a excelente navegabilidade que você criou
                 ->url(fn (Model $record) => $record->apolice_id ? \App\Filament\Resources\ApoliceResource::getUrl('view', ['record' => $record->apolice_id]) : null)
                 ->openUrlInNewTab(),
 
@@ -236,7 +256,7 @@ public static function table(Table $table): Table
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\MovimentacoesRelationManager::class,
         ];
     }
 

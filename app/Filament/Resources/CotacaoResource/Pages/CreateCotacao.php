@@ -10,16 +10,6 @@ class CreateCotacao extends CreateRecord
 {
     protected static string $resource = CotacaoResource::class;
 
-    protected function getCreateFormAction(): \Filament\Actions\Action
-    {
-        return parent::getCreateFormAction()
-            ->label('Enviar Proposta')
-            ->icon('heroicon-o-paper-airplane')
-            ->color('info');
-
-            //Action para cliar um link para aprovação do cliente
-    }
-
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $coberturas = $data['coberturas_selecionadas'] ?? [];

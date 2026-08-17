@@ -2,23 +2,23 @@
 
 namespace App\Jobs;
 
-use App\Models\Apolice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use App\Models\Cotacao;
 use Illuminate\Support\Facades\Mail;
 
-class EnviarApoliceEmailJob implements ShouldQueue
+class EnviarCotacaoEmailJob implements ShouldQueue
 {
     use Queueable;
 
-    public Apolice $apolice;
+    public Cotacao $cotacao;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Apolice $apolice)
+    public function __construct(Cotacao $cotacao)
     {
-        $this->apolice = $apolice;
+        $this->cotacao = $cotacao;
     }
 
     /**
@@ -26,7 +26,7 @@ class EnviarApoliceEmailJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Mail::to($this->apolice->segurado->email)
-            ->send(new \App\Mail\BoasVindasApoliceMail($this->apolice));
+        Mail::to($this->cotacao->segurado->email)
+            ->send(new \App\Mail\CotacaoMail($this->cotacao));
     }
 }

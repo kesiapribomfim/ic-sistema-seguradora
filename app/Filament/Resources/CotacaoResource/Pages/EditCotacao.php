@@ -14,6 +14,23 @@ class EditCotacao extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
+            \Filament\Actions\Action::make('enviar_cliente')
+                ->label('Enviar para o Cliente')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->requiresConfirmation()
+                ->action(function () { 
+                    $cotacao = $this->record; 
+                    
+                    $cotacao->update(['status' => 'Enviada ao cliente']);
+                    
+                    \App\Jobs\EnviarCotacaoEmailJob::dispatch($cotacao);
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('E-mail na fila de envio!')
+                        ->success()
+                        ->send();
+                }),
         ];
     }
 }

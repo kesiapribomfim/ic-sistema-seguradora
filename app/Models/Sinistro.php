@@ -47,4 +47,8 @@ class Sinistro extends Model
         return $this->hasMany(SinistroMovimentacao::class);
     }
 
+    public function coberturas (){
+        
+    }
+
 }

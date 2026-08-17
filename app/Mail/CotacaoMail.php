@@ -3,26 +3,26 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Apolice;
-use Barryvdh\DomPDF\Facade\Pdf; 
+use App\Models\Cotacao;
 
-class BoasVindasApoliceMail extends Mailable
+class CotacaoMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Apolice $apolice;
+    public Cotacao $cotacao;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Apolice $apolice)
+    public function __construct(Cotacao $cotacao)
     {
-        $this->apolice = $apolice;
+        $this->cotacao = $cotacao;
     }
 
     /**
@@ -31,7 +31,7 @@ class BoasVindasApoliceMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Sua Apólice foi emitida com sucesso!',
+            subject: 'Proposta de Cotação de Seguro',
         );
     }
 
@@ -41,20 +41,17 @@ class BoasVindasApoliceMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.boas-vindas-apolice',
+            view: 'emails.cotacao-aceite',
         );
     }
 
     /**
      * Get the attachments for the message.
+     *
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
-        $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $this->apolice]);
-
-        return [
-            Attachment::fromData(fn () => $pdf->output(), "apolice-{$this->apolice->numero_apolice}.pdf")
-                ->withMime('application/pdf'),
-        ];
+        return [];
     }
 }

@@ -58,4 +58,12 @@ class Cotacao extends Model
     public function apolice() {
         return $this->hasOne(Apolice::class); //uma para uma apolice
     }
+
+    public function gerarLinkCheckout () {
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'checkout.cotacao',
+            now()->addDays(30), //puxar a validade
+            ['cotacao' => $this] //aponta para o uuid das cotações
+        );
+    }
 }

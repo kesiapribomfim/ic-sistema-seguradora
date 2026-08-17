@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Observers\SinistroMovimentacaoObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
+#[ObservedBy([SinistroMovimentacaoObserver::class])]
 class SinistroMovimentacao extends Model
 {
     use HasFactory;
+
+    protected $table = 'sinistro_movimentacoes';
 
     protected $fillable = [
         'sinistro_id',
@@ -20,7 +25,7 @@ class SinistroMovimentacao extends Model
 
     protected $casts = [
         'anexos' => 'array',
-        'data_hora_movimentacao' => 'datetime',
+        'data_hr_movimentacao' => 'datetime',
     ];
 
     public function user(){
