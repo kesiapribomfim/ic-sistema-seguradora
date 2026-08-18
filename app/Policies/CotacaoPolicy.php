@@ -11,98 +11,140 @@ class CotacaoPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any models.
+     * Validação centralizada do Princípio do Menor Privilégio (PoLP).
+     * Retorna true apenas se a cotação pertencer ao universo do usuário logado.
      */
+    private function verificaEscopo(User $user, Cotacao $cotacao): bool
+    {
+        // Corretor: Acesso restrito à própria carteira
+        if ($user->hasRole('Corretor')) {
+            return $cotacao->user_id === $user->id;
+        }
+
+
+
+
+
+
+
+        // Subscritor e Gestor: Acesso restrito às cotações das suas filiais
+        if ($user->hasAnyRole(['Subscritor', 'Gestor de Filial'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            return in_array($cotacao->filial_id, $filiaisIds);
+        }
+
+        // Cliente: Acesso restrito às suas próprias cotações - TODO
+        // if ($user->hasRole('Cliente')) {
+        //     // Assumindo o relacionamento onde a Cotação pertence a um Segurado, que pertence a um User
+        //     return $cotacao->segurado->user_id === $user->id; 
+        // }
+
+        return false;
+    }
+
+    public function before(User $user, string $ability): ?bool
+    {
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }    
+
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_cotacao');
+        // Subscritor foi adicionado aqui, pois ele é ator fundamental deste módulo
+        return $user->hasAnyRole([
+            'Gestor de Filial',
+            'Subscritor',
+            'Corretor',
+            'Cliente'
+        ]);
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Cotacao $cotacao): bool
     {
-        return $user->can('view_cotacao');
+        // 1. Verifica se a cotação pertence à carteira/filial do usuário
+        if (!$this->verificaEscopo($user, $cotacao)) {
+            return false;
+        }
+
+        // 2. Verifica a permissão de visualização do Spatie
+        return true;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
+        // Clientes e Corretores abrem novas cotações
+        if ($user->hasAnyRole(['Corretor', 'Cliente'])) {
+            return true;
+        }
+        
         return $user->can('create_cotacao');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Cotacao $cotacao): bool
     {
-        return $user->can('update_cotacao');
+        if (in_array($cotacao->status, ['Aceita', 'Recusada', 'Expirada'])) {
+            return false;
+        }
+
+        if (!$this->verificaEscopo($user, $cotacao)) {
+            return false;
+        }
+
+        //impede o Subiscritor de mexer na cotação
+        if ($user->hasRole('Subscritor')) {
+            return false;
+        }
+
+        return true;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Cotacao $cotacao): bool
     {
-        return $user->can('delete_cotacao');
+        // Cotações não devem ser deletadas do banco para garantir o funil de conversão e auditoria.
+        // O status deve ser alterado para "Recusada" ou "Expirada".
+        return false;
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_cotacao');
+        return false;
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
     public function forceDelete(User $user, Cotacao $cotacao): bool
     {
-        return $user->can('force_delete_cotacao');
+        return false;
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_cotacao');
+        return false;
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
     public function restore(User $user, Cotacao $cotacao): bool
     {
-        return $user->can('restore_cotacao');
+        return false;
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_cotacao');
+        return false;
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
     public function replicate(User $user, Cotacao $cotacao): bool
     {
+        // 1. Apenas se o usuário tiver acesso à cotação original
+        if (!$this->verificaEscopo($user, $cotacao)) {
+            return false;
+        }
+        
         return $user->can('replicate_cotacao');
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_cotacao');
+        return false;
     }
 }

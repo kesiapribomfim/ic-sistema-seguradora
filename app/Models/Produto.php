@@ -17,11 +17,13 @@ class Produto extends Model
         'status',
         'versao',
         'parametros_calculo',
+        'valor_alcada',
     ];
 
     protected $casts = [
         'status' => 'boolean',
         'parametros_calculo' => 'array',
+        'valor_alcada' => 'decimal:2',
     ];
 
     public function cotacoes(){

@@ -13,9 +13,26 @@ class ApolicePolicy
     /**
      * Determine whether the user can view any models.
      */
+
+    public function before(User $user, string $ability): ?bool
+    {
+        //Admin Geral acesso
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_apolice');
+        return $user->hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Corretor',
+            'Cliente', 
+            'Financeiro'
+        ]);
     }
 
     /**
@@ -23,6 +40,18 @@ class ApolicePolicy
      */
     public function view(User $user, Apolice $apolice): bool
     {
+        if ($user->hasRole('Corretor')) {
+            return $apolice->user_id === $user->id;
+        }
+
+        if ($user -> hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Financeiro'
+        ])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            return in_array($apolice->filial_id, $filiaisIds);
+        }
         return $user->can('view_apolice');
     }
 
@@ -39,15 +68,15 @@ class ApolicePolicy
      */
     public function update(User $user, Apolice $apolice): bool
     {
-        return $user->can('update_apolice');
+        return false;
+    
     }
-
     /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Apolice $apolice): bool
     {
-        return $user->can('delete_apolice');
+        return false;
     }
 
     /**

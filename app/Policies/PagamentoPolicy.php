@@ -20,12 +20,12 @@ class PagamentoPolicy
     public function viewAny(User $user): bool
     {
         // Gestores monitoram, Financeiro opera, Corretores e Clientes visualizam
-        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Corretor', 'Cliente']);
+        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function view(User $user, Pagamento $pagamento): bool
     {
-        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Corretor', 'Cliente']);
+        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function create(User $user): bool

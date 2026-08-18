@@ -13,9 +13,27 @@ class SeguradoPolicy
     /**
      * Determine whether the user can view any models.
      */
+
+    public function before(User $user, string $ability): ?bool
+    {
+        //Admin Geral acesso
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
+
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_segurado');
+        return $user->hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Corretor',
+            'Cliente', 
+            'Financeiro'
+        ]);
     }
 
     /**
@@ -23,6 +41,19 @@ class SeguradoPolicy
      */
     public function view(User $user, Segurado $segurado): bool
     {
+        if ($user->hasRole('Corretor')) {
+            return $segurado->user_id === $user->id;
+        }
+
+        if ($user -> hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Financeiro'
+        ])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            return in_array($segurado->filial_id, $filiaisIds);
+        }
+
         return $user->can('view_segurado');
     }
 
@@ -31,6 +62,9 @@ class SeguradoPolicy
      */
     public function create(User $user): bool
     {
+        if ($user->hasRole('Corretor')){
+            return true;
+        }
         return $user->can('create_segurado');
     }
 

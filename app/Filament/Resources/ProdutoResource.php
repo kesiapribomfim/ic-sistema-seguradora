@@ -261,6 +261,12 @@ class ProdutoResource extends Resource
 
                 Forms\Components\Section::make('Configurações')
                     ->schema([
+                        Forms\Components\TextInput::make('valor_alcada')
+                            ->label('Valor de Alçada (Aprovação Automática)')
+                            ->helperText('Se a soma das coberturas passar deste valor, a cotação será enviada para o Subscritor.')
+                            ->numeric()
+                            ->prefix('R$')
+                            ->nullable(), // Se deixar em branco, não tem limite de alçada
                         Toggle::make('status')
                             ->label('Produto Ativo')
                             ->default(false) 

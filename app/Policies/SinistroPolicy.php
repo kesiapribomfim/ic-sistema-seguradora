@@ -14,33 +14,56 @@ class SinistroPolicy
      */
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('Administrador Geral')) {
+        //Admin Geral acesso
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
             return true;
         }
 
-        return null; // Retorna null para continuar as validações específicas abaixo
+        return null;
     }
 
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Corretor', 'Cliente']);
+        
+        return $user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Corretor', 'Cliente', 'Financeiro']);
     }
 
     public function view(User $user, Sinistro $sinistro): bool
     {
-        return $user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Corretor', 'Cliente']);
+        if ($user->hasRole('Corretor')) {
+            return $sinistro->apolice->user_id === $user->id;
+        }
+
+        if ($user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Financeiro'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            return in_array($sinistro->apolice->filial_id, $filiaisIds);
+        }
+
+        return false;
     }
 
     public function create(User $user): bool
     {
-        // Clientes e Corretores abrem sinistros. Analistas geralmente não abrem, apenas avaliam.
+        // Clientes e Corretores abrem sinistros.
         return $user->hasAnyRole(['Corretor', 'Cliente']);
     }
 
     public function update(User $user, Sinistro $sinistro): bool
     {
-        // Apenas Analistas movimentam o sinistro no backoffice
-        return $user->hasRole('Analista de Sinistros');
+        // 1. Apenas Analistas e Gestores movimentam o sinistro no backoffice
+        if (!$user->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])) {
+            return false;
+        }
+
+        // 2. Trava de Imutabilidade do Ciclo de Vida: Sinistros encerrados não podem ser alterados
+        $statusFinalizados = ['Pago', 'Negado', 'Encerrado'];
+        if (in_array($sinistro->status, $statusFinalizados)) {
+            return false;
+        }
+
+        // 3. Trava de Filial (Analista só edita se for da filial dele)
+        $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+        return in_array($sinistro->apolice->filial_id, $filiaisIds);
     }
 
     public function delete(User $user, Sinistro $sinistro): bool

@@ -375,14 +375,20 @@ public static function form(Form $form): Form
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-
         $user = auth()->user();
 
-        if ($user->hasRole('Corretor') && ! $user->hasRole('super_admin')) {
-            $query->where('user_id', $user->id);
+        if ($user->hasRole('super_admin')){
+            return $query;
         }
 
-        return $query;
+        if ($user->hasRole('Corretor')) {
+            return $query->where('user_id', $user->id);
+        }
+
+        // Analista, Gestor e Financeiro ligado a filial
+        $filiaisIds = $user->filiais()->pluck('filiais.id');
+        
+        return $query->whereIn('filial_id', $filiaisIds);
     }
 
     public static function table(Table $table): Table

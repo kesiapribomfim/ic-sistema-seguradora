@@ -250,8 +250,39 @@ public static function table(Table $table): Table
             Tables\Actions\BulkActionGroup::make([
                 Tables\Actions\DeleteBulkAction::make(),
             ]),
-        ]);
-}
+        ]); 
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        //Permissão super_admin
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // Permissão Corretor (restrita a seu id)
+        if ($user->hasRole('Corretor')) {
+            return $query->whereHas('apolice', function (Builder $query) use ($user) {
+                $query->where('user_id', $user->id);
+            });
+        }
+
+        // TODO: Relacionar Cliente User
+        if ($user->hasRole('Cliente')) {
+            // Assumindo que você ligou o User ao Segurado em algum lugar, o raciocínio seria:
+            // $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
+        }
+
+        // Analista, Gestor e Financeiro ligado a filial
+        $filiaisIds = $user->filiais()->pluck('filiais.id');
+        
+        return $query->whereHas('apolice', function (Builder $query) use ($filiaisIds) {
+            $query->whereIn('filial_id', $filiaisIds);
+        });
+    }
 
     public static function getRelations(): array
     {
