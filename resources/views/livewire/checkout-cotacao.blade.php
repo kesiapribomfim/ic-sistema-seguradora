@@ -15,8 +15,20 @@
                 <h2 class="text-xl font-bold text-green-800 mb-2">Pagamento Aprovado!</h2>
                 <p class="text-green-700">Sua apólice foi gerada com sucesso e já está vigente. Você receberá os documentos por e-mail.</p>
             </div>
+            
+        @elseif($emSubscricao)
+            <!-- Tela de Análise de Risco (NOVO) -->
+            <div class="text-center p-6 bg-yellow-50 rounded-lg border border-yellow-200">
+                <svg class="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h2 class="text-xl font-bold text-yellow-800 mb-2">Proposta em Análise ⏳</h2>
+                <p class="text-yellow-700">Sua intenção de pagamento foi registrada com sucesso! Devido às coberturas selecionadas, nossa equipe fará uma rápida análise de subscrição de risco.</p>
+                <p class="text-yellow-700 mt-2 font-medium">Avisaremos por e-mail assim que a apólice for liberada.</p>
+            </div>
+            
         @else
-            <!-- Resumo da Cotação -->
+            <!-- Resumo da Cotação e Formulário de Pagamento -->
             <div class="space-y-4 mb-8">
                 <div class="flex justify-between border-b pb-4">
                     <span class="text-gray-600">Produto:</span>
@@ -42,8 +54,8 @@
                 <option value="Boleto Bancário">Boleto Bancário</option>
                 <option value="Pix">Pix</option>
             </select>
+            
             <label class="block text-gray-700 mb-2">Quantidade de Parcelas:</label>
-
             @error('formaPagamento') <span class="text-red-500 text-xs block mb-4">{{ $message }}</span> @enderror
 
             <select 
@@ -54,15 +66,16 @@
                     <option value="{{ $i }}">{{ $i }}x</option>
                 @endfor
             </select>
-
             @error('quantidadeParcelas') <span class="text-red-500 text-xs block mb-6">{{ $message }}</span> @enderror
             
             <button 
                 wire:click="processarAceite"
+                wire:loading.attr="disabled"
                 type="button"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 mt-4"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 mt-4 disabled:opacity-50"
             >
-                Confirmar Pagamento e Emitir Apólice
+                <span wire:loading.remove>Confirmar Pagamento e Emitir Apólice</span>
+                <span wire:loading>Processando...</span>
             </button>
             <p class="text-xs text-gray-400 text-center mt-4">Ambiente seguro e criptografado.</p>
         @endif

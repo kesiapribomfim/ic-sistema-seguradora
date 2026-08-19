@@ -67,8 +67,8 @@ class CotacaoResource extends Resource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        //Permissão super_admin
-        if ($user->hasRole('super_admin')) {
+        // Permissão super_admin e Admin
+        if ($user->hasRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
 
@@ -79,18 +79,15 @@ class CotacaoResource extends Resource
 
         // TODO: Relacionar Cliente User
         if ($user->hasRole('Cliente')) {
-            // Assumindo que você ligou o User ao Segurado em algum lugar, o raciocínio seria:
-            // $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
+            // ... sua lógica de cliente
         }
 
-        // Analista, Gestor e Financeiro ligado a filial
+        // Analista, Gestor e Subscritor ligado a filial
         $filiaisIds = $user->filiais()->pluck('filiais.id');
         
-        return $query->whereHas('apolice', function (Builder $query) use ($filiaisIds) {
-            $query->whereIn('filial_id', $filiaisIds);
-        });
+        // CORREÇÃO AQUI: Filtra a filial DIRETAMENTE na tabela de cotações!
+        return $query->whereIn('filial_id', $filiaisIds);
     }
-
     // =========================================================================
     // BLOCOS MODULARIZADOS DO FORMULÁRIO
     // =========================================================================
@@ -178,6 +175,7 @@ class CotacaoResource extends Resource
                             $cor = match($status) {
                                 'Em Elaboração' => '#3b82f6',      // Corresponde ao 'info' (Azul)
                                 'Enviada ao Cliente' => '#f59e0b', // Corresponde ao 'warning' (Laranja)
+                                'Em Subscrição' => '#ebb284',
                                 'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
                                 'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
                                 'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)
@@ -700,12 +698,11 @@ class CotacaoResource extends Resource
                             ->label('Limite Máximo (R$)')
                             ->numeric()
                             ->prefix('R$')
-                            // Se o corretor desligar a cobertura opcional, esse campo apaga/desabilita
                             ->disabled(fn (Forms\Get $get) => $get('contratada') === false)
                             ->required(fn (Forms\Get $get) => $get('contratada') === true)
                             ->dehydrated(),
                     ])
-                    ->columns(3) // Mudou para 3 colunas para acomodar o botão Toggle
+                    ->columns(3)
                     ->defaultItems(0)
                     ->addable(false)
                     ->deletable(false)
@@ -757,77 +754,73 @@ class CotacaoResource extends Resource
 
                 Forms\Components\Section::make('Finalização')
                     ->schema([
-                        // 1. O Campo agora é passivo. Só exibe o que está no estado.
-                        Forms\Components\TextInput::make('valor_total')
+                        Forms\Components\Placeholder::make('premio_calculado_visual')
                             ->label('Prêmio Total Calculado')
-                            ->prefix('R$')
-                            ->readOnly()
-                            ->dehydrated() 
-                            ->suffixAction(
-                                Forms\Components\Actions\Action::make('calcular_premio')
-                                    ->label('Calcular Prêmio')
-                                    ->icon('heroicon-o-calculator')
-                                    ->color('success')
-                                    ->action(function (Forms\Get $get, Forms\Set $set, $livewire) {
-                                        $produtoId = $get('produto_id');
-                                        $seguradoId = $get('segurado_id');
+                            ->content(function (Forms\Get $get, $livewire) {
+                                $produtoId = $get('produto_id');
+                                $seguradoId = $get('segurado_id');
 
-                                        if (!$produtoId || !$seguradoId) {
-                                            \Filament\Notifications\Notification::make()
-                                                ->warning()
-                                                ->title('Dados Incompletos')
-                                                ->body('Selecione o cliente e o produto antes de calcular.')
-                                                ->send();
-                                            return;
-                                        }
+                                if (!$produtoId || !$seguradoId) {
+                                    return new \Illuminate\Support\HtmlString('<span style="color: #6b7280; font-style: italic;">Preencha o cliente e o produto nas etapas anteriores.</span>');
+                                }
 
-                                        $produto = \App\Models\Produto::find($produtoId);
-                                        $segurado = \App\Models\Segurado::find($seguradoId);
-                                        
-                                        $dadosDoFormulario = $livewire->form->getRawState();
-                                        
-                                        $calculadora = new \App\Services\CalculadoraPremioService();
-                                        $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
+                                $produto = \App\Models\Produto::find($produtoId);
+                                $segurado = \App\Models\Segurado::find($seguradoId);
+                                
+                                // Pega tudo que o corretor digitou até agora
+                                $dadosDoFormulario = $livewire->form->getRawState();
+                                
+                                // Roda o serviço em tempo real para exibir
+                                $calculadora = new \App\Services\CalculadoraPremioService();
+                                $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
 
-                                        // Salva o valor no campo
-                                        $set('valor_total', number_format($premioFinal, 2, '.', ''));
-                                        
-                                        \Filament\Notifications\Notification::make()
-                                            ->success()
-                                            ->title('Cálculo Realizado!')
-                                            ->send();
-                                    })
-                            ),
+                                return new \Illuminate\Support\HtmlString(
+                                    '<span style="font-size: 1.5rem; font-weight: bold; color: #10b981;">R$ ' . number_format($premioFinal, 2, ',', '.') . '</span>'
+                                );
+                            }),
 
-                        Forms\Components\Placeholder::make('analise_risco')
-                            ->label('Análise Preliminar de Risco')
+                        Forms\Components\Hidden::make('valor_total')
+                            ->dehydrateStateUsing(function (Forms\Get $get, $livewire) {
+                                $produtoId = $get('produto_id');
+                                $seguradoId = $get('segurado_id');
+
+                                // Se faltar dados, salva zerado para não dar erro de null no banco
+                                if (!$produtoId || !$seguradoId) return 0.0; 
+
+                                $produto = \App\Models\Produto::find($produtoId);
+                                $segurado = \App\Models\Segurado::find($seguradoId);
+                                
+                                // Pega os dados exatos do formulário no momento do clique em "Salvar"
+                                $dadosDoFormulario = $livewire->form->getRawState();
+                                
+                                // Roda o cálculo e injeta o valor direto na coluna do banco!
+                                $calculadora = new \App\Services\CalculadoraPremioService();
+                                return $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
+                            }),
+
+                        Forms\Components\Placeholder::make('info_alcada')
+                            ->label('Informações de Subscrição')
                             ->content(function (Forms\Get $get) {
                                 $produtoId = $get('produto_id');
-                                if (!$produtoId) return null;
+                                if (!$produtoId) return 'Selecione um plano para visualizar os limites.';
 
                                 $produto = \App\Models\Produto::find($produtoId);
                                 
-                                // Se o produto não tiver alçada cadastrada, assume um valor infinito (aprova tudo)
-                                $limiteAlcada = $produto->valor_alcada ?? 9999999999.99; 
+                                // Puxa o limite da alçada do banco (ou avisa se for ilimitado)
+                                $limiteAlcada = $produto->valor_alcada 
+                                    ? 'R$ ' . number_format($produto->valor_alcada, 2, ',', '.') 
+                                    : 'Sem Limite (Aprovação Automática)';
 
+                                // Faz a soma silenciosa das coberturas só para mostrar na tela
                                 $coberturas = $get('cobertura_selecionada') ?? [];
-                                
-                                // Soma todos os Limites Máximos preenchidos no Repeater
                                 $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
-
-                                // Compara o risco total com a alçada ESPECÍFICA deste produto
-                                if ($somaLmi > $limiteAlcada) {
-                                    return new \Illuminate\Support\HtmlString(
-                                        '<span style="color: #ef4444; font-weight: bold;">
-                                        ⚠️ O risco total (R$ ' . number_format($somaLmi, 2, ',', '.') . ') excede a alçada automática deste produto (R$ ' . number_format($limiteAlcada, 2, ',', '.') . '). A emissão exigirá aprovação de um Subscritor.
-                                        </span>'
-                                    );
-                                }
+                                $riscoTotal = 'R$ ' . number_format($somaLmi, 2, ',', '.');
 
                                 return new \Illuminate\Support\HtmlString(
-                                    '<span style="color: #10b981; font-weight: bold;">
-                                    ✅ Risco dentro da alçada operacional do produto. Liberação automática.
-                                    </span>'
+                                    "<span style='color: #4b5563;'>
+                                        <strong>Limite de Alçada do Produto:</strong> {$limiteAlcada} <br>
+                                        <strong>Risco Total (Soma das Coberturas):</strong> {$riscoTotal}
+                                    </span>"
                                 );
                             })
                             ->columnSpanFull(),
@@ -869,6 +862,7 @@ class CotacaoResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         'Em Elaboração' => 'info',
                         'Enviada ao Cliente' => 'warning',
+                        'Em Subscrição' => '#ebb284',
                         'Aceita' => 'success',
                         'Recusada' => 'danger',
                         'Expirada' => 'gray',
@@ -883,6 +877,7 @@ class CotacaoResource extends Resource
                     ->options([
                         'Em Elaboração' => 'Em Elaboração',
                         'Enviada ao Cliente' => 'Enviada ao Cliente',
+                        'Em Subscrição' => 'Em Subscrição',
                         'Aceita' => 'Aceita',
                         'Recusada' => 'Recusada',
                         'Expirada' => 'Expirada',
@@ -985,7 +980,6 @@ class CotacaoResource extends Resource
                             //mudei para edit->view
                             return ApoliceResource::getUrl('view', ['record' => $record->apolice->id]);
                         }),
-
                 ])
             ])
             ->bulkActions([

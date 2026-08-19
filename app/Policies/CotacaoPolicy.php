@@ -53,7 +53,6 @@ class CotacaoPolicy
 
     public function viewAny(User $user): bool
     {
-        // Subscritor foi adicionado aqui, pois ele é ator fundamental deste módulo
         return $user->hasAnyRole([
             'Gestor de Filial',
             'Subscritor',
@@ -64,12 +63,10 @@ class CotacaoPolicy
 
     public function view(User $user, Cotacao $cotacao): bool
     {
-        // 1. Verifica se a cotação pertence à carteira/filial do usuário
         if (!$this->verificaEscopo($user, $cotacao)) {
             return false;
         }
 
-        // 2. Verifica a permissão de visualização do Spatie
         return true;
     }
 
@@ -93,11 +90,12 @@ class CotacaoPolicy
             return false;
         }
 
-        //impede o Subiscritor de mexer na cotação
         if ($user->hasRole('Subscritor')) {
-            return false;
+            return $cotacao->status === 'Em Subscrição';
         }
 
+        // 4. Regra Implícita para Corretores e outros
+        // Se chegou até aqui e NÃO é subscritor, é corretor/gestor editando a cotação normalmente
         return true;
     }
 

@@ -448,8 +448,17 @@ public static function form(Form $form): Form
                         ->label('Baixar PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('danger')
+                        // TODO: Não aparecer para canceladas
+                        ->visible(fn ($record) => $record->status !== 'Cancelada')
                         ->action(function ($record) {
-                            // TODO: Adicionar condicional para não aparecer esse botão para apólices canceladas
+                            
+                            $record->load([
+                                'segurado.seguradoPf', 
+                                'segurado.seguradoPj', 
+                                'cotacao.produto', 
+                                'pagamentos'
+                            ]);
+
                             $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $record]);
                             
                             return response()->streamDownload(

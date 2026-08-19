@@ -14,8 +14,6 @@ class EmissaoApoliceService
     {
         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
 
-            $cotacao->update(['status' => 'Aceita']);
-
             $snapshot = [
                 'produto' => [
                     'id'   => $cotacao->produto->id ?? null,

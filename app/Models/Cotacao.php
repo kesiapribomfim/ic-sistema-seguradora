@@ -5,7 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
+use App\Observers\CotacaoObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
+#[ObservedBy(CotacaoObserver::class)]
 class Cotacao extends Model
 {
     use HasFactory;
@@ -23,6 +26,8 @@ class Cotacao extends Model
         'status',
         'valor_total',
         'validade',
+        'forma_pagamento_preferida',
+        'quantidade_parcelas_preferida',
     ];
 
     protected $casts =[

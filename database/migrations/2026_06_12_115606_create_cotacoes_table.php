@@ -31,7 +31,7 @@ return new class extends Migration
                 ->nullable(); //dados específicos do produto, como marca e modelo para veículos, ou cobertura para residências
             $table->jsonb('cobertura_selecionada')
                 ->nullable(); //cobertura selecionada pelo cliente, caso seja um produto com várias coberturas
-            $table->string('status', length: 18)
+            $table->string('status', length: 30)
                 ->default('Em Elaboração'); //em elaboração, enviado ao cliente, aceita, recusada, expirada
 
             $table->decimal('valor_total', 10, 2)

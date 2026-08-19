@@ -39,16 +39,13 @@
         </thead>
         <tbody>
 
-            {{-- TODO: Resolver esse BO aqui --}}
-
-            
-            {{-- @foreach($apolice->pagamentos as $pagamento)
+            @foreach($apolice->pagamentos as $pagamento)
             <tr>
                 <td>{{ $pagamento->num_parcela }} / {{ $apolice->quantidade_parcelas }}</td>
                 <td>{{ \Carbon\Carbon::parse($pagamento->data_vencimento)->format('d/m/Y') }}</td>
                 <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
             </tr>
-            @endforeach --}}
+            @endforeach
         </tbody>
     </table>
 
