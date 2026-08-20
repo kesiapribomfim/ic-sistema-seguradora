@@ -39,13 +39,23 @@
         </thead>
         <tbody>
 
-            @foreach($apolice->pagamentos as $pagamento)
+            @foreach($apolice->pagamentos as $pagamento) 
             <tr>
                 <td>{{ $pagamento->num_parcela }} / {{ $apolice->quantidade_parcelas }}</td>
                 <td>{{ \Carbon\Carbon::parse($pagamento->data_vencimento)->format('d/m/Y') }}</td>
                 <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
             </tr>
             @endforeach
+
+            {{-- TODO: INVESTIGAR ESSE ERRO:
+                [2026-08-20 20:00:06] local.ERROR: foreach() argument must be of type array|object, null given (View: C:\projetos\ic-sistema-seguradora\resources\views\pdf\apolice.blade.php) {"exception":"[object] (Illuminate\\View\\ViewException(code: 0): foreach() argument must be of type array|object, null given (View: C:\\projetos\\ic-sistema-seguradora\\resources\\views\\pdf\\apolice.blade.php) at C:/projetos/ic-sistema-seguradora/storage/framework/views/4252b0d78c137f4ef729e3cc45d80439.php:42)
+                [stacktrace]
+                [previous exception] [object] (ErrorException(code: 0): foreach() argument must be of type array|object, null given at C:/projetos/ic-sistema-seguradora/storage/framework/views/4252b0d78c137f4ef729e3cc45d80439.php:42)
+                [stacktrace] 
+
+                -> (Dica rápida para amanhã: para arrumar isso, vai ser só colocar um $this->apolice->load('pagamentos');
+                lá dentro do seu BoasVindasApoliceMail imediatamente antes da linha que chama o Pdf::loadView).
+            --}}
         </tbody>
     </table>
 

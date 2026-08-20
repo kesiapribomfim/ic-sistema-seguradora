@@ -155,7 +155,7 @@ public static function form(Form $form): Form
                                 return new HtmlString("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>");
                             }),
 
-                        Forms\Components\Placeholder::make ('apolice_origem_id')
+                        Forms\Components\Placeholder::make ('apolice_origem_id') //trocar apolice id apolice origem por numero apolice
                             ->label('Apólice de Origem')
                             ->content (function ($record){
                                 if (!$record || !$record->apolice_origem_id) return '-';
