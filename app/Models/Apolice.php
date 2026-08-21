@@ -56,6 +56,11 @@ class Apolice extends Model
         return $this->belongsTo(Cotacao::class);
     }
 
+    public function pagamentos()
+    {
+        return $this->hasMany(Pagamento::class);
+    }
+
     public function apoliceOrigem()
     {
         return $this->belongsTo(Apolice::class, 'apolice_origem_id');

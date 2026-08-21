@@ -52,7 +52,7 @@ class SeguradoResource extends Resource
                             ->mask('999.999.999-99')
                             ->stripCharacters(['.', '-'])
                             ->required()
-                            ->unique(),
+                            ->unique(ignoreRecord: true),
                         Forms\Components\TextInput::make('rg')
                             ->label('RG')
                             ->required(),
@@ -74,12 +74,12 @@ class SeguradoResource extends Resource
                             ->mask('99.999.999/9999-99')
                             ->stripCharacters(['.', '-', '/'])
                             ->required()
-                            ->unique(),
+                            ->unique(ignoreRecord: true),
                         Forms\Components\TextInput::make('razao_social')
                             ->required(),
                         Forms\Components\TextInput::make('inscricao_estadual')
                             ->required()
-                            ->unique(),
+                            ->unique(ignoreRecord: true),
                     ]),
 
                 //Aributos comuns
@@ -121,10 +121,10 @@ class SeguradoResource extends Resource
                     ]),           
                 
                 //linkando com a tabela Users
-                Select::make('user_id')
+                Select::make('corretor_id')
                             ->label('Selecione o Corretor Responsável')
                             ->relationship(
-                                name: 'user',
+                                name: 'corretor',
                                 titleAttribute: 'name',
                                 modifyQueryUsing: fn (Builder $query) => $query
                                     ->where('status', true)
@@ -192,7 +192,7 @@ class SeguradoResource extends Resource
                     })
                     ->weight(\Filament\Support\Enums\FontWeight::Bold)
                     //->sortable() (em ordem alfabetica)
-                    ->description(fn ($record) => "Corretor: {$record->user->name}"),
+                    ->description(fn ($record) => "Corretor: {$record->corretor?->name}"),
                     Tables\Columns\TextColumn::make('email'),
                 
                 Tables\Columns\IconColumn::make('status')
@@ -203,7 +203,7 @@ class SeguradoResource extends Resource
             ->recordUrl(null)
             ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
-                Tables\Filters\SelectFilter::make('user_id')
+                Tables\Filters\SelectFilter::make('corretor_id')
                     ->label('Carteira do Corretor')
                     ->options(
                         // Aqui buscamos no banco: a Chave será o ID (oculto) e o Valor será o Nome (visível)

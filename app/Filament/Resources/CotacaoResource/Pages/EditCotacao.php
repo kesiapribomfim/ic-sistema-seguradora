@@ -14,11 +14,9 @@ class EditCotacao extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Puxa as instâncias necessárias para a calculadora
         $produto = \App\Models\Produto::find($data['produto_id']);
         $segurado = \App\Models\Segurado::find($data['segurado_id']);
         
-        // Roda o cálculo real, invisível e seguro
         $calculadora = new \App\Services\CalculadoraPremioService();
         $data['valor_total'] = $calculadora->calcular($produto, $data, $segurado);
 

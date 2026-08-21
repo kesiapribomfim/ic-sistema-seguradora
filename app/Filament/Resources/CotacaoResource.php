@@ -173,9 +173,9 @@ class CotacaoResource extends Resource
                             $status = $record ? $record->status : 'Em Elaboração';
                             
                             $cor = match($status) {
-                                'Em Elaboração' => '#3b82f6',      // Corresponde ao 'info' (Azul)
-                                'Enviada ao Cliente' => '#f59e0b', // Corresponde ao 'warning' (Laranja)
-                                'Em Subscrição' => '#ebb284',
+                                'Em Elaboração' => '#f59e0b',      // Corresponde ao 'info' (Azul)
+                                'Enviada ao Cliente' => '#3b82f6', // Corresponde ao 'warning' (Laranja)
+                                'Em Subscrição' => '#eb84e6',
                                 'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
                                 'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
                                 'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)

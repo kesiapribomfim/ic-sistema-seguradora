@@ -23,6 +23,29 @@ class ViewCotacao extends ViewRecord
                 ->action(function () {
                     $this->redirect($this->getResource()::getUrl('edit', ['record' => $this->record]));
                 }),
+            
+            Actions\Action::make('enviar_cliente')
+                ->label('Enviar para o Cliente')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->visible(fn () => $this->record->status === 'Em Elaboração')
+                ->requiresConfirmation()
+                ->modalHeading('Enviar Cotação')
+                ->modalDescription('Tem certeza que deseja enviar esta proposta?')
+                ->action(function () { 
+                    $cotacao = $this->record; 
+                    
+                    $cotacao->update(['status' => 'Enviada ao Cliente']);
+                    
+                    \App\Jobs\EnviarCotacaoEmailJob::dispatch($cotacao);
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('E-mail na fila de envio!')
+                        ->success()
+                        ->send();
+                        
+                    redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
+                }),
 
             //Action subscrição
             Actions\Action::make('avaliar_subscricao')

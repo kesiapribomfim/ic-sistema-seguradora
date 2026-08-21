@@ -38,8 +38,14 @@ class Segurado extends Model
             return $this->hasOne(SeguradoPf::class); //um seguraod tem um tipo pf
         }
 
-        public function user(){
-            return $this->belongsTo(User::class); //Muitos segurados pertencem a um user
+        public function corretor()
+        {
+            return $this->belongsTo(User::class, 'corretor_id');
+        }
+
+        public function acessoCliente()
+        {
+            return $this->belongsTo(User::class, 'user_id');
         }
 
         public function cotacoes(){
@@ -53,10 +59,6 @@ class Segurado extends Model
 
         public function sinistros()
         {
-            // O sinistro geralmente pertence a uma apólice, mas o documento
-            // exige uma visão unificada para o segurado. Se a chave estrangeira
-            // segurado_id existir na tabela sinistros, use hasMany. 
-            // Se o sinistro for ligado apenas à apólice, usamos hasManyThrough:
             return $this->hasManyThrough(Sinistro::class, Apolice::class);
         }
 }

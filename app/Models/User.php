@@ -65,6 +65,15 @@ class User extends Authenticatable
     public function segurados()
     {
         return $this->hasMany(Segurado::class);
+        
+    }
+
+    /**
+     * Sobrescreve o e-mail padrão de reset de senha do Laravel.
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\DefinirSenhaClienteNotification($token));
     }
 
     public function movimentacoes(){

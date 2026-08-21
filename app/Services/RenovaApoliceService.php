@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RenovaApoliceService {
-
+    //TODO: LÇÓGICA PARA NOVA APÓLICE SÓ PODER ENTRAR EM VALIDADE APÓS O VENCIMENTO DA ANTIGA
     //gerar cotação nova
     public function GerarCotacao (Apolice $apolice): ?Cotacao
     {
@@ -40,7 +40,9 @@ class RenovaApoliceService {
                     'valor_total'           => $apolice->valor_total, 
                 ]);
 
-                RenovacaoEmailJob::dispatch($apolice, $novaCotacao);
+                $atrasoEmSegundos = rand(5, 15); 
+                //delay
+                RenovacaoEmailJob::dispatch($apolice, $novaCotacao)->delay(now()->addSeconds($atrasoEmSegundos));
 
                 Log::info("Nova COTAÇÃO de renovação (#{$novaCotacao->id}) criada em estado 'Em elaboração' a partir da Apólice #{$apolice->numero_apolice}");
                 

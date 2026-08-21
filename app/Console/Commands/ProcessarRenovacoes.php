@@ -54,6 +54,17 @@ class ProcessarRenovacoes extends Command
         $falha = 0;
 
         foreach ($apolicesParaRenovar as $apolice) {
+            $jaPossuiRenovacao = \App\Models\Cotacao::whereJsonContains('dados_especificos->apolice_origem_id_temporario', $apolice->id)
+                ->whereIn('status', ['Em elaboração', 'Enviada ao cliente', 'Aceita'])
+                ->exists();
+
+            if ($jaPossuiRenovacao) {
+                $this->line("A Apólice {$apolice->numero_apolice} já possui uma renovação em andamento. Pulando...");
+                continue;
+            }
+
+            $this->line("Processando Apólice: {$apolice->numero_apolice}...");
+            
             $this->line("Processando Apólice: {$apolice->numero_apolice} (Vencimento: {$apolice->data_fim->format('d/m/Y')})");
             
             $novaCotacao = $renovaService->gerarCotacao($apolice);
@@ -64,11 +75,8 @@ class ProcessarRenovacoes extends Command
                 $falha++;
             }
 
-            //um email por vez
-            sleep(5);
         }
 
-        // 4. Resumo final no terminal
         $this->newLine();
         $this->info("Processamento concluído!");
         $this->info("Renovações geradas: {$sucesso}");

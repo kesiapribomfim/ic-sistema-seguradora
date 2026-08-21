@@ -50,6 +50,8 @@ class BoasVindasApoliceMail extends Mailable
      */
     public function attachments(): array
     {
+        $this->apolice->load('pagamentos');
+        
         $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $this->apolice]);
 
         return [
