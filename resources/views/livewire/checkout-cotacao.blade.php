@@ -28,6 +28,12 @@
             </div>
             
         @else
+            @error('checkout')
+                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+                    {{ $message }}
+                </div>
+            @enderror
+
             <!-- Resumo da Cotação e Formulário de Pagamento -->
             <div class="space-y-4 mb-8">
                 <div class="flex justify-between border-b pb-4">

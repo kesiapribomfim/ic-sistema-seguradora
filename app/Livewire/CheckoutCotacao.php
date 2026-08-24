@@ -73,9 +73,13 @@ class CheckoutCotacao extends Component
                 $this->pagamentoConcluido = true;
             }
 
-        } catch (\Exception $e) {
-            //erro
-            dd('O ERRO É ESTE:', $e->getMessage(), 'ARQUIVO:', $e->getFile(), 'LINHA:', $e->getLine());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            $this->addError(
+                'checkout',
+                'Não foi possível processar sua solicitação agora. Tente novamente mais tarde.'
+            );
         }
     }
 

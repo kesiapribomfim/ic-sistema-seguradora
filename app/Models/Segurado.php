@@ -23,6 +23,7 @@ class Segurado extends Model
             'score',
             'status',
             'user_id',
+            'corretor_id'
         ];
 
         protected $casts = [

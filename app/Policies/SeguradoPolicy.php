@@ -31,7 +31,6 @@ class SeguradoPolicy
             'Gestor de Filial',
             'Analista de Sinistros',
             'Corretor',
-            'Cliente', 
             'Financeiro'
         ]);
     }
@@ -42,7 +41,7 @@ class SeguradoPolicy
     public function view(User $user, Segurado $segurado): bool
     {
         if ($user->hasRole('Corretor')) {
-            return $segurado->user_id === $user->id;
+            return $segurado->corretor_id === $user->id;
         }
 
         if ($user -> hasAnyRole([
