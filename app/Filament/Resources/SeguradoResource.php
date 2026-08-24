@@ -157,7 +157,7 @@ class SeguradoResource extends Resource
         }
 
         if ($user->hasRole('Corretor')) {
-            return $query->where('user_id', $user->id);
+            return $query->where('corretor_id', $user->id);
         }
 
         // Analista, Gestor e Financeiro ligado a filial

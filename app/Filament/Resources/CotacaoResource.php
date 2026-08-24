@@ -97,14 +97,36 @@ class CotacaoResource extends Resource
         return [
             Forms\Components\Select::make('segurado_id')
                 ->label('Selecione o Cliente')
-                ->relationship('segurado', 'id') 
-                ->getOptionLabelFromRecordUsing(fn ($record) => $record->tipo === 'PF' 
-                    ? "{$record->seguradoPf?->nome} (CPF: {$record->seguradoPf?->cpf})" 
-                    : "{$record->seguradoPj?->razao_social} (CNPJ: {$record->seguradoPj?->cnpj})")
-                ->searchable() 
-                ->preload()   
-                ->required()
-                ->helperText(fn () => new HtmlString('Cadastrar novo cliente <a href="' . \App\Filament\Resources\SeguradoResource::getUrl('create') . '" class="text-primary-600 underline">aqui</a>.')),
+                ->relationship(
+                    name: 'segurado',
+                    modifyQueryUsing: function(Builder $query) {
+                        $user = auth()->user();
+
+                        $query->where('status', 1); 
+
+                        if ($user->hasRole('Corretor')) {
+                            $query->where('corretor_id', $user->id);
+                        }
+
+                        if ($user->hasRole('Cliente')) {
+                            $query->where('user_id', $user->id); 
+                        }
+
+                        return $query;
+                    }
+                )
+                ->getOptionLabelFromRecordUsing(fn (Model $record) => $record->tipo === 'PF' 
+                    ? "{$record->seguradoPf?->nome} (PF)" 
+                    : "{$record->seguradoPj?->razao_social} (PJ)"
+                )
+                ->searchable()
+                ->preload()
+                ->required(),
+                // ->visible(
+                //     if ($user->hasRole('Cliente')){
+                //         return (fn () => new HtmlString('Cadastrar novo cliente <a href="' . \App\Filament\Resources\SeguradoResource::getUrl('create') . '" class="text-primary-600 underline">aqui</a>.'));
+                //     }
+                // ),
             Forms\Components\ToggleButtons::make('ramo')
                 ->label('Selecione o Ramo do Produto')
                 ->options([

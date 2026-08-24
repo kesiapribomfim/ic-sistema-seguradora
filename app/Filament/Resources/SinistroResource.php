@@ -17,6 +17,8 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\User;
 
 class SinistroResource extends Resource
 {
@@ -24,8 +26,36 @@ class SinistroResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $quantidade = static::getModel()::where('status', 'Aberto')->count();
+        
+        $user = auth()->user();
+
+        if ($user->hasRole('Analista de Sinistros')) {
+
+            return $quantidade > 0 ? (string) $quantidade : null;
+        };
+
+        return null;
+    }
+
+    /**
+     * Define a cor do badge dependendo da quantidade.
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        $quantidade = static::getModel()::where('status', 'Aberto')->count();
+
+        if ($quantidade > 5) {
+            return 'danger';
+        }
+
+        return 'warning'; 
+    }
+
     public static function form(Form $form): Form
-{
+    {
     return $form
         ->schema([
             Forms\Components\Group::make()->schema([
@@ -36,8 +66,23 @@ class SinistroResource extends Resource
                             ->relationship(
                                 name: 'apolice',
                                 titleAttribute: 'numero_apolice',
-                                modifyQueryUsing: fn (Builder $query) => $query
-                                    -> where ('status', 'Vigente')
+                                modifyQueryUsing: function (Builder $query) {
+                                    $user = auth()->user();
+
+                                    $query->where('status', 'Vigente');
+
+                                    if ($user->hasRole('Corretor')) {
+                                        $query->where('user_id', $user->id);
+                                    }
+
+                                    if ($user->hasRole('Cliente')) {
+                                        $query->whereHas('segurado', function ($q) use ($user) { 
+                                            $q->where('user_id', $user->id); 
+                                        });
+                                    }
+
+                                    return $query;
+                                }
                             )
                             ->label('Apólice Vinculada')
                             ->searchable()
@@ -45,6 +90,36 @@ class SinistroResource extends Resource
                             ->required()
                             ->live(),
 
+                        Forms\Components\Placeholder::make('segurado_id')
+                            ->label('Segurado')
+                            ->content(function (Forms\Get $get) {
+                                $apoliceId = $get('apolice_id');
+                                
+                                if (!$apoliceId) return '-';
+
+                                $apolice = \App\Models\Apolice::with(['segurado.seguradoPf', 'segurado.seguradoPj'])->find($apoliceId);
+                                $segurado = $apolice?->segurado;
+
+                                if (!$segurado) return '-';
+                                
+                                return $segurado->tipo === 'PF' 
+                                    ? $segurado->seguradoPf?->nome 
+                                    : $segurado->seguradoPj?->razao_social;
+                            }),
+                        Forms\Components\Placeholder::make('produto_id')
+                            ->label('Produto')
+                            ->content(function (Forms\Get $get) {
+                                $apoliceId = $get('apolice_id');
+                                
+                                if (!$apoliceId) return '-';
+
+                                $apolice = \App\Models\Apolice::with(['cotacao.produto'])->find($apoliceId);
+                                $produto = $apolice?->cotacao?->produto;
+
+                                if (!$produto) return '-';
+                                
+                                return $produto->nome;
+                            }),
                         Forms\Components\DateTimePicker::make('data_hora_ocorrencia')
                             ->label('Data e Hora da Ocorrência')
                             ->displayFormat('d/m/Y H:i')
@@ -158,20 +233,15 @@ class SinistroResource extends Resource
                             ->helperText('O valor pode divergir do aprovado em casos de franquia ou rateio.'), // Justificativa de divergência baseada nas regras de negócio[cite: 2].
                     ]),
                     
-                Forms\Components\Section::make('Anexos e Timeline')
-                    ->icon('heroicon-o-clock')
-                    ->schema([
-                        // TODO: Resolver isso
-                        Forms\Components\Placeholder::make('info_timeline')
-                            ->label('')
-                            ->content(new HtmlString('
-                                <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                    <p><strong>Aviso de Arquitetura:</strong> A linha do tempo de movimentações e o upload de arquivos probatórios (fotos, laudos, B.O.) não residem neste formulário base.</p>
-                                    <br>
-                                    <p>Após salvar este registro, utilize os <em>Relation Managers</em> ou a <em>View Customizada</em> no rodapé da página para gerenciar a evolução cronológica.</p>
-                                </div>
-                            ')),
-                    ]),
+                Forms\Components\FileUpload::make('anexos_temporarios')
+                    ->label('Evidências Iniciais (B.O., Fotos, CNH)')
+                    ->multiple()
+                    ->disk('local') 
+                    ->directory('sinistros-anexos') // Mesma pasta das movimentações!
+                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']) 
+                    ->maxSize(5120) 
+                    ->dehydrated(false) // A MÁGICA: Não tenta salvar na tabela 'sinistros'
+                    ->columnSpanFull(),
             ])->columnSpan(['lg' => 1]), // Ocupa 1/3 da tela
         ])
         ->columns(3);
@@ -255,7 +325,9 @@ public static function table(Table $table): Table
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+                ->with(['apolice.segurado.seguradoPf', 'apolice.segurado.seguradoPj']);
+        
         $user = auth()->user();
 
         //Permissão super_admin
@@ -272,8 +344,7 @@ public static function table(Table $table): Table
 
         // TODO: Relacionar Cliente User
         if ($user->hasRole('Cliente')) {
-            // Assumindo que você ligou o User ao Segurado em algum lugar, o raciocínio seria:
-            // $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
+            return $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
         }
 
         // Analista, Gestor e Financeiro ligado a filial

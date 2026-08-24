@@ -9,26 +9,26 @@ class SinistroMovimentacaoObserver
     /**
      * Handle the SinistroMovimentacao "created" event.
      */
+
+
     public function created(SinistroMovimentacao $movimentacao): void
     {
-        // 1. Mapeamento de "Ação" para o "Status Oficial" do Sinistro
-        $statusMap = [
+        $sinistro = $movimentacao->sinistro;
+
+        // Mapeia a ação da movimentação para o Status correspondente no Sinistro
+        $novoStatus = match ($movimentacao->acao_realizada) {
             'Abertura' => 'Aberto',
-            'Análise' => 'Em análise',
-            'Perícia' => 'Em perícia',
+            'Análise', 'Perícia' => 'Em análise',
             'Aprovação' => 'Aprovado',
             'Negação' => 'Negado',
             'Pagamento' => 'Pago',
             'Encerramento' => 'Encerrado',
-        ];
+            default => null,
+        };
 
-        // 2. Busca no dicionário acima qual deve ser o novo status
-        $novoStatus = $statusMap[$movimentacao->acao_realizada] ?? null;
-
-        if ($novoStatus) {
-            // 3. Atualiza o Sinistro Pai
-            // Usar update() direto na query é mais seguro e evita loops infinitos de Observers
-            $movimentacao->sinistro()->update(['status' => $novoStatus]);
+        // Se houver uma mudança de status válida, atualiza o pai (Sinistro)
+        if ($novoStatus && $sinistro->status !== $novoStatus) {
+            $sinistro->update(['status' => $novoStatus]);
         }
     }
 

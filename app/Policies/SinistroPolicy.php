@@ -34,6 +34,10 @@ class SinistroPolicy
             return $sinistro->apolice->user_id === $user->id;
         }
 
+        if ($user->hasRole('Cliente')) {
+            return $sinistro->apolice->segurado->user_id === $user->id;
+        }
+
         if ($user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Financeiro'])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             return in_array($sinistro->apolice->filial_id, $filiaisIds);
@@ -50,18 +54,17 @@ class SinistroPolicy
 
     public function update(User $user, Sinistro $sinistro): bool
     {
-        // 1. Apenas Analistas e Gestores movimentam o sinistro no backoffice
+        
+
         if (!$user->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])) {
             return false;
         }
 
-        // 2. Trava de Imutabilidade do Ciclo de Vida: Sinistros encerrados não podem ser alterados
         $statusFinalizados = ['Pago', 'Negado', 'Encerrado'];
         if (in_array($sinistro->status, $statusFinalizados)) {
             return false;
         }
 
-        // 3. Trava de Filial (Analista só edita se for da filial dele)
         $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
         return in_array($sinistro->apolice->filial_id, $filiaisIds);
     }

@@ -7,14 +7,23 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MovimentacoesRelationManager extends RelationManager
 {
     protected static string $relationship = 'movimentacoes';   
-    protected static ?string $title = 'Movimentações';
+    protected static ?string $title = 'Linha do Tempo e Anexos'; // Nome mais amigável
     
+    //TODO: CRIAR FILTRO DO USER
+    // public function isReadOnly(): bool
+    // {
+    //     $sinistro = $this->getOwnerRecord();
+
+    //     if (in_array($sinistro->status, ['Pago', 'Negado', 'Encerrado'])) {
+    //         return true;
+    //     }
+
+    //     return false;
+    // }
 
     public function form(Form $form): Form
     {
@@ -24,6 +33,7 @@ class MovimentacoesRelationManager extends RelationManager
                     ->label('Ação Realizada')
                     ->options([
                         'Abertura' => 'Abertura de Sinistro',
+                        'Envio de Documentos' => 'Envio de Documentos / Evidências',
                         'Análise' => 'Análise de Documentos',
                         'Perícia' => 'Solicitação de Perícia',
                         'Aprovação' => 'Aprovação de Indenização',
@@ -47,6 +57,8 @@ class MovimentacoesRelationManager extends RelationManager
                     ->directory('sinistros-anexos')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']) 
                     ->maxSize(5120) 
+                    ->downloadable() // <-- LIBERA O DOWNLOAD SEGURO
+                    ->openable()     // <-- PERMITE LER NO NAVEGADOR
                     ->columnSpanFull(),
             ]);
     }
@@ -71,13 +83,10 @@ class MovimentacoesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('descricao')
                     ->label('Descrição')
-                    ->wrap() // Permite que o texto quebre a linha se for muito grande
+                    ->wrap() 
                     ->limit(50),
             ])
-            ->defaultSort('data_hr_movimentacao', 'desc') // Exibe em ordem cronológica decrescente como exigido!
-            ->filters([
-                //
-            ])
+            ->defaultSort('data_hr_movimentacao', 'desc')
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label('Nova Movimentação')
@@ -89,11 +98,8 @@ class MovimentacoesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                // Regra da Imutabilidade: Só deixamos a ViewAction! Removemos o EditAction e DeleteAction.
+                // A imutabilidade voltou! Nada de Edit ou Delete aqui.
                 Tables\Actions\ViewAction::make(), 
-            ])
-            ->bulkActions([
-                //
             ]);
     }
 }
