@@ -11,19 +11,24 @@ use Filament\Tables\Table;
 class MovimentacoesRelationManager extends RelationManager
 {
     protected static string $relationship = 'movimentacoes';   
-    protected static ?string $title = 'Linha do Tempo e Anexos'; // Nome mais amigável
+    protected static ?string $title = 'Linha do Tempo e Anexos';
     
     //TODO: CRIAR FILTRO DO USER
-    // public function isReadOnly(): bool
-    // {
-    //     $sinistro = $this->getOwnerRecord();
+    public function isReadOnly(): bool
+    {
+        $sinistro = $this->getOwnerRecord();
+        $user = auth()->user();
 
-    //     if (in_array($sinistro->status, ['Pago', 'Negado', 'Encerrado'])) {
-    //         return true;
-    //     }
+        if (in_array($sinistro->status, ['Pago', 'Negado', 'Encerrado'])) {
+            return true;
+        }
 
-    //     return false;
-    // }
+        if ($user->hasAnyRole(['Cliente', 'Corretor'])) {
+            return true; 
+        }
+
+        return false;
+    }
 
     public function form(Form $form): Form
     {
@@ -33,7 +38,6 @@ class MovimentacoesRelationManager extends RelationManager
                     ->label('Ação Realizada')
                     ->options([
                         'Abertura' => 'Abertura de Sinistro',
-                        'Envio de Documentos' => 'Envio de Documentos / Evidências',
                         'Análise' => 'Análise de Documentos',
                         'Perícia' => 'Solicitação de Perícia',
                         'Aprovação' => 'Aprovação de Indenização',
@@ -57,8 +61,8 @@ class MovimentacoesRelationManager extends RelationManager
                     ->directory('sinistros-anexos')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']) 
                     ->maxSize(5120) 
-                    ->downloadable() // <-- LIBERA O DOWNLOAD SEGURO
-                    ->openable()     // <-- PERMITE LER NO NAVEGADOR
+                    ->downloadable() 
+                    ->openable()  
                     ->columnSpanFull(),
             ]);
     }

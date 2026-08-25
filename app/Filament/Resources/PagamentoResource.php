@@ -46,8 +46,6 @@ class PagamentoResource extends Resource
                                 name: 'apolice', 
                                 titleAttribute: 'numero_apolice',
                                 modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query, Forms\Get $get) => 
-                                    // Só exige que a apólice seja Vigente se for um Recebimento manual.
-                                    // Se for sinistro, aceita a apólice do histórico, mesmo que já expirada.
                                     $get('tipo_movimentacao') === 'Recebimento' 
                                         ? $query->where('status', 'Vigente') 
                                         : $query

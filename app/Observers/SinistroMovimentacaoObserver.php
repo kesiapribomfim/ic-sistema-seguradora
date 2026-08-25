@@ -18,7 +18,8 @@ class SinistroMovimentacaoObserver
         // Mapeia a ação da movimentação para o Status correspondente no Sinistro
         $novoStatus = match ($movimentacao->acao_realizada) {
             'Abertura' => 'Aberto',
-            'Análise', 'Perícia' => 'Em análise',
+            'Análise' => 'Em análise',
+            'Perícia'=> 'Em perícia',
             'Aprovação' => 'Aprovado',
             'Negação' => 'Negado',
             'Pagamento' => 'Pago',

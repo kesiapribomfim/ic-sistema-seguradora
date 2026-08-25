@@ -54,19 +54,25 @@ class SinistroPolicy
 
     public function update(User $user, Sinistro $sinistro): bool
     {
-        
-
-        if (!$user->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])) {
-            return false;
-        }
-
-        $statusFinalizados = ['Pago', 'Negado', 'Encerrado'];
+        $statusFinalizados = ['Negado', 'Encerrado'];
         if (in_array($sinistro->status, $statusFinalizados)) {
             return false;
         }
 
-        $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
-        return in_array($sinistro->apolice->filial_id, $filiaisIds);
+        if ($user->hasRole('Corretor')) {
+            return $sinistro->apolice->user_id === $user->id;
+        }
+
+        if ($user->hasRole('Cliente')) {
+            return $sinistro->apolice->segurado->user_id === $user->id;
+        }
+
+        if ($user->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial', 'Financeiro'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            return in_array($sinistro->apolice->filial_id, $filiaisIds);
+        }
+
+        return false;
     }
 
     public function delete(User $user, Sinistro $sinistro): bool

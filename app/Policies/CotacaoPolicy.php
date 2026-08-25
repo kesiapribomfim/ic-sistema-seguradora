@@ -21,23 +21,15 @@ class CotacaoPolicy
             return $cotacao->user_id === $user->id;
         }
 
-
-
-
-
-
-
-        // Subscritor e Gestor: Acesso restrito às cotações das suas filiais
         if ($user->hasAnyRole(['Subscritor', 'Gestor de Filial'])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             return in_array($cotacao->filial_id, $filiaisIds);
         }
 
         // Cliente: Acesso restrito às suas próprias cotações - TODO
-        // if ($user->hasRole('Cliente')) {
-        //     // Assumindo o relacionamento onde a Cotação pertence a um Segurado, que pertence a um User
-        //     return $cotacao->segurado->user_id === $user->id; 
-        // }
+        if ($user->hasRole('Cliente')) {
+            return $cotacao->segurado->user_id === $user->id; 
+        }
 
         return false;
     }

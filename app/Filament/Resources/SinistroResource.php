@@ -29,12 +29,17 @@ class SinistroResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         $quantidade = static::getModel()::where('status', 'Aberto')->count();
+        $aprovado = static::getModel()::where('status', 'Aprovado')->count();
         
         $user = auth()->user();
 
         if ($user->hasRole('Analista de Sinistros')) {
 
             return $quantidade > 0 ? (string) $quantidade : null;
+        };
+
+        if ($user->hasRole('Financeiro')) {
+            return $aprovado > 0 ? (string) $aprovado : null;
         };
 
         return null;
@@ -61,6 +66,7 @@ class SinistroResource extends Resource
             Forms\Components\Group::make()->schema([
                 Forms\Components\Section::make('Informações Gerais do Evento')
                     ->icon('heroicon-o-exclamation-triangle')
+                    ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
                     ->schema([
                         Forms\Components\Select::make('apolice_id')
                             ->relationship(
@@ -132,7 +138,8 @@ class SinistroResource extends Resource
                                 
                                 $cor = match($status) {
                                     'Aberto' => 'warning',
-                                    'Em análise', 'Em perícia' => 'info',
+                                    'Em análise' => 'info',
+                                    'Em perícia' => '#735bff',
                                     'Aprovado', 'Pago' => 'success',
                                     'Negado' => 'danger',
                                     'Encerrado' => 'gray',
@@ -149,6 +156,7 @@ class SinistroResource extends Resource
 
                 Forms\Components\Section::make('Local da Ocorrência')
                     ->icon('heroicon-o-map-pin')
+                    ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
                     ->schema([
                         Forms\Components\Grid::make(3)->schema([
                             Forms\Components\TextInput::make('rua')
@@ -175,6 +183,7 @@ class SinistroResource extends Resource
 
                 Forms\Components\Section::make('Detalhamento do Sinistro')
                     ->icon('heroicon-o-document-text')
+                    ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
                     ->schema([
                         Forms\Components\CheckboxList::make('coberturas_envolvidas')
                             ->label('Coberturas Acionadas')
@@ -227,20 +236,20 @@ class SinistroResource extends Resource
                             ->label('Valor Efetivamente Pago')
                             ->numeric()
                             ->prefix('R$')
-                            // Libera o preenchimento apenas quando o status for marcado como Pago
+                            ->disabled(fn () => auth()->user()->hasRole('Financeiro'))
                             ->disabled(fn (Forms\Get $get) => !in_array($get('status'), ['Pago', 'Encerrado']))
-                            ->dehydrated()
-                            ->helperText('O valor pode divergir do aprovado em casos de franquia ou rateio.'), // Justificativa de divergência baseada nas regras de negócio[cite: 2].
+                            ->dehydrated(),
                     ]),
                     
                 Forms\Components\FileUpload::make('anexos_temporarios')
+                    ->visible(fn () => auth()->user()->hasRole('Cliente'))
                     ->label('Evidências Iniciais (B.O., Fotos, CNH)')
                     ->multiple()
                     ->disk('local') 
-                    ->directory('sinistros-anexos') // Mesma pasta das movimentações!
+                    ->directory('sinistros-anexos')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']) 
                     ->maxSize(5120) 
-                    ->dehydrated(false) // A MÁGICA: Não tenta salvar na tabela 'sinistros'
+                    ->dehydrated(false)
                     ->columnSpanFull(),
             ])->columnSpan(['lg' => 1]), // Ocupa 1/3 da tela
         ])
@@ -306,14 +315,46 @@ public static function table(Table $table): Table
         ->recordUrl(null)
         ->recordAction(Tables\Actions\ViewAction::class)
         ->filters([
-            // TODO: Implementar filtros de status e datas para facilitar a busca de sinistros específicos.
-            // O descritivo menciona o uso de filtros no Table Builder[cite: 2].
-            // Aqui você poderá adicionar depois um SelectFilter para 'status' e um Filter para datas.
+            Tables\Filters\SelectFilter::make('status')
+                ->label('Status do Sinistro')
+                ->options([
+                    'Aberto' => 'Aberto',
+                    'Em análise'=> 'Em análise',
+                    'Em perícia' => 'Em perícia',
+                    'Aprovado' => 'Aprovado',
+                    'Pago' => 'Pago',
+                    'Negado' => 'Negado',
+                    'Encerrado' => 'Encerrado',
+                ])
         ])
         ->actions([
             ActionGroup::make([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('assumir')
+                    ->label('Assumir Sinistro')
+                    ->icon('heroicon-o-hand-raised')
+                    ->color('success')
+                    ->visible(fn (Model $record) => 
+                        auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial']) && 
+                        is_null($record->analista_id)
+                    )
+                    ->action(function (Model $record) {
+                        $record->update([
+                            'analista_id' => auth()->id(),
+                            'status' => 'Em análise',
+                        ]);
+
+                        $record->movimentacoes()->create([
+                            'user_id' => auth()->id(),
+                            'data_hr_movimentacao' => now(),
+                            'acao_realizada' => 'Análise',
+                            'descricao' => 'Sinistro assumido para análise e regulação.',
+                        ]);
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Assumir Sinistro')
+                    ->modalDescription('Você será designado como o analista responsável por este sinistro. Deseja continuar?'),
             ])
         ])
         ->bulkActions([
@@ -322,6 +363,7 @@ public static function table(Table $table): Table
             ]),
         ]); 
     }
+    
 
     public static function getEloquentQuery(): Builder
     {

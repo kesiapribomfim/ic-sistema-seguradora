@@ -30,8 +30,7 @@ class SeguradoPolicy
         return $user->hasAnyRole([
             'Gestor de Filial',
             'Analista de Sinistros',
-            'Corretor',
-            'Financeiro'
+            'Corretor'
         ]);
     }
 
@@ -46,8 +45,7 @@ class SeguradoPolicy
 
         if ($user -> hasAnyRole([
             'Gestor de Filial',
-            'Analista de Sinistros',
-            'Financeiro'
+            'Analista de Sinistros'
         ])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             return in_array($segurado->filial_id, $filiaisIds);
