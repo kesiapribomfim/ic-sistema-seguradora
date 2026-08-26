@@ -21,8 +21,8 @@
     </div>
 
     <div class="section-title">Dados do Segurado</div>
-    <p><strong>Cliente:</strong> {{ $apolice->segurado->seguradoPf->nome ?? $apolice->segurado->seguradoPj->razao_social }}</p>
-    <p><strong>Documento (CPF/CNPJ):</strong> {{ $apolice->segurado->seguradoPf->cpf ?? $apolice->segurado->seguradoPj->cnpj }}</p>
+    <p><strong>Cliente:</strong> {{ $apolice->segurado?->seguradoPf?->nome ?? $apolice->segurado?->seguradoPj?->razao_social ?? 'Nome não cadastrado' }}</p>
+    <p><strong>Documento (CPF/CNPJ):</strong> {{ $apolice->segurado?->seguradoPf?->cpf ?? $apolice->segurado?->seguradoPj?->cnpj ?? 'Documento não cadastrado' }}</p>
 
     <div class="section-title">Dados do Produto</div>
     <p><strong>Produto Contratado:</strong> {{ $apolice->cotacao->produto->nome ?? 'N/A' }}</p>
@@ -46,16 +46,6 @@
                 <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
             </tr>
             @endforeach
-
-            {{-- TODO: INVESTIGAR ESSE ERRO:
-                [2026-08-20 20:00:06] local.ERROR: foreach() argument must be of type array|object, null given (View: C:\projetos\ic-sistema-seguradora\resources\views\pdf\apolice.blade.php) {"exception":"[object] (Illuminate\\View\\ViewException(code: 0): foreach() argument must be of type array|object, null given (View: C:\\projetos\\ic-sistema-seguradora\\resources\\views\\pdf\\apolice.blade.php) at C:/projetos/ic-sistema-seguradora/storage/framework/views/4252b0d78c137f4ef729e3cc45d80439.php:42)
-                [stacktrace]
-                [previous exception] [object] (ErrorException(code: 0): foreach() argument must be of type array|object, null given at C:/projetos/ic-sistema-seguradora/storage/framework/views/4252b0d78c137f4ef729e3cc45d80439.php:42)
-                [stacktrace] 
-
-                -> (Dica rápida para amanhã: para arrumar isso, vai ser só colocar um $this->apolice->load('pagamentos');
-                lá dentro do seu BoasVindasApoliceMail imediatamente antes da linha que chama o Pdf::loadView).
-            --}}
         </tbody>
     </table>
 
