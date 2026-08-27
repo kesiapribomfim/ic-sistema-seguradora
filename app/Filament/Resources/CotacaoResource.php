@@ -31,6 +31,23 @@ class CotacaoResource extends Resource
     protected static ?string $pluralModelLabel = 'Cotações';
     protected static ?string $slug = 'cotacoes';
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
+    
+    public static function getNavigationBadge(): ?string
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('Subscritor')) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id');
+            
+            $count = static::getModel()::whereIn('filial_id', $filiaisIds)
+                ->where('status', 'Aguardando Subscrição') 
+                ->count();
+            
+            return $count > 0 ? (string) $count : null;
+        }
+
+        return null;
+    }
 
     public static function form(Form $form): Form
     {
@@ -77,15 +94,13 @@ class CotacaoResource extends Resource
             return $query->where('user_id', $user->id);
         }
 
-        // TODO: Relacionar Cliente User
         if ($user->hasRole('Cliente')) {
-            // ... sua lógica de cliente
+            return $query->whereHas('segurado', function ($q) use ($user) { $q->where('user_id', $user->id);});
         }
 
         // Analista, Gestor e Subscritor ligado a filial
         $filiaisIds = $user->filiais()->pluck('filiais.id');
         
-        // CORREÇÃO AQUI: Filtra a filial DIRETAMENTE na tabela de cotações!
         return $query->whereIn('filial_id', $filiaisIds);
     }
     // =========================================================================

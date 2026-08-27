@@ -384,7 +384,6 @@ public static function table(Table $table): Table
             });
         }
 
-        // TODO: Relacionar Cliente User
         if ($user->hasRole('Cliente')) {
             return $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
         }

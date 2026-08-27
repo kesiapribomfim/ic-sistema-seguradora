@@ -25,16 +25,22 @@ class ListSinistros extends ListRecords
      */
     public function getTabs(): array
     {
-        return [
-            'todos' => Tab::make('Todos os Sinistros'),
-            
-            'meus_sinistros' => Tab::make('Meus Sinistros')
+        $user = auth()->user();
+
+        if ($user->hasRole('Analista de Sinistros')) {
+
+            return [
+                'todos' => Tab::make('Todos os Sinistros'),
+                    
+                'meus_sinistros' => Tab::make('Meus Sinistros')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('analista_id', auth()->id())),
-        
-            'fila_espera' => Tab::make('Fila de Espera')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
-                ->badge(Sinistro::whereNull('analista_id')->where('status', 'Aberto')->count()),
-            
+                
+                'fila_espera' => Tab::make('Fila de Espera')
+                    ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
+                    ->badge(Sinistro::whereNull('analista_id')->where('status', 'Aberto')->count()),
             ];
+        }
+        
+        return [];
     }
 }

@@ -29,6 +29,7 @@ class ViewCotacao extends ViewRecord
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
                 ->visible(fn () => $this->record->status === 'Em Elaboração')
+                ->visible(fn () => auth()->user()->hasRole('Corretor'))
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')

@@ -44,6 +44,10 @@ class ApolicePolicy
             return $apolice->user_id === $user->id;
         }
 
+        if ($user->hasRole('Cliente')) {
+            return $apolice->segurado?->user_id === $user->id;
+        }
+
         if ($user -> hasAnyRole([
             'Gestor de Filial',
             'Analista de Sinistros',

@@ -140,7 +140,29 @@ class PagamentoResource extends Resource
                     ]),
             ])->columnSpan(['lg' => 1]), // Ocupa 1/3 da tela
         ])->columns(3);
-}
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user->hasRole('super_admin')){
+            return $query;
+        }
+
+        if ($user->hasRole('Corretor')) {
+            return $query->where('user_id', $user->id);
+        }
+
+        if ($user->hasRole('Cliente')) {
+            return $query->whereHas('apolice.segurado', function ($q) use ($user) { $q->where('user_id', $user->id);});
+        }
+
+        $filiaisIds = $user->filiais()->pluck('filiais.id');
+        
+        return $query->whereIn('filial_id', $filiaisIds);
+    }
     
     
     public static function table(Table $table): Table

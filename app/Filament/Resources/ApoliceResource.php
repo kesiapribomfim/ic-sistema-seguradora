@@ -101,8 +101,9 @@ public static function form(Form $form): Form
             ])->columnSpan(['lg' => 2]),
 
 
-            // TODO: melhorar visualização dos dados na hora da edição (problema da infolist com dados de todos os ramos e coberturas não aparecendo)
-            Forms\Components\Group::make()->schema([
+            Forms\Components\Group::make()
+            ->visible(fn () => auth()->user()->hasAnyRole(['Administrador Geral', 'Gestor de Filial', 'super_admin']))
+            ->schema([
                 Forms\Components\Section::make('Vinculos')
                     ->icon('heroicon-o-users')
                     ->schema([
@@ -123,14 +124,12 @@ public static function form(Form $form): Form
                         Forms\Components\Placeholder::make('user_id')
                             ->label('Corretor')
                             ->content(function ($record) {
-                                
                                 if(!$record || !$record->user) return '-';
 
                                 $name = $record->user?->name;
                                 $url = \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->user_id]);
 
                                 return new HtmlString(("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$name}</a>"));
-
                             }),
                             
                         Forms\Components\Placeholder::make('filial_id')
@@ -155,7 +154,7 @@ public static function form(Form $form): Form
                                 return new HtmlString("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>");
                             }),
 
-                        Forms\Components\Placeholder::make ('apolice_origem_id') //trocar apolice id apolice origem por numero apolice
+                        Forms\Components\Placeholder::make('apolice_origem_id') 
                             ->label('Apólice de Origem')
                             ->content (function ($record){
                                 if (!$record || !$record->apolice_origem_id) return '-';
@@ -166,7 +165,7 @@ public static function form(Form $form): Form
                                 return new HtmlString(("<a href= '{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>"));
                             })
                     ]),
-                ])->columnSpan(['lg' => 1]),
+            ])->columnSpan(['lg' => 1]),
 
                 Forms\Components\Group::make()->schema([
                 Forms\Components\Section::make('Snapshot')
@@ -383,6 +382,10 @@ public static function form(Form $form): Form
 
         if ($user->hasRole('Corretor')) {
             return $query->where('user_id', $user->id);
+        }
+
+        if ($user->hasRole('Cliente')) {
+            return $query->whereHas('segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
         }
 
         // Analista, Gestor e Financeiro ligado a filial
