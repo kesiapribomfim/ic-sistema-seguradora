@@ -10,12 +10,27 @@ class ProdutoPolicy
 {
     use HandlesAuthorization;
 
+    public function before(User $user, string $ability): ?bool
+    {
+        //Admin Geral acesso
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_produto');
+        return $user->hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Corretor', 
+            'Financeiro'
+        ]);
     }
 
     /**
@@ -23,6 +38,21 @@ class ProdutoPolicy
      */
     public function view(User $user, Produto $produto): bool
     {
+        if ($user->hasRole('Corretor')) {
+            return $apolice->user_id === $user->id;
+        }
+
+
+        if ($user -> hasAnyRole([
+            'Corretor',
+            'Gestor de Filial',
+            'Subscritor',
+            'Analista de Sinistros',
+            'Financeiro'
+        ])) {
+            return true;
+        }
+        
         return $user->can('view_produto');
     }
 

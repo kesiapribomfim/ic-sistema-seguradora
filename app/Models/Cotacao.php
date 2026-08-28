@@ -22,6 +22,7 @@ class Cotacao extends Model
         'user_id',
         'filial_id',
         'dados_especificos',
+        'observacao_cliente',
         'cobertura_selecionada',
         'status',
         'valor_total',

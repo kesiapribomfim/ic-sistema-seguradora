@@ -43,12 +43,19 @@ class SeguradoPolicy
             return $segurado->corretor_id === $user->id;
         }
 
-        if ($user -> hasAnyRole([
-            'Gestor de Filial',
-            'Analista de Sinistros'
-        ])) {
+        if ($user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros'])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
-            return in_array($segurado->filial_id, $filiaisIds);
+            
+            $hasApolice = $segurado->apolices()->whereIn('filial_id', $filiaisIds)->exists();
+            $hasCotacao = $segurado->cotacoes()->whereIn('filial_id', $filiaisIds)->exists();
+            
+            $corretorFiliais = $segurado->corretor ? $segurado->corretor->filiais()->pluck('filiais.id')->toArray() : [];
+            $hasCorretor = !empty(array_intersect($filiaisIds, $corretorFiliais));
+
+            $userFiliais = $segurado->user ? $segurado->user->filiais()->pluck('filiais.id')->toArray() : [];
+            $hasUser = !empty(array_intersect($filiaisIds, $userFiliais));
+
+            return $hasApolice || $hasCotacao || $hasCorretor || $hasUser;
         }
 
         return $user->can('view_segurado');
@@ -59,7 +66,7 @@ class SeguradoPolicy
      */
     public function create(User $user): bool
     {
-        if ($user->hasRole('Corretor')){
+        if ($user->hasAnyRole(['Gestor de Filial','Corretor'])){
             return true;
         }
         return $user->can('create_segurado');
@@ -70,6 +77,10 @@ class SeguradoPolicy
      */
     public function update(User $user, Segurado $segurado): bool
     {
+        if ($user->hasAnyRole(['Gestor de Filial', 'Corretor'])) {
+            return $this->view($user, $segurado);
+        }
+
         return $user->can('update_segurado');
     }
 

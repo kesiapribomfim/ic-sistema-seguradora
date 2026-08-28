@@ -16,9 +16,26 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
+
+    public function before(User $user, string $ability): ?bool
+    {
+        //Admin Geral acesso
+        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_user');
+        return $user->hasAnyRole([
+            'Gestor de Filial',
+            'Analista de Sinistros',
+            'Corretor',
+            'Cliente', 
+            'Financeiro'
+        ]);
     }
 
     /**
@@ -27,8 +44,27 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function view(User $user): bool
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, User $model): bool
     {
+        if ($user->id === $model->id) {
+            return true;
+        }
+
+        if ($user->hasRole('Gestor de Filial')) {
+            
+            $filiaisGestorIds = $user->filiais()
+                ->wherePivot('perfil_acesso', 'Gestor de Filial')
+                ->pluck('filiais.id')
+                ->toArray();
+                
+            $filiaisAlvoIds = $model->filiais()->pluck('filiais.id')->toArray();
+            
+            return !empty(array_intersect($filiaisGestorIds, $filiaisAlvoIds));
+        }
+
         return $user->can('view_user');
     }
 
@@ -40,6 +76,9 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
+        if ($user->hasRole('Gestor de Filial')) {
+            return true;
+        }
         return $user->can('create_user');
     }
 
@@ -49,8 +88,25 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function update(User $user): bool
+
+    public function update(User $user, User $model): bool
     {
+        if ($user->id === $model->id) {
+            return true;
+        }
+
+        if ($user->hasRole('Gestor de Filial')) {
+            
+            $filiaisGestorIds = $user->filiais()
+                ->wherePivot('perfil_acesso', 'Gestor de Filial')
+                ->pluck('filiais.id')
+                ->toArray();
+                
+            $filiaisAlvoIds = $model->filiais()->pluck('filiais.id')->toArray();
+            
+            return !empty(array_intersect($filiaisGestorIds, $filiaisAlvoIds));
+        }
+
         return $user->can('update_user');
     }
 
@@ -60,10 +116,11 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function delete(User $user): bool
+    public function delete(User $user, User $model): bool
     {
         return $user->can('delete_user');
     }
+
 
     /**
      * Determine whether the user can bulk delete.
@@ -82,10 +139,13 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function forceDelete(User $user): bool
+    
+    public function forceDelete(User $user, User $model): bool
     {
         return $user->can('force_delete_user');
     }
+
+    
 
     /**
      * Determine whether the user can permanently bulk delete.
@@ -104,10 +164,12 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function restore(User $user): bool
+    public function restore(User $user, User $model): bool
     {
         return $user->can('restore_user');
     }
+
+    
 
     /**
      * Determine whether the user can bulk restore.
@@ -126,7 +188,8 @@ class UserPolicy
      * @param  \App\Models\User  $user
      * @return bool
      */
-    public function replicate(User $user): bool
+
+    public function replicate(User $user, User $model): bool
     {
         return $user->can('replicate_user');
     }

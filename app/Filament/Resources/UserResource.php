@@ -57,7 +57,53 @@ class UserResource extends Resource
                     ->dehydrateStateUsing(fn (string $state): string => \Illuminate\Support\Facades\Hash::make($state)),
                 Toggle::make('status')
                     ->label('Ativo'),
+                Forms\Components\Select::make('filial_id')
+                    ->label('Vincular à Filial')
+                    ->options(function () {
+                        $user = auth()->user();
+                        if ($user->hasRole('Gestor de Filial')) {
+                            return $user->filiais()->wherePivot('perfil_acesso', 'Gestor de Filial')->pluck('filiais.nome', 'filiais.id');
+                        }
+                        return \App\Models\Filial::pluck('nome', 'id');
+                    })
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrated(false), 
+
+                Forms\Components\Select::make('perfil_acesso')
+                    ->label('Perfil de Acesso')
+                    ->options([
+                        'Gestor de Filial' => 'Gestor de Filial',
+                        'Subscritor' => 'Subscritor',
+                        'Corretor' => 'Corretor',
+                        'Analista de Sinistros' => 'Analista de Sinistros',
+                        'Financeiro' => 'Financeiro',
+                    ])
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrated(false),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user->hasRole('super_admin')){
+            return $query;
+        }
+        if ($user->hasRole('Gestor de Filial')) {
+            
+            $filiaisComoGestorIds = $user->filiais()
+                ->wherePivot('perfil_acesso', 'Gestor de Filial') 
+                ->pluck('filiais.id')
+                ->toArray();
+            
+            return $query->whereHas('filiais', function ($q) use ($filiaisComoGestorIds) {
+                $q->whereIn('filiais.id', $filiaisComoGestorIds);
+            });
+        }
+
+        return $query;
     }
 
     public static function table(Table $table): Table
@@ -99,7 +145,7 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\FiliaisRelationManager::class,
         ];
     }
 

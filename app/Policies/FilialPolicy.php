@@ -15,7 +15,7 @@ class FilialPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_filial');
+        return $user->hasAnyRole(['Administrador Geral', 'super_admin', 'Gestor de Filial']);
     }
 
     /**

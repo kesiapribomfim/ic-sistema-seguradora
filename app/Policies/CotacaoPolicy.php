@@ -64,8 +64,7 @@ class CotacaoPolicy
 
     public function create(User $user): bool
     {
-        // Clientes e Corretores abrem novas cotações
-        if ($user->hasAnyRole(['Corretor', 'Cliente'])) {
+        if ($user->hasRole('Corretor')) {
             return true;
         }
         
@@ -86,15 +85,11 @@ class CotacaoPolicy
             return $cotacao->status === 'Em Subscrição';
         }
 
-        // 4. Regra Implícita para Corretores e outros
-        // Se chegou até aqui e NÃO é subscritor, é corretor/gestor editando a cotação normalmente
         return true;
     }
 
     public function delete(User $user, Cotacao $cotacao): bool
     {
-        // Cotações não devem ser deletadas do banco para garantir o funil de conversão e auditoria.
-        // O status deve ser alterado para "Recusada" ou "Expirada".
         return false;
     }
 

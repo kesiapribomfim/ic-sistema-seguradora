@@ -385,7 +385,8 @@ public static function form(Form $form): Form
         }
 
         if ($user->hasRole('Cliente')) {
-            return $query->whereHas('segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
+            return $query->whereHas('segurado', function($q) use ($user) { 
+                $q->where('user_id', $user->id); });
         }
 
         // Analista, Gestor e Financeiro ligado a filial

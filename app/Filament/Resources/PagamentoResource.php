@@ -152,16 +152,25 @@ class PagamentoResource extends Resource
         }
 
         if ($user->hasRole('Corretor')) {
-            return $query->where('user_id', $user->id);
+            return $query->whereHas('apolice', function ($q) use ($user) {
+                $q->where('user_id', $user->id); 
+            });
         }
 
         if ($user->hasRole('Cliente')) {
-            return $query->whereHas('apolice.segurado', function ($q) use ($user) { $q->where('user_id', $user->id);});
+            return $query->whereHas('apolice.segurado', function ($q) use ($user) { 
+                $q->where('user_id', $user->id);});
         }
 
-        $filiaisIds = $user->filiais()->pluck('filiais.id');
+        if ($user->hasAnyRole(['Gestor de Filial', 'Financeiro'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id');
+            
+            return $query->whereHas('apolice', function ($q) use ($filiaisIds) {
+                $q->whereIn('filial_id', $filiaisIds);
+            });
+        }
         
-        return $query->whereIn('filial_id', $filiaisIds);
+        return $query;
     }
     
     

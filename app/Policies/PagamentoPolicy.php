@@ -19,7 +19,6 @@ class PagamentoPolicy
 
     public function viewAny(User $user): bool
     {
-        // Gestores monitoram, Financeiro opera, Corretores e Clientes visualizam
         return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
@@ -30,7 +29,6 @@ class PagamentoPolicy
 
     public function create(User $user): bool
     {
-        // Apenas o Financeiro tem alçada para lançar recebimentos e pagamentos manualmente
         return $user->hasRole('Financeiro');
     }
 

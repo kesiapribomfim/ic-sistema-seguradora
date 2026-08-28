@@ -160,10 +160,29 @@ class SeguradoResource extends Resource
             return $query->where('corretor_id', $user->id);
         }
 
-        // Analista, Gestor e Financeiro ligado a filial
-        $filiaisIds = $user->filiais()->pluck('filiais.id');
+        if ($user->hasRole('Gestor de Filial')) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id');
+            
+            return $query->where(function ($q) use ($filiaisIds) {
+                // Condição 1: O corretor vinculado ao segurado é da minha filial
+                $q->whereHas('corretor.filiais', function ($q2) use ($filiaisIds) {
+                    $q2->whereIn('filiais.id', $filiaisIds);
+                })
+                // Condição 2: OU o segurado possui uma apólice na minha filial
+                ->orWhereHas('apolices', function ($q3) use ($filiaisIds) {
+                    $q3->whereIn('filial_id', $filiaisIds);
+                })
+                // Condição 3: OU o segurado possui uma cotação na minha filial
+                ->orWhereHas('cotacoes', function ($q4) use ($filiaisIds) {
+                    $q4->whereIn('filial_id', $filiaisIds);
+                })
+                // Condição 4: OU a conta de login (user) do próprio segurado tem vínculo com a filial
+                ->orWhereHas('user.filiais', function ($q5) use ($filiaisIds) {
+                    $q5->whereIn('filiais.id', $filiaisIds);
+                });
+            });
+        }
         
-        return $query->whereIn('filial_id', $filiaisIds);
     }
 
     public static function table(Table $table): Table

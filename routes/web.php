@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\CheckoutCotacao;
 use App\Http\Controllers\ApolicePdfController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Livewire\SolicitarCotacao;
+
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -24,3 +27,6 @@ Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware(['guest', 'throttle:5,1'])
     ->name('password.store');
+
+Route::get('/cotacao', SolicitarCotacao::class)
+    ->middleware('throttle:5,1');

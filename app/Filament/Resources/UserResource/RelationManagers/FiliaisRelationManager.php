@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\FilialResource\RelationManagers;
+namespace App\Filament\Resources\UserResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -8,7 +8,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Components\Tab;
 use Filament\Tables\Actions\ActionGroup;
@@ -17,11 +16,11 @@ use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\Action;
 
-class UsersRelationManager extends RelationManager
+class FiliaisRelationManager extends RelationManager
 {
-    protected static string $relationship = 'users';
-    protected static ?string $title = 'Usuários';
-    protected static ?string $icon = 'heroicon-o-users';
+    protected static string $relationship = 'filiais';
+    protected static ?string $title = 'Vínculos com Filiais';
+    protected static ?string $icon = 'heroicon-o-building-office';
 
     public function form(Form $form): Form
     {
@@ -32,10 +31,13 @@ class UsersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('name')
+            ->recordTitleAttribute('nome')
             ->columns([
-                Tables\Columns\TextColumn::make('name'),
+                Tables\Columns\TextColumn::make('nome')
+                    ->label('Nome da Filial'),
                 Tables\Columns\TextColumn::make('perfil_acesso')
+                    ->label('Perfil de Acesso')
+                    ->badge() 
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('perfil_acesso')
@@ -51,10 +53,10 @@ class UsersRelationManager extends RelationManager
                 Tables\Actions\AttachAction::make()
                     ->preloadRecordSelect()
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
-                        $action->getRecordSelect(), // O campo obrigatório que escolhe "quem" é a pessoa
+                        $action->getRecordSelect(), 
                         
                         Forms\Components\Select::make('perfil_acesso')
-                            ->label('Perfil na Filial')
+                            ->label('Perfil nesta Filial')
                             ->options([
                                 'Gestor de Filial' => 'Gestor de Filial',
                                 'Subscritor' => 'Subscritor',
@@ -64,50 +66,30 @@ class UsersRelationManager extends RelationManager
                             ])
                             ->required(),
                     ])
-                    ->after(function (array $data, Model $record) {
-                        $record->assignRole($data['perfil_acesso']);
+                    ->after(function (array $data, RelationManager $livewire) {
+                        $livewire->getOwnerRecord()->assignRole($data['perfil_acesso']);
                     }),
             ])
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
-                    Action::make('ver_usuario')
-                        ->label('Ver Perfil')
+                    
+                    Action::make('ver_filial')
+                        ->label('Ver Filial')
                         ->icon('heroicon-o-eye')
-                        ->url(fn (Model $record) => \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->id]))
-                        ->openUrlInNewTab(), // Abre em nova aba para não perder a tela da filial
-                    Action::make('ver_carteira')
-                        ->label('Ver Carteira')
-                        ->icon('heroicon-o-identification')
-                        ->visible(fn (Model $record): bool => $record->pivot->perfil_acesso === 'Corretor')
-                        ->url(fn (Model $record): string => \App\Filament\Resources\SeguradoResource::getUrl('index', [
-                            'tableFilters' => [
-                                'user_id' => ['value' => $record->id],
-                            ],
-                        ])),
+                        ->url(fn (Model $record) => \App\Filament\Resources\FilialResource::getUrl('view', ['record' => $record->id]))
+                        ->openUrlInNewTab(), 
+                        
                     DetachAction::make()
-                        ->before(function (Model $record){
-                            $record->removeRole($record->perfil_acesso);
+                        ->before(function (RelationManager $livewire, Model $record){
+                            $livewire->getOwnerRecord()->removeRole($record->pivot->perfil_acesso);
                         }),
-
                 ])
-   
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DetachBulkAction::make(),
                 ]),
             ]);
-    }
-
-    public function getTabs(): array
-    {
-        return[
-            'todos' => Tab::make('Todos os Vínculos'),
-        
-            'corretores' => Tab::make('Corretores')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('filial_user.perfil_acesso', 'Corretor')),
-    ];
-        
     }
 }

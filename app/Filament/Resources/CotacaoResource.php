@@ -263,6 +263,12 @@ class CotacaoResource extends Resource
                                 
                             return $filial?->id;
                         }),
+                    Forms\Components\Textarea::make('observacao_cliente')
+                    ->label('Pedido Original do Cliente (Via Site)')
+                    ->placeholder('Nenhuma observação registrada.')
+                    ->disabled() 
+                    ->columnSpanFull()
+                    ->visible(fn ($record) => $record && !empty($record->observacao_cliente)),
                 ])->columns(2),
         ];
     }

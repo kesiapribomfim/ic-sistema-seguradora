@@ -44,7 +44,7 @@ class Segurado extends Model
             return $this->belongsTo(User::class, 'corretor_id');
         }
 
-        public function acessoCliente()
+        public function user()
         {
             return $this->belongsTo(User::class, 'user_id');
         }

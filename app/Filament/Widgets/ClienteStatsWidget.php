@@ -20,14 +20,20 @@ class ClienteStatsWidget extends BaseWidget
         $userId = auth()->id();
 
         return [
-            Stat::make('Minhas Apólices', Apolice::where('segurado_id', $userId)->where('status', 'Vigente')->count())
+            Stat::make('Minhas Apólices', Apolice::whereHas('segurado', function ($query) use ($userId) {
+                    $query->where('user_id', $userId);
+                })
+                ->where('status', 'Vigente')
+                ->count())
                 ->description('Contratos ativos')
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('success'),
 
-            Stat::make('Faturas em Aberto', Pagamento::whereHas('apolice', function ($query) use ($userId) {
+            Stat::make('Faturas em Aberto', Pagamento::whereHas('apolice.segurado', function ($query) use ($userId) {
                     $query->where('user_id', $userId);
-                })->where('status', 'Aberta')->count())
+                })
+                ->where('status', 'Aberta')
+                ->count())
                 ->description('Aguardando pagamento')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('warning'),
