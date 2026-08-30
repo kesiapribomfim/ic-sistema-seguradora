@@ -19,6 +19,9 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use App\Models\User;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use Illuminate\Support\Facades\Auth;
 
 class SinistroResource extends Resource
 {
@@ -30,8 +33,9 @@ class SinistroResource extends Resource
     {
         $quantidade = static::getModel()::where('status', 'Aberto')->count();
         $aprovado = static::getModel()::where('status', 'Aprovado')->count();
-        
-        $user = auth()->user();
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if ($user->hasRole('Analista de Sinistros')) {
 
@@ -254,7 +258,7 @@ class SinistroResource extends Resource
             ])->columnSpan(['lg' => 1]), // Ocupa 1/3 da tela
         ])
         ->columns(3);
-}
+    }
 
 public static function table(Table $table): Table
 {

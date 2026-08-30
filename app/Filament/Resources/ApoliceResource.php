@@ -20,6 +20,9 @@ use Illuminate\Support\HtmlString;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Barryvdh\DomPDF\Facade\Pdf;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use Illuminate\Support\Facades\Auth;
 
 // TODO: Ajeitar os nomes de Apolices na interface visual e os icons (cotação, produto e apolice)
 
@@ -102,70 +105,37 @@ public static function form(Form $form): Form
 
 
             Forms\Components\Group::make()
-            ->visible(fn () => auth()->user()->hasAnyRole(['Administrador Geral', 'Gestor de Filial', 'super_admin']))
-            ->schema([
-                Forms\Components\Section::make('Vinculos')
-                    ->icon('heroicon-o-users')
-                    ->schema([
-                        Forms\Components\Placeholder::make('segurado_id')
-                            ->label('Segurado')
-                            ->content(function ($record) {
-                                if (!$record || !$record->segurado) return '-';
-                                
-                                $nome = $record->segurado->tipo === 'PF' 
-                                    ? "{$record->segurado->seguradoPf?->nome}" 
-                                    : "{$record->segurado->seguradoPj?->razao_social}";
-                                    
-                                $url = \App\Filament\Resources\SeguradoResource::getUrl('view', ['record' => $record->segurado_id]);
-                                
-                                return new HtmlString("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>");
-                            }),
-                            
-                        Forms\Components\Placeholder::make('user_id')
-                            ->label('Corretor')
-                            ->content(function ($record) {
-                                if(!$record || !$record->user) return '-';
+                ->schema([
+                    Forms\Components\Section::make('Vínculos')
+                        ->icon('heroicon-o-users')
+                        ->schema([
+                            Forms\Components\Placeholder::make('segurado_id')
+                                ->label('Segurado')
+                                ->content(function ($record) {
+                                    if (!$record || !$record->segurado) return '-';
 
-                                $name = $record->user?->name;
-                                $url = \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->user_id]);
+                                    return $record->segurado->tipo === 'PF'
+                                        ? $record->segurado->seguradoPf?->nome
+                                        : $record->segurado->seguradoPj?->razao_social;
+                                }),
 
-                                return new HtmlString(("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$name}</a>"));
-                            }),
-                            
-                        Forms\Components\Placeholder::make('filial_id')
-                            ->label('Filial')
-                            ->content(function ($record){
-                                if (!$record || !$record->filial) return '-';
+                            Forms\Components\Placeholder::make('user_id')
+                                ->label('Corretor')
+                                ->content(fn($record) => $record?->user?->name ?? '-'),
 
-                                $nome = $record->filial?->nome;
-                                $url = \App\Filament\Resources\FilialResource::getUrl('view', ['record' => $record->filial_id]);
+                            Forms\Components\Placeholder::make('filial_id')
+                                ->label('Filial')
+                                ->content(fn($record) => $record?->filial?->nome ?? '-'),
 
-                                return new HtmlString(("<a href= '{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>"));
-                            }),
-                            
-                        Forms\Components\Placeholder::make('cotacao_id')
-                            ->label('Cotação')
-                            ->content(function ($record){
-                                if (!$record || !$record->cotacao_id) return '-';
+                            Forms\Components\Placeholder::make('cotacao_id')
+                                ->label('Cotação')
+                                ->content(fn($record) => $record?->cotacao_id ? "Cotação #{$record->cotacao_id}" : '-'),
 
-                                $nome = 'Cotação #' . $record->cotacao_id;
-                                $url = \App\Filament\Resources\CotacaoResource::getUrl('view', ['record'=> $record->cotacao_id]);
-
-                                return new HtmlString("<a href='{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>");
-                            }),
-
-                        Forms\Components\Placeholder::make('apolice_origem_id') 
-                            ->label('Apólice de Origem')
-                            ->content (function ($record){
-                                if (!$record || !$record->apolice_origem_id) return '-';
-
-                                $nome = 'Apolice #' . $record->apolice_origem_id;
-                                $url = \App\Filament\Resources\ApoliceResource::getUrl('view', ['record'=> $record->apolice_origem_id]);
-
-                                return new HtmlString(("<a href= '{$url}' target='_blank' style='color: #f59e0b;'>{$nome}</a>"));
-                            })
-                    ]),
-            ])->columnSpan(['lg' => 1]),
+                            Forms\Components\Placeholder::make('apolice_origem_id')
+                                ->label('Apólice de Origem')
+                                ->content(fn($record) => $record?->apolice_origem_id ? "Apólice #{$record->apolice_origem_id}" : '-')
+                        ]),
+                ])->columnSpan(['lg' => 1]),
 
                 Forms\Components\Group::make()->schema([
                 Forms\Components\Section::make('Snapshot')
@@ -260,6 +230,7 @@ public static function form(Form $form): Form
                 Infolists\Components\Group::make()->schema([
                     Infolists\Components\Section::make('Vínculos')
                         ->icon('heroicon-o-users')
+                        ->visible(fn() => auth()->user()->hasAnyRole(['Administrador Geral', 'Gestor de Filial', 'super_admin']))
                         ->schema([
                             Infolists\Components\TextEntry::make('identificacao_segurado')
                                 ->label('Segurado')
@@ -373,10 +344,18 @@ public static function form(Form $form): Form
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
-        $user = auth()->user();
+        $query = parent::getEloquentQuery()->with([
+            'segurado.seguradoPf',
+            'segurado.seguradoPj',
+            'user',
+            'filial',
+            'cotacao.produto'
+        ]);
 
-        if ($user->hasRole('super_admin')){
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->hasRole('super_admin')) {
             return $query;
         }
 
@@ -385,13 +364,13 @@ public static function form(Form $form): Form
         }
 
         if ($user->hasRole('Cliente')) {
-            return $query->whereHas('segurado', function($q) use ($user) { 
-                $q->where('user_id', $user->id); });
+            return $query->whereHas('segurado', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
         }
 
-        // Analista, Gestor e Financeiro ligado a filial
         $filiaisIds = $user->filiais()->pluck('filiais.id');
-        
+
         return $query->whereIn('filial_id', $filiaisIds);
     }
 
@@ -484,6 +463,14 @@ public static function form(Form $form): Form
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exportar Planilha')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->queue(), // Manda para a fila (Job) em vez de travar o navegador
+                        ]),
                 ]),
             ]);
     }

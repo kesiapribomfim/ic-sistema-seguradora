@@ -19,6 +19,9 @@ use Filament\Pages\Page;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use Illuminate\Support\Facades\Auth;
 
 class SeguradoResource extends Resource
 {
@@ -150,7 +153,8 @@ class SeguradoResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if ($user->hasRole('super_admin')){
             return $query;
@@ -250,6 +254,14 @@ class SeguradoResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exportar Planilha')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->queue(), // Manda para a fila (Job) em vez de travar o navegador
+                        ]),
                 ]),
             ]);
     }

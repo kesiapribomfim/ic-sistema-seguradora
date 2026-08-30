@@ -7,6 +7,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class MovimentacoesRelationManager extends RelationManager
 {
@@ -17,7 +18,8 @@ class MovimentacoesRelationManager extends RelationManager
     public function isReadOnly(): bool
     {
         $sinistro = $this->getOwnerRecord();
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if (in_array($sinistro->status, ['Pago', 'Negado', 'Encerrado'])) {
             return true;

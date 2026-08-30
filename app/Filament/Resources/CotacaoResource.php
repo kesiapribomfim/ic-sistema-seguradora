@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Notifications\Notification;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class CotacaoResource extends Resource
 {
@@ -34,7 +36,8 @@ class CotacaoResource extends Resource
     
     public static function getNavigationBadge(): ?string
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if ($user->hasRole('Subscritor')) {
             $filiaisIds = $user->filiais()->pluck('filiais.id');
@@ -82,6 +85,15 @@ class CotacaoResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
+        // ->with([
+        //     'segurado.seguradoPf',
+        //     'segurado.seguradoPj',
+        //     'user',
+        //     'filial',
+        //     'produto',
+            
+        // ]);
+
         $user = auth()->user();
 
         // Permissão super_admin e Admin
@@ -95,12 +107,14 @@ class CotacaoResource extends Resource
         }
 
         if ($user->hasRole('Cliente')) {
-            return $query->whereHas('segurado', function ($q) use ($user) { $q->where('user_id', $user->id);});
+            return $query->whereHas('segurado', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
         }
 
         // Analista, Gestor e Subscritor ligado a filial
         $filiaisIds = $user->filiais()->pluck('filiais.id');
-        
+
         return $query->whereIn('filial_id', $filiaisIds);
     }
     // =========================================================================
@@ -1026,7 +1040,17 @@ class CotacaoResource extends Resource
                 ])
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exportar Planilha')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->queue(), // Manda para a fila (Job) em vez de travar o navegador
+                        ]),
+                ])]);
     }
 
     public static function getRelations(): array { 

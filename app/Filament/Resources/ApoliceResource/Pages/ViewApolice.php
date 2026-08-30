@@ -1,9 +1,11 @@
 <?php
+
 namespace App\Filament\Resources\ApoliceResource\Pages;
 
 use App\Filament\Resources\ApoliceResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ViewApolice extends ViewRecord
 {
@@ -13,17 +15,26 @@ class ViewApolice extends ViewRecord
     {
         return [
             Actions\Action::make('gerar_pdf')
-                ->label('Baixar')
+                ->label('Baixar PDF')
                 ->color('danger')
                 ->icon('heroicon-o-document-arrow-down')
+                ->visible(fn() => $this->getRecord()->status !== 'Cancelada')
                 ->action(function () {
-                    // TODO: lógica do barryvdh/laravel-dompdf no futuro!
-                    
-                    \Filament\Notifications\Notification::make()
-                        ->title('Emissão de PDF')
-                        ->body('A geração do documento está em desenvolvimento e será conectada em breve.')
-                        ->info()
-                        ->send();
+                    $record = $this->getRecord();
+
+                    $record->loadMissing([
+                        'segurado.seguradoPf',
+                        'segurado.seguradoPj',
+                        'cotacao.produto',
+                        'pagamentos'
+                    ]);
+
+                    $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $record]);
+
+                    return response()->streamDownload(
+                        fn() => print($pdf->output()),
+                        "apolice-{$record->numero_apolice}.pdf"
+                    );
                 }),
 
             Actions\EditAction::make(),

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Illuminate\Support\Facades\Auth;
 
 // TODO: Arranjar uma forma de colocar uma relação das filiais dentro dos usuários, com o perfil de acesso
 // TODO: Melhorar essa resource pelo amor de DEUS
@@ -60,7 +61,8 @@ class UserResource extends Resource
                 Forms\Components\Select::make('filial_id')
                     ->label('Vincular à Filial')
                     ->options(function () {
-                        $user = auth()->user();
+                        /** @var \App\Models\User $user */
+                        $user = Auth::user();
                         if ($user->hasRole('Gestor de Filial')) {
                             return $user->filiais()->wherePivot('perfil_acesso', 'Gestor de Filial')->pluck('filiais.nome', 'filiais.id');
                         }

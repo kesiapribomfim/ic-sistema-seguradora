@@ -8,7 +8,7 @@
         .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
         .title { font-size: 20px; font-weight: bold; color: #0056b3; }
         .section-title { background-color: #f0f0f0; padding: 5px; font-weight: bold; margin-top: 20px; }
-        table { w-full; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f9f9f9; }
     </style>

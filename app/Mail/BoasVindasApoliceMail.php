@@ -9,9 +9,10 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Apolice;
-use Barryvdh\DomPDF\Facade\Pdf; 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class BoasVindasApoliceMail extends Mailable
+class BoasVindasApoliceMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

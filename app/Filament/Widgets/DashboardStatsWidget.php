@@ -4,9 +4,8 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use App\Models\Segurado;
-use App\Models\Apolice;
-use App\Models\Sinistro;
+use Illuminate\Support\Facades\Auth;
+use App\Services\EstatisticaDashboardService;
 
 class DashboardStatsWidget extends BaseWidget
 {
@@ -14,55 +13,45 @@ class DashboardStatsWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()->hasRole(['super_admin', 'Gestor de Filial']);
+        return Auth::user()->hasAnyRole(['super_admin', 'Administrador Geral', 'Gestor de Filial']);
     }
-    
+
     protected function getStats(): array
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
-        $seguradosQuery = Segurado::query();
-        $apolicesQuery = Apolice::where('status', 'Vigente');
-        $sinistrosQuery = Sinistro::where('status', 'Em análise');
+        $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
+        $filiaisIds = $isGlobal ? [] : $user->filiais()->pluck('filiais.id')->toArray();
 
-        if (!$user->hasRole('super_admin')) {
-            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
-            
-            $seguradosQuery->where(function ($q) use ($filiaisIds) {
-                $q->whereHas('corretor.filiais', function ($q2) use ($filiaisIds) {
-                    $q2->whereIn('filiais.id', $filiaisIds);
-                })
-                ->orWhereHas('apolices', function ($q3) use ($filiaisIds) {
-                    $q3->whereIn('filial_id', $filiaisIds);
-                })
-                ->orWhereHas('cotacoes', function ($q4) use ($filiaisIds) {
-                    $q4->whereIn('filial_id', $filiaisIds);
-                })
-                ->orWhereHas('user.filiais', function ($q5) use ($filiaisIds) {
-                    $q5->whereIn('filiais.id', $filiaisIds);
-                });
-            });
+        $estatisticasService = app(EstatisticaDashboardService::class);
+        $dados = $estatisticasService->obterEstatisticas($filiaisIds, $isGlobal);
 
-            $apolicesQuery->whereIn('filial_id', $filiaisIds);
-            
-            $sinistrosQuery->whereHas('apolice', function ($query) use ($filiaisIds) {
-                $query->whereIn('filial_id', $filiaisIds);
-            });
-        }
+        $corSinistralidade = $dados['sinistralidade'] <= 70 ? 'success' : ($dados['sinistralidade'] <= 90 ? 'warning' : 'danger');
 
         return [
-            Stat::make('Total de Segurados', $seguradosQuery->count())
+            Stat::make('Total de Segurados', $dados['total_segurados'])
                 ->description('Segurados cadastrados')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('success'),
 
-            Stat::make('Apólices Vigentes', $apolicesQuery->count())
+            Stat::make('Apólices Vigentes', $dados['apolices_vigentes'])
                 ->description('Contratos ativos')
                 ->descriptionIcon('heroicon-m-document-check')
                 ->color('primary'),
 
-            Stat::make('Sinistros em Análise', $sinistrosQuery->count())
-                ->description('Aguardando retorno')
+            Stat::make('Faturamento (Prêmios)', 'R$ ' . number_format($dados['faturamento_total'], 2, ',', '.'))
+                ->description('Apólices emitidas')
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('success'),
+
+            Stat::make('Índice de Sinistralidade', number_format($dados['sinistralidade'], 1, ',', '.') . '%')
+                ->description($dados['custo_total_sinistros'] > 0 ? 'R$ ' . number_format($dados['custo_total_sinistros'], 2, ',', '.') . ' em indenizações' : 'Operação saudável')
+                ->descriptionIcon($dados['sinistralidade'] > 70 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+                ->color($corSinistralidade),
+
+            Stat::make('Sinistros em Análise', $dados['sinistros_analise'])
+                ->description('Aguardando auditoria')
                 ->descriptionIcon('heroicon-m-exclamation-circle')
                 ->color('warning'),
         ];

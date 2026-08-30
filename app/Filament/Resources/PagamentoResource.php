@@ -10,6 +10,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use Illuminate\Support\Facades\Auth;
 
 class PagamentoResource extends Resource
 {
@@ -145,6 +148,7 @@ class PagamentoResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
+        /** @var \App\Models\User $user */
         $user = auth()->user();
 
         if ($user->hasRole('super_admin')){
@@ -253,6 +257,14 @@ class PagamentoResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exportar Planilha')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->queue(), // Manda para a fila (Job) em vez de travar o navegador
+                        ]),
                 ]),
             ]);
     }

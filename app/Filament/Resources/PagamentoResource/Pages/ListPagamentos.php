@@ -6,6 +6,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ListPagamentos extends ListRecords
 {
@@ -20,7 +21,8 @@ class ListPagamentos extends ListRecords
 
     public function getTabs(): array
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         
         if ($user->hasAnyRole('Financeiro', 'Gestor de Filial')) {
             return [

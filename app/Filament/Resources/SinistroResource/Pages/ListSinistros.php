@@ -8,6 +8,7 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab; // <-- O IMPORT CORRETO DA ABA!
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Sinistro;
+use Illuminate\Support\Facades\Auth;
 
 class ListSinistros extends ListRecords
 {
@@ -25,7 +26,8 @@ class ListSinistros extends ListRecords
      */
     public function getTabs(): array
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if ($user->hasRole('Analista de Sinistros')) {
 
