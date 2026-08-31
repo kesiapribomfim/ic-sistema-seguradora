@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateProduto extends CreateRecord
 {
     protected static string $resource = ProdutoResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('edit', ['record' => $this->record]);
+    }
 }

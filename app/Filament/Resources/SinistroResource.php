@@ -136,21 +136,22 @@ class SinistroResource extends Resource
                             ->required(),
 
                         Forms\Components\Placeholder::make('status_visual')
-                            ->label('Status da Cotação')
+                            ->label('Status do Sinistro')
                             ->content(function ($record) {
                                 $status = $record ? $record->status : 'Em Elaboração';
-                                
-                                $cor = match($status) {
-                                    'Aberto' => 'warning',
-                                    'Em análise' => 'info',
-                                    'Em perícia' => '#735bff',
-                                    'Aprovado', 'Pago' => 'success',
-                                    'Negado' => 'danger',
-                                    'Encerrado' => 'gray',
-                                    default => 'gray',              
-                                };
-                                
-                                return new \Illuminate\Support\HtmlString(
+
+                        $cor = match ($status) {
+                            'Aberto' => 'warning',
+                            'Em análise' => 'info',
+                            'Em perícia' => '#735bff',
+                            'Aguardando Gestor' => '#f97316',
+                            'Aprovado', 'Pago' => 'success',
+                            'Negado' => 'danger',
+                            'Encerrado' => 'gray',
+                            default => 'gray',
+                        };
+
+                        return new \Illuminate\Support\HtmlString(
                                     "<span style='color: {$cor}; font-weight: bold;'>{$status}</span>"
                                 );
                             }),
@@ -228,21 +229,19 @@ class SinistroResource extends Resource
                 Forms\Components\Section::make('Controle Financeiro')
                     ->icon('heroicon-o-currency-dollar')
                     ->schema([
-                        Forms\Components\TextInput::make('valor_indenizacao')
-                            ->label('Indenização Aprovada')
-                            ->numeric()
-                            ->prefix('R$')
-                            // Libera o campo apenas se o sinistro passar das fases de análise
-                            ->disabled(fn (Forms\Get $get) => !in_array($get('status'), ['Aprovado', 'Pago', 'Encerrado']))
-                            ->dehydrated(),
-                            
-                        Forms\Components\TextInput::make('valor_pago')
-                            ->label('Valor Efetivamente Pago')
-                            ->numeric()
-                            ->prefix('R$')
-                            ->disabled(fn () => auth()->user()->hasRole('Financeiro'))
-                            ->disabled(fn (Forms\Get $get) => !in_array($get('status'), ['Pago', 'Encerrado']))
-                            ->dehydrated(),
+                    Forms\Components\TextInput::make('valor_indenizacao')
+                        ->label('Indenização Aprovada')
+                        ->numeric()
+                        ->prefix('R$')
+                        ->disabled()
+                        ->dehydrated(),
+
+                    Forms\Components\TextInput::make('valor_pago')
+                        ->label('Valor Efetivamente Pago')
+                        ->numeric()
+                        ->prefix('R$')
+                        ->disabled(fn(Forms\Get $get) => !(auth()->user()->hasRole('Financeiro') && $get('status') === 'Aprovado'))
+                        ->dehydrated(),
                     ]),
                     
                 Forms\Components\FileUpload::make('anexos_temporarios')
@@ -331,37 +330,130 @@ public static function table(Table $table): Table
                     'Encerrado' => 'Encerrado',
                 ])
         ])
-        ->actions([
-            ActionGroup::make([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\Action::make('assumir')
-                    ->label('Assumir Sinistro')
-                    ->icon('heroicon-o-hand-raised')
-                    ->color('success')
-                    ->visible(fn (Model $record) => 
-                        auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial']) && 
-                        is_null($record->analista_id)
-                    )
-                    ->action(function (Model $record) {
-                        $record->update([
-                            'analista_id' => auth()->id(),
-                            'status' => 'Em análise',
-                        ]);
+            ->actions([
+                ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\ViewAction::make(),
 
-                        $record->movimentacoes()->create([
-                            'user_id' => auth()->id(),
-                            'data_hr_movimentacao' => now(),
-                            'acao_realizada' => 'Análise',
-                            'descricao' => 'Sinistro assumido para análise e regulação.',
-                        ]);
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Assumir Sinistro')
-                    ->modalDescription('Você será designado como o analista responsável por este sinistro. Deseja continuar?'),
-            ])
-        ])
-        ->bulkActions([
+                    // 1. Ação existente de Assumir
+                    Tables\Actions\Action::make('assumir')
+                        ->label('Assumir Sinistro')
+                        ->icon('heroicon-o-hand-raised')
+                        ->color('success')
+                        ->visible(
+                            fn(Model $record) =>
+                            auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial']) &&
+                                is_null($record->analista_id)
+                        )
+                        ->action(function (Model $record) {
+                            $record->update([
+                                'analista_id' => auth()->id(),
+                                'status' => 'Em análise',
+                            ]);
+
+                            $record->movimentacoes()->create([
+                                'user_id' => auth()->id(),
+                                'data_hr_movimentacao' => now(),
+                                'acao_realizada' => 'Análise',
+                                'descricao' => 'Sinistro assumido para análise e regulação.',
+                            ]);
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Assumir Sinistro')
+                        ->modalDescription('Você será designado como o analista responsável por este sinistro. Deseja continuar?'),
+
+                    // 2. NOVA AÇÃO: Tentativa de Aprovação (Analista)
+                    Tables\Actions\Action::make('aprovar')
+                        ->label('Aprovar Sinistro')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(
+                            fn(Model $record) =>
+                            $record->status === 'Em análise' &&
+                                auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])
+                        )
+                        ->form([
+                            Forms\Components\TextInput::make('valor_indenizacao')
+                                ->label('Valor da Indenização Calculada')
+                                ->numeric()
+                                ->prefix('R$')
+                                ->required(),
+                        ])
+                        ->action(function (array $data, Model $record) {
+                            $valor = (float) $data['valor_indenizacao'];
+                            $limite = $record->apolice?->cotacao?->produto?->valor_alcada_aprovacao;
+
+                            if ($limite && $valor > $limite && !$record->aprovado_gestor_id) {
+                                $record->update([
+                                    'valor_indenizacao' => $valor,
+                                    'status' => 'Aguardando Gestor'
+                                ]);
+
+                                $record->movimentacoes()->create([
+                                    'user_id' => auth()->id(),
+                                    'data_hr_movimentacao' => now(),
+                                    'acao_realizada' => 'Alçada Excedida',
+                                    'descricao' => "Indenização de R$ " . number_format($valor, 2, ',', '.') . " excede o limite do produto (R$ " . number_format($limite, 2, ',', '.') . "). Enviado para dupla aprovação.",
+                                ]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Bloqueio de Alçada')
+                                    ->body('O valor excede a sua alçada. O sinistro foi encaminhado para o Gestor de Filial.')
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $record->update([
+                                    'valor_indenizacao' => $valor,
+                                    'status' => 'Aprovado'
+                                ]);
+
+                                $record->movimentacoes()->create([
+                                    'user_id' => auth()->id(),
+                                    'data_hr_movimentacao' => now(),
+                                    'acao_realizada' => 'Aprovação',
+                                    'descricao' => "Sinistro regulado e aprovado no valor de R$ " . number_format($valor, 2, ',', '.') . ".",
+                                ]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Sinistro Aprovado')
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+
+                    Tables\Actions\Action::make('aprovar_gestor')
+                        ->label('Autorizar Exceção (Gestor)')
+                        ->icon('heroicon-o-shield-check')
+                        ->color('warning')
+                        ->visible(
+                            fn(Model $record) =>
+                            $record->status === 'Aguardando Gestor' &&
+                                auth()->user()->hasAnyRole(['Gestor de Filial', 'Administrador Geral'])
+                        )
+                        ->requiresConfirmation()
+                        ->modalHeading('Autorizar Indenização Acima da Alçada')
+                        ->modalDescription(fn(Model $record) => new HtmlString("Você está prestes a liberar o pagamento de <strong>R$ " . number_format($record->valor_indenizacao, 2, ',', '.') . "</strong>. Deseja prosseguir?"))
+                        ->action(function (Model $record) {
+                            $record->update([
+                                'aprovado_gestor_id' => auth()->id(),
+                                'data_aprovacao_gestor' => now(),
+                                'status' => 'Aprovado'
+                            ]);
+
+                            $record->movimentacoes()->create([
+                                'user_id' => auth()->id(),
+                                'data_hr_movimentacao' => now(),
+                                'acao_realizada' => 'Aprovação de Gestor',
+                                'descricao' => "Dupla aprovação realizada. Indenização liberada.",
+                            ]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Indenização Liberada')
+                                ->success()
+                                ->send();
+                        }),
+                ])
+            ])        ->bulkActions([
             Tables\Actions\BulkActionGroup::make([
                 Tables\Actions\DeleteBulkAction::make(),
             ]),
@@ -388,7 +480,7 @@ public static function table(Table $table): Table
             });
         }
 
-        if ($user->hasRole('Cliente')) {
+        if ($user->hasAnyRole(['Cliente', 'Corretor'])) {
             return $query->whereHas('apolice.segurado', function($q) use ($user) { $q->where('user_id', $user->id); });
         }
 

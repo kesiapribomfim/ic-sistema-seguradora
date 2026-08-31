@@ -18,6 +18,7 @@ class Produto extends Model
         'versao',
         'parametros_calculo',
         'valor_alcada',
+        'valor_alcada_aprovacao' //atributo específico para sinistros
     ];
 
     protected $casts = [

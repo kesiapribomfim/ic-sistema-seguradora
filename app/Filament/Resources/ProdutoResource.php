@@ -17,6 +17,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProdutoResource extends Resource
 {
@@ -262,11 +263,17 @@ class ProdutoResource extends Resource
                 Forms\Components\Section::make('Configurações')
                     ->schema([
                         Forms\Components\TextInput::make('valor_alcada')
-                            ->label('Valor de Alçada (Aprovação Automática)')
+                            ->label('Valor de Subscrição')
                             ->helperText('Se a soma das coberturas passar deste valor, a cotação será enviada para o Subscritor.')
                             ->numeric()
                             ->prefix('R$')
-                            ->nullable(), // Se deixar em branco, não tem limite de alçada
+                            ->nullable(),
+                    Forms\Components\TextInput::make('valor_alcada_aprovacao')
+                        ->label('Valor de Sinistro')
+                        ->helperText('Se a soma das coberturas passar deste valor, o sinistro exigerá aprovação do Gestor')
+                        ->numeric()
+                        ->prefix('R$')
+                        ->nullable(),
                         Toggle::make('status')
                             ->label('Produto Ativo')
                             ->default(false) 
@@ -320,6 +327,7 @@ class ProdutoResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

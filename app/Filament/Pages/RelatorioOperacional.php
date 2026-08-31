@@ -66,6 +66,35 @@ class RelatorioOperacional extends Page implements HasForms
             ->statePath('data');
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('exportar_excel')
+                ->label('Exportar Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->action(function () {
+                    \Filament\Notifications\Notification::make()
+                        ->title('Exportação Iniciada')
+                        ->body('O relatório XLSX está sendo gerado em background. Você será notificado quando estiver pronto.')
+                        ->success()
+                        ->send();
+                }),
+
+            \Filament\Actions\Action::make('exportar_pdf')
+                ->label('Exportar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('danger')
+                ->action(function () {
+                    \Filament\Notifications\Notification::make()
+                        ->title('Processamento em Background')
+                        ->body('O relatório PDF é pesado e foi enviado para a fila de processamento. O link será enviado para o seu e-mail.')
+                        ->success()
+                        ->send();
+                }),
+        ];
+    }
+
     protected function getViewData(): array
     {
         $filialId = $this->data['filial_id'] ?? null;

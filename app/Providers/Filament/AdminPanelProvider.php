@@ -27,10 +27,15 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login()->brandName('Sistema Seguradora')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => '#0ea5e9', // Azul corporativo (Sky)
+                'danger' => '#ef4444',
+                'success' => '#22c55e',
+                'warning' => '#f59e0b',
+                'info' => '#3b82f6',
             ])
+            ->font('Inter')
             ->databaseNotifications()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

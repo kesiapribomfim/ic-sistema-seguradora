@@ -34,6 +34,8 @@ class Sinistro extends Model
         'valor_pago',
 
         'analista_id',
+        'aprovado_gestor_id',
+        'data_aprovacao_gestor',
     ];
 
     protected $casts = [
@@ -66,6 +68,11 @@ class Sinistro extends Model
     public function analista()
     {
         return $this->belongsTo(User::class, 'analista_id');
+    }
+
+    public function gestorAprovador()
+    {
+        return $this->belongsTo(User::class, 'aprovado_gestor_id');
     }
 
 }

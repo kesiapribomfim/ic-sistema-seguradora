@@ -58,6 +58,7 @@ public static function form(Form $form): Form
                                     'Renovada' => '#10b981', 
                                     'Suspensa por inadimplência' => '#ef4444',
                                     'Expirada' => '#6b7280',
+                                    'Substituída' => 'gray',
                                     default => '#6b7280',              
                                 };
                                 
@@ -182,6 +183,7 @@ public static function form(Form $form): Form
                                     'Renovada' => 'success', 
                                     'Suspensa por inadimplência' => 'danger',
                                     'Expirada' => 'gray',
+                                    'Substituída' => 'gray',
                                     default => 'gray',              
                                 }),
 
@@ -415,6 +417,7 @@ public static function form(Form $form): Form
                         'Renovada' => 'success', 
                         'Suspensa por inadimplência' => 'danger',
                         'Expirada' => 'gray',
+                        'Substituída' => 'gray',
                     }),
             ])
             ->recordUrl(null) // Desativa o clique na linha inteira
@@ -431,7 +434,6 @@ public static function form(Form $form): Form
                         ->label('Baixar PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('danger')
-                        // TODO: Não aparecer para canceladas
                         ->visible(fn ($record) => $record->status !== 'Cancelada')
                         ->action(function ($record) {
                             
@@ -450,7 +452,6 @@ public static function form(Form $form): Form
                             );
                         }),
 
-                    // O botão inverso: da Apólice para a Cotação
                     Tables\Actions\Action::make('ver_cotacao')
                         ->label('Ver Cotação')
                         ->icon('heroicon-o-calculator')
@@ -458,7 +459,64 @@ public static function form(Form $form): Form
                         ->visible(fn (Model $record) => $record->cotacao_id !== null)
                         ->url(fn (Model $record) => \App\Filament\Resources\CotacaoResource::getUrl('view', ['record' => $record->cotacao_id]))
                         ->openUrlInNewTab(), // Abre em nova aba para não perder a tela da apólice
-                ])
+                    Tables\Actions\Action::make('gerar_endosso')
+                        ->label('Gerar Endosso')
+                        ->icon('heroicon-o-document-duplicate')
+                        ->color('warning')
+                        ->visible(
+                            fn(Model $record) =>
+                            $record->status === 'Vigente' &&
+                                auth()->user()->hasAnyRole(['Corretor', 'Gestor de Filial', 'Administrador Geral', 'super_admin'])
+                        )
+                        ->form([
+                            Forms\Components\Textarea::make('motivo_endosso')
+                                ->label('Motivo / Alteração Solicitada')
+                                ->placeholder('Ex: Mudança de endereço para a Rua X; Inclusão de cobertura de vidros...')
+                                ->required()
+                                ->rows(3),
+
+                            Forms\Components\TextInput::make('novo_valor_total')
+                                ->label('Novo Valor Total da Apólice (Após endosso)')
+                                ->helperText('Deixe em branco se a alteração não gerar cobrança extra.')
+                                ->numeric()
+                                ->prefix('R$'),
+                        ])
+                        ->modalHeading('Processar Endosso de Apólice')
+                        ->modalDescription('Informe os dados da alteração. Uma nova versão da apólice será gerada e a atual será arquivada no histórico.')
+                        ->action(function (array $data, Model $record) {
+
+                            $novaApolice = $record->replicate();
+
+                            $novaApolice->numero_apolice = $record->numero_apolice . '-END';
+                            $novaApolice->apolice_origem_id = $record->id;
+                            $novaApolice->data_emissao = now();
+
+                            if (!empty($data['novo_valor_total'])) {
+                                $novaApolice->valor_total = $data['novo_valor_total'];
+                            }
+
+                            $snapshotAtualizado = $novaApolice->snapshot;
+                            $snapshotAtualizado['historico_endosso'] = [
+                                'data' => now()->format('d/m/Y H:i'),
+                                'autor' => auth()->user()->name,
+                                'motivo' => $data['motivo_endosso']
+                            ];
+                            $novaApolice->snapshot = $snapshotAtualizado;
+
+                            $novaApolice->save();
+
+                            $record->update([
+                                'status' => 'Substituída'
+                            ]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Endosso Gerado com Sucesso')
+                                ->success()
+                                ->send();
+
+                            return redirect(\App\Filament\Resources\ApoliceResource::getUrl('view', ['record' => $novaApolice->id]));
+                        }),
+                    ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
