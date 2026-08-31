@@ -16,4 +16,14 @@ class EditSinistro extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+    public function mount(int | string $record): void
+    {
+        parent::mount($record);
+
+        activity()
+            ->causedBy(auth()->user()) 
+            ->performedOn($this->record) 
+            ->event('view')
+            ->log('Visualizou os dados do Sinistro');
+    }
 }

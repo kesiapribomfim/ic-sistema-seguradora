@@ -17,7 +17,7 @@ class FilaSinistrosWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return Auth::user()->hasAnyRole(['super_admin', 'Administrador Geral', 'Gestor de Filial', 'Analista']);
+        return Auth::user()->hasAnyRole(['super_admin', 'Administrador Geral', 'Gestor de Filial', 'Analista de Sinistros']);
     }
 
     public function table(Table $table): Table

@@ -84,15 +84,18 @@ class CotacaoResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
-        // ->with([
-        //     'segurado.seguradoPf',
-        //     'segurado.seguradoPj',
-        //     'user',
-        //     'filial',
-        //     'produto',
-            
-        // ]);
+        $query = parent::getEloquentQuery()
+            ->with([
+                'segurado:id,tipo,user_id,corretor_id,status', 
+                
+                'segurado.seguradoPf:id,segurado_id,nome', 
+                
+                'segurado.seguradoPj:id,segurado_id,razao_social',
+                
+                'user:id,name',
+                'filial:id,nome',
+                'produto:id,nome,ramo',
+            ]);
 
         $user = auth()->user();
 
@@ -907,12 +910,9 @@ class CotacaoResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('identificacao_segurado')
                     ->label('Cliente')
-                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social)
-                    ->sortable(),
-                    // ->searchable(),
+                    ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social),
                 Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável')
                     ->sortable(),
-                    // ->searchable(),
                 Tables\Columns\TextColumn::make('produto.nome')->label('Produto')->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -959,8 +959,26 @@ class CotacaoResource extends Resource
                         ->modalHeading('Confirmar Aceite e Emissão')
                         ->modalDescription('Tem certeza que deseja converter esta cotação em uma apólice vigente? O pagamento da primeira parcela será registrado automaticamente.')
                         ->modalSubmitActionLabel('Sim, emitir apólice')
-                        // Só mostra o botão se a cotação ainda não foi aceita
-                        ->visible(fn (Cotacao $record) => in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente']))
+                        ->visible(function (Cotacao $record) {
+
+                            $user = auth()->user();
+
+                            if (!in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente', 'Aprovada'])) {
+                                return false;
+                            }
+
+                            $limite = $record->produto?->valor_alcada;
+                            
+                            if ($limite && $record->valor_total > $limite && $record->status !== 'Aprovada') {
+                                return false; 
+                            }
+
+                            if ($user != 'Corretor') {
+                                return false;
+                            }
+
+                            return true;
+                        })
                         ->action(function (Cotacao $record, array $data) {
                             
                             // Chama a classe de serviço
@@ -1007,12 +1025,22 @@ class CotacaoResource extends Resource
                                 ])
                                 ->required(),
                         ]),
-                    // TODO: Modificar para envio do link por email
                     Tables\Actions\Action::make('link_checkout')
                         ->label('Link de Pagamento')
                         ->icon('heroicon-o-link')
                         ->color('info')
-                        ->visible(fn (Cotacao $record) => in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente']))
+                        ->visible(function (Cotacao $record) {
+
+                            $user = auth()->user();
+                            if ($user != 'Corretor') {
+                                return false;
+                            }
+                            if (!in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente'])) {
+                                return false;
+                            }
+
+                            return true;
+                        })
                         ->action(function (Cotacao $record) {
                             $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                                 'checkout.cotacao', 

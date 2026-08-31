@@ -34,7 +34,10 @@ class PagamentoPolicy
 
     public function update(User $user, Pagamento $pagamento): bool
     {
-        return $user->hasRole('Financeiro');
+        return $user->hasRole('Financeiro')
+            && $user->filiais()
+                ->whereKey($pagamento->apolice->filial_id)
+                ->exists();
     }
 
     public function delete(User $user, Pagamento $pagamento): bool

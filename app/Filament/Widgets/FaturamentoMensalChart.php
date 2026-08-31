@@ -14,33 +14,30 @@ class FaturamentoMensalChart extends ChartWidget
 
     public static function canView(): bool
     {
-        return Auth::user()->hasAnyRole(['super_admin', 'Administrador Geral', 'Gestor de Filial']);
+        // 1. Adicionado o Financeiro aqui!
+        return Auth::user()->hasAnyRole(['super_admin', 'Administrador Geral', 'Gestor de Filial', 'Financeiro']);
     }
 
     protected function getData(): array
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        
         $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
         $anoAtual = Carbon::now()->year;
 
-        // 1. Busca as apólices do ano
         $query = Apolice::whereNotIn('status', ['Cancelada', 'Em Elaboração'])
             ->whereYear('data_emissao', $anoAtual);
 
-        // 2. Aplica o filtro da filial se for Gestor
         if (!$isGlobal) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             $query->whereIn('filial_id', $filiaisIds);
         }
 
-        // 3. Traz apenas os campos necessários para economizar RAM
         $apolices = $query->get(['data_emissao', 'valor_total']);
 
-        // 4. Cria um array zerado para os 12 meses
         $dadosMensais = array_fill(1, 12, 0);
 
-        // 5. Soma o valor total dentro do mês correspondente
         foreach ($apolices as $apolice) {
             if ($apolice->data_emissao) {
                 $mes = $apolice->data_emissao->month;
@@ -52,10 +49,10 @@ class FaturamentoMensalChart extends ChartWidget
             'datasets' => [
                 [
                     'label' => 'Prêmios Arrecadados (R$)',
-                    'data' => array_values($dadosMensais), // Pega só os valores na ordem dos meses
-                    'backgroundColor' => '#3b82f6', // Azul Tailwind
+                    'data' => array_values($dadosMensais), 
+                    'backgroundColor' => '#3b82f6',
                     'borderColor' => '#3b82f6',
-                    'fill' => 'start', // Dá um efeito bonito preenchendo abaixo da linha
+                    'fill' => 'start',
                 ],
             ],
             'labels' => ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],

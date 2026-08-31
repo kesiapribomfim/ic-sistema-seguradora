@@ -204,6 +204,18 @@ public static function form(Form $form): Form
                                     ->default('-'),
                             ]),
                         ]),
+                    Infolists\Components\Section::make('Histórico de Endosso')
+                        ->icon('heroicon-o-arrow-path-rounded-square')
+                        ->visible(fn ($record) => isset($record->snapshot['historico_endosso']))
+                        ->schema([
+                            Infolists\Components\TextEntry::make('snapshot.historico_endosso.motivo')
+                                ->label('Motivo / Alteração Solicitada')
+                                ->columnSpanFull(),
+                            Infolists\Components\TextEntry::make('snapshot.historico_endosso.autor')
+                                ->label('Autor do Endosso'),
+                            Infolists\Components\TextEntry::make('snapshot.historico_endosso.data')
+                                ->label('Data da Alteração'),
+                        ])->columns(2),
 
                     Infolists\Components\Section::make('Detalhes Financeiros')
                         ->icon('heroicon-o-currency-dollar')
@@ -435,23 +447,8 @@ public static function form(Form $form): Form
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('danger')
                         ->visible(fn ($record) => $record->status !== 'Cancelada')
-                        ->action(function ($record) {
-                            
-                            $record->load([
-                                'segurado.seguradoPf', 
-                                'segurado.seguradoPj', 
-                                'cotacao.produto', 
-                                'pagamentos'
-                            ]);
-
-                            $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $record]);
-                            
-                            return response()->streamDownload(
-                                fn () => print($pdf->output()), 
-                                "apolice-{$record->numero_apolice}.pdf"
-                            );
-                        }),
-
+                        ->url(fn ($record) => \Illuminate\Support\Facades\URL::signedRoute('apolices.pdf', ['apolice' => $record]))
+                        ->openUrlInNewTab(),
                     Tables\Actions\Action::make('ver_cotacao')
                         ->label('Ver Cotação')
                         ->icon('heroicon-o-calculator')

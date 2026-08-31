@@ -7,6 +7,8 @@ use App\Models\Pagamento;
 use App\Models\Apolice;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+// Importe o seu Job aqui em cima!
+use App\Jobs\EnviarAvisoVencimentoJob;
 
 class ProcessarInadimplencia extends Command
 {
@@ -33,6 +35,8 @@ class ProcessarInadimplencia extends Command
             ->get();
 
         foreach ($parcelas as $parcela) {
+            EnviarAvisoVencimentoJob::dispatch($parcela);
+            
             $this->line("Notificação de vencimento gerada para a parcela {$parcela->id}");
         }
     }
@@ -42,7 +46,7 @@ class ProcessarInadimplencia extends Command
         $diasTolerancia = 5; 
         $dataLimite = Carbon::now()->subDays($diasTolerancia)->toDateString();
 
-        $parcelasAtrasadas = Pagamento::with('apolice')
+        $parcelasAtrasadas = Pagamento::with('apolice.segurado') 
             ->where('status', 'Aberta')
             ->whereDate('data_vencimento', '<=', $dataLimite)
             ->get();
@@ -53,10 +57,16 @@ class ProcessarInadimplencia extends Command
 
                 if ($parcela->apolice->status === 'Vigente') {
                     $parcela->apolice->update(['status' => 'Suspensa por inadimplência']);
+                    
+                    $segurado = $parcela->apolice->segurado;
+                        if ($segurado && $segurado->score > 0) {
+                            $novoScore = max(0, $segurado->score - 15);
+                            $segurado->update(['score' => $novoScore]);
+                        }
                 }
             });
             
-            $this->error("Apólice {$parcela->apolice->numero_apolice} suspensa por falta de pagamento.");
+            $this->error("Apólice {$parcela->apolice->numero_apolice} suspensa e score de risco reduzido.");
         }
     }
 }

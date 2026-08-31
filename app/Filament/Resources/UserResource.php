@@ -48,14 +48,19 @@ class UserResource extends Resource
                     ->email()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                Forms\Components\TextInput::make('password') //mexer nisso, pelo amor de Deus
-                    ->password() // Oculta os caracteres digitados
+                Forms\Components\Toggle::make('alterar_senha')
+                    ->label('Redefinir Senha deste usuário?')
+                    ->live()
+                    ->hidden(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrated(false), 
+                Forms\Components\TextInput::make('password') 
+                    ->password() 
                     ->label('Senha')
-                    ->placeholder('Deixe em branco para manter a atual')
-                    ->helperText('Preencha apenas se desejar redefinir o acesso deste usuário.')
-                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->required(fn (Forms\Get $get, string $operation): bool => $operation === 'create' || $get('alterar_senha'))
+                    ->visible(fn (Forms\Get $get, string $operation): bool => $operation === 'create' || $get('alterar_senha'))
                     ->dehydrated(fn (?string $state) => filled($state))
                     ->dehydrateStateUsing(fn (string $state): string => \Illuminate\Support\Facades\Hash::make($state)),
+                
                 Toggle::make('status')
                     ->label('Ativo'),
                 Forms\Components\Select::make('filial_id')
