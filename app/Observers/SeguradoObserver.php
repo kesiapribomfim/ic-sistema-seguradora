@@ -34,9 +34,6 @@ class SeguradoObserver
 
         $segurado->updateQuietly(['user_id' => $user->id]);
 
-        Password::sendResetLink(['email' => $user->email]);
-
-
         Log::info("User criado associado ao segurado#{$segurado->id}");
     }
 

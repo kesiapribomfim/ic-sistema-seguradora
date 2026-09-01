@@ -8,11 +8,9 @@ use App\Models\Segurado;
 
 class CalculadoraPremioService
 {
-    // Função auxiliar para evitar o erro da vírgula do PHP
     private function formatarNumero($valor): float
     {
         if (empty($valor)) return 0.0;
-        // Troca vírgula por ponto e converte para float
         return (float) str_replace(',', '.', (string) $valor);
     }
 
@@ -37,7 +35,6 @@ class CalculadoraPremioService
         $taxaBasePercentual = $this->formatarNumero($parametros['taxa_base'] ?? 0);
         $valorBaseRisco = $this->formatarNumero($dados['valor_base_risco'] ?? 0);
 
-        // A Base em Reais
         $premioBase = $valorBaseRisco * ($taxaBasePercentual / 100);
 
         $totalAgravantes = 0.0;
@@ -176,7 +173,6 @@ class CalculadoraPremioService
                     }
                 }
 
-                // 4. Hábitos
                 $fumante = !empty($pessoa['fumante']);
                 $alcool = !empty($pessoa['consome_alcool']);
                 $esportesRadicais = !empty($pessoa['pratica_esportes_radicais']);
@@ -185,7 +181,6 @@ class CalculadoraPremioService
                 if ($alcool) $totalAgravantes += (float) ($parametros['fator_alcool'] ?? 0);
                 if ($esportesRadicais) $totalAgravantes += (float) ($parametros['fator_esportes_radicais'] ?? 0);
 
-                // 5. Desconto Perfil Saudável
                 if (!$fumante && !$alcool && !$possuiDoenca) {
                     $totalDescontos += (float) ($parametros['desconto_perfil_saudavel'] ?? 0);
                 }

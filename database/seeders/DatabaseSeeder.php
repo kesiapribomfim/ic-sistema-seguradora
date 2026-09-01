@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CotacaoSeeder::class,
             ApoliceSeeder::class,
+            SinistroSeeder::class,
         ]);
     }
 }

@@ -2,80 +2,86 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Seeder;
 use App\Models\Apolice;
 use App\Models\Cotacao;
-use Carbon\Carbon; // Não esqueça de importar o Carbon!
-use Illuminate\Database\Seeder;
 
 class ApoliceSeeder extends Seeder
 {
     public function run(): void
     {
-        $cotacoesAceitas = Cotacao::where('status', 'Aceita')->get();
+        // Busca apenas as cotações que tiveram o status "Aceita"
+        $cotacoesAceitas = Cotacao::with(['produto', 'segurado', 'user', 'filial'])
+            ->where('status', 'Aceita')
+            ->get();
 
-        $metade = (int) ($cotacoesAceitas->count() / 2);
-        $cotacoesParaEmitir = $cotacoesAceitas->take($metade);
+        if ($cotacoesAceitas->isEmpty()) {
+            $this->command->warn('Nenhuma Cotação com status "Aceita" encontrada. Apólices não foram geradas.');
+            return;
+        }
+
+        $this->command->info('Emitindo Apólices com diferentes períodos de vigência...');
 
         $contador = 0;
 
-        foreach ($cotacoesParaEmitir as $cotacao) {
-            // Manipulação do tempo para testes da esteira de renovação
+        foreach ($cotacoesAceitas as $cotacao) {
+
             if ($contador === 0) {
-                // Vence em 30 dias exatos
-                $dataFim = Carbon::now()->addDays(30);
-                $dataInicio = Carbon::now()->subDays(335); // 1 ano para trás
+                $dataEmissao = now()->subMonths(11)->subDays(25); // Quase vencendo
+                $status = 'Vigente';
             } elseif ($contador === 1) {
-                // Vence em 15 dias exatos
-                $dataFim = Carbon::now()->addDays(15);
-                $dataInicio = Carbon::now()->subDays(350);
+                $dataEmissao = now()->subMonths(13); // Expirada
+                $status = 'Expirada';
             } elseif ($contador === 2) {
-                // Vence em 60 dias exatos
-                $dataFim = Carbon::now()->addDays(60);
-                $dataInicio = Carbon::now()->subDays(305);
-            } elseif ($contador === 3) {
-                // Já expirou ontem
-                $dataFim = Carbon::now()->subDay();
-                $dataInicio = Carbon::now()->subDays(366);
+                $dataEmissao = now()->subMonths(6); // Cancelada
+                $status = 'Cancelada';
             } else {
-                // Apólice padrão recém-emitida (1 ano normal)
-                $dataFim = Carbon::now()->addYear();
-                $dataInicio = Carbon::now();
+                $dataEmissao = now()->subMonths(fake()->numberBetween(1, 3)); // Novas
+                $status = 'Vigente';
             }
 
-            Apolice::factory()->create([
-                'cotacao_id'  => $cotacao->id,
+            $dataInicio = clone $dataEmissao;
+            $dataFim = (clone $dataInicio)->addYear();
+
+            $valorTotal = $cotacao->valor_total ?? fake()->randomFloat(2, 1000, 5000);
+            $formaPagamento = fake()->randomElement(['Cartão de Crédito', 'Boleto Bancário', 'Pix']);
+            $quantidadeParcelas = ($formaPagamento === 'Pix') ? 1 : fake()->numberBetween(1, 12);
+            $valorParcela = $valorTotal / $quantidadeParcelas;
+
+            $coberturasSnapshot = collect($cotacao->cobertura_selecionada ?? [])->values()->toArray();
+
+            $snapshot = [
+                'produto' => [
+                    'id' => $cotacao->produto->id,
+                    'nome' => $cotacao->produto->nome,
+                    'ramo' => $cotacao->produto->ramo,
+                ],
+                'coberturas' => $coberturasSnapshot, // O SINISTRO PRECISA DISSO AQUI!
+            ];
+
+            Apolice::create([
                 'segurado_id' => $cotacao->segurado_id,
-                'filial_id'   => $cotacao->filial_id,
-                'user_id'     => $cotacao->user_id,
-                'valor_total' => $cotacao->valor_total,
+                'user_id' => $cotacao->user_id,
+                'filial_id' => $cotacao->filial_id,
+                'cotacao_id' => $cotacao->id,
+                'apolice_origem_id' => null,
+                'numero_apolice' => 'AP-' . $dataEmissao->format('Ymd') . '-' . fake()->unique()->numerify('####'),
+                'data_emissao' => $dataEmissao,
                 'data_inicio' => $dataInicio,
-                'data_fim'    => $dataFim,
-                'status'      => $dataFim->isPast() ? 'Expirada' : 'Vigente',
+                'data_fim' => $dataFim,
+                'status' => $status,
+                'snapshot' => $snapshot,
+                'dados_bem_assegurado' => $cotacao->dados_especificos ?? [],
+                'beneficiarios' => $cotacao->dados_especificos['beneficiarios_vida'] ?? null,
+                'forma_pagamento' => $formaPagamento,
+                'quantidade_parcelas' => $quantidadeParcelas,
+                'valor_parcela' => $valorParcela,
+                'valor_total' => $valorTotal,
             ]);
 
             $contador++;
         }
 
-        // Sua lógica original de renovação manual (simulando que já ocorreu)
-        $apoliceAntiga = Apolice::first();
-
-        if ($apoliceAntiga) {
-            $cotacaoRenovacao = Cotacao::factory()->create([
-                'segurado_id' => $apoliceAntiga->segurado_id,
-                'status'      => 'Aceita',
-            ]);
-
-            Apolice::factory()->create([
-                'cotacao_id'        => $cotacaoRenovacao->id,
-                'segurado_id'       => $cotacaoRenovacao->segurado_id,
-                'filial_id'         => $cotacaoRenovacao->filial_id,
-                'user_id'           => $cotacaoRenovacao->user_id,
-                'valor_total'       => $cotacaoRenovacao->valor_total,
-                'status'            => 'Vigente',
-                'apolice_origem_id' => $apoliceAntiga->id,
-            ]);
-
-            $apoliceAntiga->update(['status' => 'Renovada']);
-        }
+        $this->command->info('Apólices emitidas com sucesso!');
     }
 }

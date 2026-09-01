@@ -18,7 +18,7 @@ class SeguradoFactory extends Factory
     public function definition(): array
     {
         return [
-            'tipo' => $this->faker->randomElement(['PF', 'NPJ']),
+            'tipo' => $this->faker->randomElement(['PF', 'PJ']),
             'telefone' => $this->faker->cellphoneNumber(false),
             'email' => $this->faker->unique()->safeEmail(),
 

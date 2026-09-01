@@ -13,14 +13,12 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Garante que temos filiais cadastradas para fazer os vínculos
         if (Filial::count() === 0) {
             Filial::factory()->count(3)->create();
         }
 
         $filiais = Filial::all();
 
-        // 1. CRIAR O ADMINISTRADOR GERAL (Global, sem vínculo restrito de filial)
         $admin = User::firstOrCreate(
             ['email' => 'admin_test@exemplo.com'],
             [
@@ -31,7 +29,6 @@ class UserSeeder extends Seeder
         );
         $admin->assignRole('super_admin');
 
-        // 2. CRIAR USUÁRIOS FIXOS DE TESTE PARA CADA PERFIL
         $perfisFixos = [
             ['name' => 'Gestor Teste', 'email' => 'gestor@filial.com', 'perfil' => 'Gestor de Filial'],
             ['name' => 'Subscritor Teste', 'email' => 'subscritor@seguradora.com', 'perfil' => 'Subscritor'],
@@ -53,7 +50,6 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            // Vincula à primeira filial se ainda não estiver vinculado
             if (!$user->filiais()->exists()) {
                 $user->filiais()->attach($filialPadrao->id, [
                     'perfil_acesso' => $dados['perfil']
@@ -63,7 +59,6 @@ class UserSeeder extends Seeder
             $user->assignRole($dados['perfil']);
         }
 
-        // 3. DISTRIBUIR PERFIS OBRIGATÓRIOS PARA TODAS AS FILIAIS (Garantindo cobertura total)
         $perfisOperacionais = [
             'Gestor de Filial', 
             'Subscritor',
@@ -73,7 +68,6 @@ class UserSeeder extends Seeder
 
         foreach ($filiais as $filial) {
             foreach ($perfisOperacionais as $perfil) {
-                // Cria um usuário único para aquele cargo naquela filial específica
                 $user = User::factory()->create([
                     'status' => true,
                 ]);
@@ -86,7 +80,6 @@ class UserSeeder extends Seeder
             }
         }
 
-        // 4. CRIAR MASSA DE CORRETORES (Distribuídos aleatoriamente pelas filiais)
         $usuariosCorretores = User::factory()->count(30)->create();
         foreach ($usuariosCorretores as $user) {
             $filialSorteada = $filiais->random();
@@ -96,18 +89,6 @@ class UserSeeder extends Seeder
             ]);
 
             $user->assignRole('Corretor');
-        }
-
-        // 5. CRIAR MASSA DE CLIENTES (Segurados)
-        $usuariosClientes = User::factory()->count(50)->create();
-        foreach ($usuariosClientes as $user) {
-            $filialSorteada = $filiais->random();
-
-            $user->filiais()->attach($filialSorteada->id, [
-                'perfil_acesso' => 'Cliente'
-            ]);
-
-            $user->assignRole('Cliente');
         }
     }
 }

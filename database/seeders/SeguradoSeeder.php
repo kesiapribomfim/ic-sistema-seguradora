@@ -17,25 +17,35 @@ class SeguradoSeeder extends Seeder
      */
     public function run(): void
     {
-         $corretores = User::whereHas('filiais', function (Builder $query) {
+        $corretores = User::whereHas('filiais', function (Builder $query) {
             $query->where('filial_user.perfil_acesso', 'Corretor');
         })->get();
-        
+
+        if ($corretores->isEmpty()) {
+            $this->command->warn('Nenhum corretor encontrado! Rode a UserSeeder primeiro.');
+            return;
+        }
+
         Segurado::factory()
-        ->count(10)
-        ->for(User::factory()) 
-        ->state(['tipo' => 'PF']) 
-        ->recycle($corretores)
-        ->has(SeguradoPf::factory(), 'seguradoPf')
-        ->create();
-    
+            ->count(10)
+            ->state(function (array $attributes) use ($corretores) {
+                return [
+                    'tipo' => 'PF',
+                    'corretor_id' => $corretores->random()->id,
+                ];
+            })
+            ->has(SeguradoPf::factory(), 'seguradoPf')
+            ->create();
+
         Segurado::factory()
-        ->count(10)
-        ->for(User::factory())
-        ->state(['tipo' => 'PJ']) 
-        ->recycle($corretores)
-        ->has(SeguradoPj::factory(), 'seguradoPj')
-        ->create(); 
-    
+            ->count(10)
+            ->state(function (array $attributes) use ($corretores) {
+                return [
+                    'tipo' => 'PJ',
+                    'corretor_id' => $corretores->random()->id,
+                ];
+            })
+            ->has(SeguradoPj::factory(), 'seguradoPj')
+            ->create();
     }
 }

@@ -13,7 +13,7 @@ use App\Observers\SinistroObserver;
 
 class Sinistro extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'apolice_id',
@@ -53,7 +53,7 @@ class Sinistro extends Model
             ->logAll() // Registra alterações em todas as colunas
             ->logOnlyDirty() // Só gera log das colunas que realmente mudaram
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "Uma movimentação foi {$eventName}");
+            ->setDescriptionForEvent(fn(string $eventName) => "O sinistro foi {$eventName}");
     }
 
     //relacionamentos
