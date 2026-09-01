@@ -7,6 +7,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class BeneficiariosRelationManager extends RelationManager
 {
@@ -16,24 +17,39 @@ class BeneficiariosRelationManager extends RelationManager
 
     protected static ?string $title = 'Beneficiários';
 
+    public function isReadOnly(): bool
+    {
+        $apolice = $this->getOwnerRecord();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (in_array($apolice->status, ['Pago', 'Negado', 'Encerrado'])) {
+            return true;
+        }
+
+        if ($user->hasAnyRole(['Cliente', 'Corretor'])) {
+            return true; 
+        }
+
+        return false;
+    }
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                // 1. Dados do Cadastro Central (Tabela beneficiarios)
                 Forms\Components\TextInput::make('nome')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('cpf')
                     ->label('CPF')
+                    ->mask('999.999.999-99')
+                    ->stripCharacters(['.', '-'])
                     ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(14),
+                    ->unique(ignoreRecord: true),
                 Forms\Components\DatePicker::make('data_nascimento')
                     ->label('Data de Nascimento'),
                     
-                // 2. Dados do Vínculo com a Apólice (Tabela Pivot)
-                // O Filament mapeia esses campos automaticamente por causa do withPivot() na Model
                 Forms\Components\TextInput::make('percentual_rateio')
                     ->label('Rateio (%)')
                     ->numeric()

@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('super_admin') ? true : null;
+            return $user->hasAnyRole(['super_admin', 'Administrador Geral']) ? true : null;
         });
         Apolice::observe(ApoliceObserver::class);
         Segurado::observe(SeguradoObserver::class);

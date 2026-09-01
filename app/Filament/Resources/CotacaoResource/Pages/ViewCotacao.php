@@ -28,8 +28,7 @@ class ViewCotacao extends ViewRecord
                 ->label('Enviar para o Cliente')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $this->record->status === 'Em Elaboração')
-                ->visible(fn () => auth()->user()->hasRole('Corretor'))
+                ->visible(fn () => $this->record->status === 'Em Elaboração' && auth()->user()->hasRole('Corretor'))
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')
@@ -45,7 +44,7 @@ class ViewCotacao extends ViewRecord
                         ->success()
                         ->send();
                         
-                    redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
+                    return redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
                 }),
 
             //Action subscrição

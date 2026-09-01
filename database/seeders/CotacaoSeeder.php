@@ -72,7 +72,15 @@ class CotacaoSeeder extends Seeder
     private function gerarDadosEspecificos(string $ramo): array
     {
         if ($ramo === 'Auto') {
+            // Sorteia os usos para podermos preencher os detalhes condicionais
+            $usos = fake()->randomElements(['trabalho', 'estudo', 'comercial'], rand(1, 2));
+            $isComercial = in_array('comercial', $usos);
+            $isTrabalhoEstudo = in_array('trabalho', $usos) || in_array('estudo', $usos);
+            
+            $seguroAntigo = fake()->boolean(30);
+
             return [
+                // Dados do Veículo
                 'tipo_veiculo' => fake()->randomElement(['carro', 'moto', 'caminhao']),
                 'modelo' => fake()->randomElement(['Corolla', 'Civic', 'Onix', 'HB20', 'Hilux']),
                 'ano' => fake()->numberBetween(2015, (int) date('Y')),
@@ -82,23 +90,60 @@ class CotacaoSeeder extends Seeder
                 'zero' => fake()->boolean(20),
                 'kit_gas' => fake()->boolean(10),
                 'blindado' => fake()->boolean(5),
-                'uso' => fake()->randomElements(['trabalho', 'estudo', 'comercial'], rand(1, 2)),
+                'imposto' => fake()->boolean(5),
+                
+                // Utilização (Dia)
+                'uso' => $usos,
+                'detalhe_uso_comercial' => $isComercial ? fake()->randomElement(['visita', 'entrega', 'motorista_app', 'taxi', 'outros']) : null,
+                'detalhe_uso_trabalho_estudo' => $isTrabalhoEstudo ? fake()->randomElements(['garagem', 'rua', 'estacionamento'], 1) : null,
+                
+                // Pernoite (Noite) e Endereço
+                'rua' => fake()->streetName(),
+                'numero' => fake()->buildingNumber(),
+                'bairro' => fake()->citySuffix(),
+                'complemento' => fake()->optional(0.5)->secondaryAddress(),
+                'cidade' => fake()->city(),
+                'uf' => fake()->stateAbbr(),
+                'CEP' => fake()->numerify('########'), // Maiúsculo como no seu form, e sem formatação (stripCharacters)
                 'estacionamento' => fake()->randomElement(['garagem', 'rua', 'estacionamento']),
-                'seguro_antigo' => fake()->boolean(30),
-                'classe_bonus' => fake()->numberBetween(0, 5),
+                
+                // Contrato Anterior
+                'seguro_antigo' => $seguroAntigo,
+                'seguradora' => $seguroAntigo ? fake()->company() : null,
+                'numero_apolice' => $seguroAntigo ? fake()->numerify('###-####-####') : null,
+                'data_vencimento' => $seguroAntigo ? now()->addMonths(fake()->numberBetween(1,12))->format('Y-m-d') : null,
+                'classe_bonus' => $seguroAntigo ? fake()->numberBetween(0, 5) : null,
+                'uso_anterior' => $seguroAntigo ? fake()->randomElement(['nao', 'uma_vez', 'duas_vezes', 'tres_vezes', 'mais_de_tres_vezes']) : null,
             ];
         }
 
         if ($ramo === 'Residencial') {
+            $tipoMoradia = fake()->randomElement(['casa', 'apartamento', 'condominio_horizontal']);
+            $regiao = fake()->randomElement(['urbano', 'rural']);
+
             return [
-                'tipo_moradia' => fake()->randomElement(['casa', 'apartamento', 'condominio_horizontal']),
-                'uso_residencia' => 'habitavel',
+                // Dados do Imóvel
+                'tipo_moradia' => $tipoMoradia,
+                'detalhe_apartamento' => ($tipoMoradia === 'apartamento') ? fake()->randomElement(['pavimento_terreo', 'pavimento_superior', 'cobertura', 'sobrado']) : null,
+                
+                // Endereço
+                'rua' => fake()->streetName(),
+                'numero' => fake()->buildingNumber(),
+                'bairro' => fake()->citySuffix(),
+                'complemento' => fake()->optional(0.5)->secondaryAddress(),
+                'cidade' => fake()->city(),
+                'uf' => fake()->stateAbbr(),
+                'cep' => fake()->numerify('########'), // Minúsculo como no seu form
+                
+                // Detalhamento
+                'uso_residencia' => fake()->randomElement(['habitavel', 'veraneio']),
                 'tipo_construcao' => fake()->randomElement(['alvenaria', 'madeira']),
-                'regiao' => 'urbano',
-                'sobre_imovel' => ['proprio'],
-                'terreno_baldio' => 'nao',
+                'regiao' => $regiao,
+                'agro_comercial' => ($regiao === 'rural') ? fake()->randomElement(['com_agro_comercial', 'sem_agro_comercial']) : null,
+                'sobre_imovel' => fake()->randomElements(['proprio', 'alugado', 'desocupado'], 1), // Select Multiple salva como array
+                'terreno_baldio' => fake()->randomElement(['sim', 'nao']),
                 'valor_base_risco' => fake()->randomFloat(2, 200000, 1000000),
-                'sinistros' => 'nao',
+                'sinistros' => fake()->randomElement(['nao', 'uma_vez', 'duas_vezes', 'tres_mais']),
             ];
         }
 

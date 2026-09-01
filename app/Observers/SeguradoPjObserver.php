@@ -10,12 +10,10 @@ class SeguradoPjObserver
     // nomeando user associado ao cliente
     public function saved(SeguradoPj $seguradoPj): void
     {
-        Log::info("Iniciando atualização do usuário  de cnpj: {$seguradoPj->cnpj}");
 
         $seguradoAtualizado = $seguradoPj->segurado()->first();
 
         if ($seguradoAtualizado && $seguradoAtualizado->user_id) {
-            // Busca o User diretamente pelo ID e atualiza
             $user = \App\Models\User::find($seguradoAtualizado->user_id);
             
             if ($user) {

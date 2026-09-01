@@ -7,16 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 class SeguradoPfObserver
 {
-    //logica para nomear user associado a conta
     public function saved(SeguradoPf $seguradoPf): void
     {
-        Log::info("Iniciando atualização do usuário para o segurado CPF: {$seguradoPf->cpf}");
 
-        // Verifica se existe o segurado e se ele já tem um usuário de acesso criado
         $seguradoAtualizado = $seguradoPf->segurado()->first();
 
         if ($seguradoAtualizado && $seguradoAtualizado->user_id) {
-            // Busca o User diretamente pelo ID e atualiza
             $user = \App\Models\User::find($seguradoAtualizado->user_id);
             
             if ($user) {

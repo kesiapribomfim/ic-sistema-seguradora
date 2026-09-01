@@ -11,98 +11,95 @@ class FilialPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any models.
+     * Validação do Princípio do Menor Privilégio para Filiais.
      */
+    private function verificaEscopo(User $user, Filial $filial): bool
+    {
+        // Admin Geral manda em tudo
+        if ($user->hasRole('Administrador Geral')) {
+            return true;
+        }
+
+        // Gestor de Filial só tem acesso se estiver vinculado a ESTA filial específica
+        if ($user->hasRole('Gestor de Filial')) {
+            
+            $filiaisComoGestorIds = $user->filiais()
+                ->wherePivot('perfil_acesso', 'Gestor de Filial') 
+                ->pluck('filiais.id')
+                ->toArray();
+            
+            return in_array($filial->id, $filiaisComoGestorIds);
+        }
+
+        return false;
+    }
+
+    public function before(User $user, string $ability): ?bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador Geral', 'super_admin', 'Gestor de Filial']);
+        return $user->hasAnyRole(['Administrador Geral', 'Gestor de Filial']);
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Filial $filial): bool
     {
-        return $user->can('view_filial');
+        return $this->verificaEscopo($user, $filial);
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return $user->can('create_filial');
+        return $user->hasRole('Administrador Geral');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Filial $filial): bool
     {
-        return $user->can('update_filial');
+        return $this->verificaEscopo($user, $filial);
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Filial $filial): bool
     {
-        return $user->can('delete_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can bulk delete.
-     */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can permanently delete.
-     */
     public function forceDelete(User $user, Filial $filial): bool
     {
-        return $user->can('force_delete_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can permanently bulk delete.
-     */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can restore.
-     */
     public function restore(User $user, Filial $filial): bool
     {
-        return $user->can('restore_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can bulk restore.
-     */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can replicate.
-     */
     public function replicate(User $user, Filial $filial): bool
     {
-        return $user->can('replicate_filial');
+        return false;
     }
 
-    /**
-     * Determine whether the user can reorder.
-     */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_filial');
+        return false;
     }
 }

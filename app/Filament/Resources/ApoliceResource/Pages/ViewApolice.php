@@ -36,8 +36,6 @@ class ViewApolice extends ViewRecord
                         "apolice-{$record->numero_apolice}.pdf"
                     );
                 }),
-
-            Actions\EditAction::make(),
         ];
     }
 

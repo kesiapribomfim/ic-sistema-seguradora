@@ -369,7 +369,7 @@ public static function form(Form $form): Form
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
 
@@ -432,7 +432,7 @@ public static function form(Form $form): Form
                         'Substituída' => 'gray',
                     }),
             ])
-            ->recordUrl(null) // Desativa o clique na linha inteira
+            ->recordUrl(fn ($record): string => static::getUrl('view', ['record' => $record]))
             ->recordAction(Tables\Actions\ViewAction::class) // Transforma o clique no gatilho da View
             ->filters([
                 // TODO: Filters (Ex: Filtrar por Status, Data de Vencimento)
@@ -525,7 +525,14 @@ public static function form(Form $form): Form
                                 ->fromTable()
                                 ->withFilename('relatorio_apolices_' . date('Y-m-d'))
                                 ->queue(), // Manda para a fila (Job) em vez de travar o navegador
-                        ]),
+                        ])
+                        ->action(function () {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gerando planilha de apólices')
+                                ->body('Isso pode levar alguns segundos. Você receberá uma notificação quando o download estiver pronto.')
+                                ->info()
+                                ->send();
+                        }),
                 ]),
             ]);
     }

@@ -16,6 +16,9 @@ class CotacaoPolicy
      */
     private function verificaEscopo(User $user, Cotacao $cotacao): bool
     {
+        if ($user->hasRole('Administrador Geral')) {
+            return true;
+        }
         // Corretor: Acesso restrito à própria carteira
         if ($user->hasRole('Corretor')) {
             return $cotacao->user_id === $user->id;
@@ -36,12 +39,13 @@ class CotacaoPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+        //Acesso geral para suporte
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
         return null;
-    }    
+    } 
 
     public function viewAny(User $user): bool
     {
@@ -49,7 +53,8 @@ class CotacaoPolicy
             'Gestor de Filial',
             'Subscritor',
             'Corretor',
-            'Cliente'
+            'Cliente',
+            'Administrador Geral'
         ]);
     }
 

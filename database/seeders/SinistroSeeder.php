@@ -44,24 +44,19 @@ class SinistroSeeder extends Seeder
             $valorIndenizacao = null;
             $valorPago = null;
 
-            // Se o sinistro avançou, calculamos um valor de indenização (nunca maior que o limite da cobertura)
             if (in_array($status, ['Aprovado', 'Pago', 'Encerrado', 'Aguardando Gestor'])) {
                 $valorIndenizacao = fake()->randomFloat(2, 500, $limiteCobertura);
             }
 
-            // Se já foi pago ou encerrado, o valor pago é preenchido
             if (in_array($status, ['Pago', 'Encerrado'])) {
                 $valorPago = $valorIndenizacao;
             }
 
-            // 3. Criação do Sinistro
-            Sinistro::create([
+            $sinistro = Sinistro::create([
                 'apolice_id' => $apolice->id,
 
-                // O sinistro deve ter ocorrido depois do início da vigência da apólice
                 'data_hora_ocorrencia' => fake()->dateTimeBetween($apolice->data_inicio, 'now'),
 
-                // Dados do local da ocorrência
                 'rua' => fake()->streetName(),
                 'numero' => fake()->buildingNumber(),
                 'bairro' => fake()->citySuffix(),
@@ -78,6 +73,20 @@ class SinistroSeeder extends Seeder
                 'valor_indenizacao' => $valorIndenizacao,
                 'valor_pago' => $valorPago,
             ]);
+
+            if ($valorPago > 0 && in_array($status, ['Pago', 'Encerrado'])) {
+                \App\Models\Pagamento::create([
+                    'apolice_id'        => $apolice->id,
+                    'sinistro_id'       => $sinistro->id,
+                    'num_parcela'       => null,
+                    'tipo_movimentacao' => 'Pagamento Indenização',
+                    'valor'             => $valorPago,
+                    'data_vencimento'   => now(),
+                    'status'            => 'Paga',
+                    'data_pagamento'    => now(),
+                    'metodo_baixa'      => 'Automática',
+                ]);
+            }
         }
 
         $this->command->info('Sinistros gerados com sucesso!');

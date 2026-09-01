@@ -33,7 +33,7 @@ class EditCotacao extends EditRecord
                 ->label('Enviar para o Cliente')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $this->record->status === 'Em Elaboração')
+                ->visible(fn () => $this->record->status === 'Em Elaboração' && auth()->user()->hasRole('Corretor'))
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')
@@ -49,7 +49,7 @@ class EditCotacao extends EditRecord
                         ->success()
                         ->send();
                         
-                    redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
+                    return redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
                 }),
         ];
     }

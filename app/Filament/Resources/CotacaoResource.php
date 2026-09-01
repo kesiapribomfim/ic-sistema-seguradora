@@ -678,7 +678,7 @@ class CotacaoResource extends Resource
                     ->itemLabel(fn (array $state): ?string => $state['nome'] ?? null),
 
                 // ---------------------------------------------------------
-                // 3. BENEFICIÁRIOS (Repeater Manual Simples)
+                // BENEFICIÁRIOS (Repeater Manual Simples)
                 // ---------------------------------------------------------
                 Forms\Components\Section::make('Destinação da Indenização')
                     ->schema([
@@ -698,7 +698,6 @@ class CotacaoResource extends Resource
                                     ->suffix('%')
                                     ->maxValue(100)
                                     ->required(),
-                                // TODO: Adicionar lógica para barrar soma total menor que 100%
                             ])
                             ->columns(3)
                             ->defaultItems(1)
@@ -926,7 +925,7 @@ class CotacaoResource extends Resource
                         default => 'gray',
                     }),
             ])
-            ->recordUrl(null)
+            ->recordUrl(fn ($record): string => static::getUrl('view', ['record' => $record]))
             ->recordAction(Tables\Actions\ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -939,18 +938,21 @@ class CotacaoResource extends Resource
                         'Recusada' => 'Recusada',
                         'Expirada' => 'Expirada',
                     ]),
-                //filtro para pesquisar nome do corretor responsável
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Corretor Responsável')
                     ->relationship('user', 'name')
                     ->searchable(),
-            ]) // TODO: Filters
+                Tables\Filters\SelectFilter::make('produto_id')
+                    ->label('Produto')
+                    ->relationship('produto', 'nome')
+                    ->searchable(),
+
+            ])
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
                     ViewAction::make(),
 
-                    //  TODO: Ainda tenho que acertar isso, mas serve por enquanto
                     Tables\Actions\Action::make('emitir_apolice')
                         ->label('Emitir Apólice')
                         ->icon('heroicon-o-check-badge')

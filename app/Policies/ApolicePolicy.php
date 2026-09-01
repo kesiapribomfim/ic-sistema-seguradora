@@ -16,8 +16,8 @@ class ApolicePolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        //Admin Geral acesso
-        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+        //Acesso geral para suporte
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
@@ -27,6 +27,7 @@ class ApolicePolicy
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole([
+            'Administrador Geral',
             'Gestor de Filial',
             'Analista de Sinistros',
             'Corretor',
@@ -40,6 +41,10 @@ class ApolicePolicy
      */
     public function view(User $user, Apolice $apolice): bool
     {
+        if ($user->hasRole('Administrador Geral')) {
+            return true;
+        }
+        
         if ($user->hasRole('Corretor')) {
             return $apolice->user_id === $user->id;
         }
@@ -56,6 +61,7 @@ class ApolicePolicy
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             return in_array($apolice->filial_id, $filiaisIds);
         }
+
         return $user->can('view_apolice');
     }
 

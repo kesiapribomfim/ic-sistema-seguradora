@@ -19,15 +19,25 @@ class UserSeeder extends Seeder
 
         $filiais = Filial::all();
 
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'super_admin@exemplo.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => 'password',
+                'status' => true,
+            ]
+        );
+        $superAdmin->assignRole('super_admin');
+
         $admin = User::firstOrCreate(
-            ['email' => 'admin_test@exemplo.com'],
+            ['email' => 'admin@geral.com'],
             [
                 'name' => 'Admin Geral',
                 'password' => 'password',
                 'status' => true,
             ]
         );
-        $admin->assignRole('super_admin');
+        $admin->assignRole('Administrador Geral');
 
         $perfisFixos = [
             ['name' => 'Gestor Teste', 'email' => 'gestor@filial.com', 'perfil' => 'Gestor de Filial'],

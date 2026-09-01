@@ -151,7 +151,7 @@ class PagamentoResource extends Resource
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
-        if ($user->hasRole('super_admin')){
+        if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
 

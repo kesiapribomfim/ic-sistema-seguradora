@@ -10,7 +10,8 @@ class PagamentoPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('Administrador Geral')) {
+        //Acesso geral para suporte
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
@@ -19,12 +20,12 @@ class PagamentoPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Cliente']);
+        return $user->hasAnyRole(['Administrador Geral','Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function view(User $user, Pagamento $pagamento): bool
     {
-        return $user->hasAnyRole(['Gestor de Filial', 'Financeiro', 'Cliente']);
+        return $user->hasAnyRole(['Administrador Geral','Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function create(User $user): bool
@@ -42,7 +43,6 @@ class PagamentoPolicy
 
     public function delete(User $user, Pagamento $pagamento): bool
     {
-        // Evita fraudes financeiras. Cancelamentos devem ser feitos via status, e não exclusão do banco.
         return false;
     }
 

@@ -66,33 +66,99 @@ class RelatorioOperacional extends Page implements HasForms
             ->statePath('data');
     }
 
-    protected function getHeaderActions(): array
+   protected function getHeaderActions(): array
     {
         return [
+            // ========================================================
+            // BOTÃO EXCEL (Gerando um CSV nativo que o Excel ama)
+            // ========================================================
             \Filament\Actions\Action::make('exportar_excel')
                 ->label('Exportar Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
                 ->action(function () {
-                    \Filament\Notifications\Notification::make()
-                        ->title('Exportação Iniciada')
-                        ->body('O relatório XLSX está sendo gerado em background. Você será notificado quando estiver pronto.')
-                        ->success()
-                        ->send();
+                    // Pega os mesmos dados que aparecem na tela
+                    $apolices = $this->getViewData()['apolicesAVencer'];
+                    $nomeArquivo = 'relatorio_operacional_' . now()->format('Y_m_d_His') . '.csv';
+
+                    return response()->streamDownload(function () use ($apolices) {
+                        $handle = fopen('php://output', 'w');
+                        
+                        // MÁGICA: Adiciona o BOM UTF-8 para o Excel brasileiro não bugar os acentos (ç, ã, é)
+                        fputs($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                        
+                        // Cabeçalho da Planilha
+                        fputcsv($handle, ['Apólice', 'Cliente', 'Corretor', 'Filial', 'Fim da Vigência', 'Status'], ';');
+
+                        // Linhas da Planilha
+                        foreach ($apolices as $apolice) {
+                            $cliente = $apolice->segurado->tipo === 'PF' 
+                                ? $apolice->segurado->seguradoPf?->nome 
+                                : $apolice->segurado->seguradoPj?->razao_social;
+
+                            fputcsv($handle, [
+                                $apolice->numero_apolice,
+                                $cliente,
+                                $apolice->user->name ?? '-',
+                                $apolice->filial->nome ?? '-',
+                                $apolice->data_fim ? $apolice->data_fim->format('d/m/Y') : '-',
+                                $apolice->status
+                            ], ';'); // Separado por ponto e vírgula, o padrão brasileiro
+                        }
+                        fclose($handle);
+                    }, $nomeArquivo, [
+                        'Content-Type' => 'text/csv; charset=UTF-8',
+                    ]);
                 }),
 
+            // ========================================================
+            // BOTÃO PDF (Usando a biblioteca DomPDF)
+            // ========================================================
             \Filament\Actions\Action::make('exportar_pdf')
                 ->label('Exportar PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('danger')
                 ->action(function () {
-                    \Filament\Notifications\Notification::make()
-                        ->title('Processamento em Background')
-                        ->body('O relatório PDF é pesado e foi enviado para a fila de processamento. O link será enviado para o seu e-mail.')
-                        ->success()
-                        ->send();
+                    // Pega os dados
+                    $apolices = $this->getViewData()['apolicesAVencer'];
+                    
+                    // Montamos um HTML puro. 
+                    // O DomPDF tem dificuldade com o TailwindCSS do Filament, então HTML clássico é à prova de balas.
+                    $html = '<h1 style="text-align:center; font-family:sans-serif;">Relatório Operacional - Apólices a Vencer</h1>';
+                    $html .= '<p style="text-align:center; font-family:sans-serif;">Gerado em: ' . now()->format('d/m/Y H:i') . '</p><hr>';
+                    
+                    $html .= '<table border="1" width="100%" cellspacing="0" cellpadding="8" style="font-family:sans-serif; font-size:12px; text-align:left;">';
+                    $html .= '<thead style="background-color:#f3f4f6;"><tr><th>Apólice</th><th>Cliente</th><th>Corretor</th><th>Vencimento</th></tr></thead>';
+                    $html .= '<tbody>';
+                    
+                    foreach($apolices as $apolice) {
+                        $cliente = $apolice->segurado->tipo === 'PF' 
+                            ? $apolice->segurado->seguradoPf?->nome 
+                            : $apolice->segurado->seguradoPj?->razao_social;
+                            
+                        $dataFim = $apolice->data_fim ? $apolice->data_fim->format('d/m/Y') : '-';
+                        
+                        $html .= "<tr>
+                                    <td>{$apolice->numero_apolice}</td>
+                                    <td>{$cliente}</td>
+                                    <td>{$apolice->user->name}</td>
+                                    <td>{$dataFim}</td>
+                                  </tr>";
+                    }
+                    
+                    $html .= '</tbody></table>';
+
+                    // Carrega o HTML na biblioteca
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+                    
+                    // Retorna forçando o download imediato
+                    return response()->streamDownload(
+                        fn () => print($pdf->output()), 
+                        'relatorio_operacional_' . now()->format('Ymd_His') . '.pdf'
+                    );
                 }),
         ];
+    
     }
 
     protected function getViewData(): array

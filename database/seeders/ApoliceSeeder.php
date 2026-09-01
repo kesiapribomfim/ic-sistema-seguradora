@@ -59,7 +59,7 @@ class ApoliceSeeder extends Seeder
                 'coberturas' => $coberturasSnapshot, // O SINISTRO PRECISA DISSO AQUI!
             ];
 
-            Apolice::create([
+            $apolice = Apolice::create([
                 'segurado_id' => $cotacao->segurado_id,
                 'user_id' => $cotacao->user_id,
                 'filial_id' => $cotacao->filial_id,
@@ -78,6 +78,24 @@ class ApoliceSeeder extends Seeder
                 'valor_parcela' => $valorParcela,
                 'valor_total' => $valorTotal,
             ]);
+
+            for ($i = 1; $i <= $quantidadeParcelas; $i++) {
+                $isPrimeiraParcela = ($i === 1);
+                
+                $dataVencimento = (clone $dataEmissao)->addMonths($i - 1);
+
+                \App\Models\Pagamento::create([
+                    'apolice_id'        => $apolice->id,
+                    'num_parcela'       => $i,
+                    'tipo_movimentacao' => 'Recebimento',
+                    'valor'             => $valorParcela,
+                    'data_vencimento'   => $dataVencimento,
+                    
+                    'status'            => ($isPrimeiraParcela || $status === 'Renovada') ? 'Paga' : 'Aberta',
+                    'data_pagamento'    => ($isPrimeiraParcela || $status === 'Renovada') ? clone $dataVencimento : null,
+                    'metodo_baixa'      => ($isPrimeiraParcela || $status === 'Renovada') ? 'Automática' : null,
+                ]);
+            }
 
             $contador++;
         }

@@ -82,7 +82,7 @@ class UsersRelationManager extends RelationManager
                         ->visible(fn (Model $record): bool => $record->pivot->perfil_acesso === 'Corretor')
                         ->url(fn (Model $record): string => \App\Filament\Resources\SeguradoResource::getUrl('index', [
                             'tableFilters' => [
-                                'user_id' => ['value' => $record->id],
+                                'corretor_id' => ['value' => $record->id],
                             ],
                         ])),
                     DetachAction::make()

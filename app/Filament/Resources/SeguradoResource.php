@@ -156,7 +156,7 @@ class SeguradoResource extends Resource
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')){
+        if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
 

@@ -16,8 +16,8 @@ class SeguradoPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        //Admin Geral acesso
-        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+        //Acesso geral para suporte
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
@@ -28,6 +28,7 @@ class SeguradoPolicy
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole([
+            'Administrador Geral',
             'Gestor de Filial',
             'Analista de Sinistros',
             'Corretor'

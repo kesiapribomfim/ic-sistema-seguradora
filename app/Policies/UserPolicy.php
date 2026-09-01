@@ -19,8 +19,8 @@ class UserPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        //Admin Geral acesso
-        if ($user->hasRole('Administrador Geral') || $user->hasRole('super_admin')) {
+        //Acesso geral para suporte
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
@@ -30,31 +30,23 @@ class UserPolicy
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole([
+            'Administrador Geral',
             'Gestor de Filial',
-            'Analista de Sinistros',
-            'Corretor',
-            'Cliente', 
-            'Financeiro'
         ]);
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * @param  \App\Models\User  $user
-     * @return bool
-     */
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, User $model): bool
     {
         if ($user->id === $model->id) {
             return true;
         }
 
+        // Admin Geral pode ver qualquer um
+        if ($user->hasRole('Administrador Geral')) {
+            return true;
+        }
+
         if ($user->hasRole('Gestor de Filial')) {
-            
             $filiaisGestorIds = $user->filiais()
                 ->wherePivot('perfil_acesso', 'Gestor de Filial')
                 ->pluck('filiais.id')
@@ -65,7 +57,7 @@ class UserPolicy
             return !empty(array_intersect($filiaisGestorIds, $filiaisAlvoIds));
         }
 
-        return $user->can('view_user');
+        return false;
     }
 
     /**
@@ -76,7 +68,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        if ($user->hasRole('Gestor de Filial')) {
+        if ($user->hasAnyRole(['Gestor de Filial', 'Administrador Geral'])) {
             return true;
         }
         return $user->can('create_user');
@@ -95,7 +87,7 @@ class UserPolicy
             return true;
         }
 
-        if ($user->hasRole('Gestor de Filial')) {
+        if ($user->hasAnyRole(['Gestor de Filial', 'Administrador Geral'])) {
             
             $filiaisGestorIds = $user->filiais()
                 ->wherePivot('perfil_acesso', 'Gestor de Filial')

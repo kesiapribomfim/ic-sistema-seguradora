@@ -73,7 +73,7 @@ class UserResource extends Resource
                         }
                         return \App\Models\Filial::pluck('nome', 'id');
                     })
-                    ->required(fn (string $operation): bool => $operation === 'create')
+                    //->required(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(false), 
 
                 Forms\Components\Select::make('perfil_acesso')
@@ -95,7 +95,7 @@ class UserResource extends Resource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if ($user->hasRole('super_admin')){
+        if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
         if ($user->hasRole('Gestor de Filial')) {

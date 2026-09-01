@@ -23,18 +23,30 @@ class SeguradoObserver
             return;
         }
 
-        $user = User::create([
+        $user = \App\Models\User::create([
             'name' => 'Cliente',
             'email' => $segurado->email,
-            'password' => bcrypt(Str::password(32)),
-
+            'password' => bcrypt(\Illuminate\Support\Str::password(32)),
         ]);
 
         $user->assignRole('Cliente');
 
+        $corretor = \App\Models\User::find($segurado->corretor_id);
+
+        if ($corretor) {
+            $filialCorretor = $corretor->filiais()->first(); 
+            
+            if ($filialCorretor) {
+                $user->filiais()->attach($filialCorretor->id, [
+                    'perfil_acesso' => 'Cliente'
+                ]);
+                Log::info("Usuário Cliente ID {$user->id} vinculado à Filial ID {$filialCorretor->id}");
+            }
+        }
+
         $segurado->updateQuietly(['user_id' => $user->id]);
 
-        Log::info("User criado associado ao segurado#{$segurado->id}");
+        Log::info("User criado e associado ao segurado#{$segurado->id}");
     }
 
     /**

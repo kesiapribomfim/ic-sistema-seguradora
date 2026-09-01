@@ -469,7 +469,7 @@ public static function table(Table $table): Table
         $user = auth()->user();
 
         //Permissão super_admin
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
             return $query;
         }
 
