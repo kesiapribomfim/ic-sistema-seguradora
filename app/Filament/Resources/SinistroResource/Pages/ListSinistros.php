@@ -30,16 +30,24 @@ class ListSinistros extends ListRecords
         $user = Auth::user();
 
         if ($user->hasRole('Analista de Sinistros')) {
+            
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+
+            $quantidadeFilaEspera = \App\Models\Sinistro::whereNull('analista_id')
+                ->where('status', 'Aberto')
+                ->whereHas('apolice', function ($q) use ($filiaisIds) {
+                    $q->whereIn('filial_id', $filiaisIds);
+                })->count();
 
             return [
-                'todos' => Tab::make('Todos os Sinistros'),
+                'todos' => \Filament\Resources\Components\Tab::make('Todos os Sinistros'),
                     
-                'meus_sinistros' => Tab::make('Meus Sinistros')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('analista_id', auth()->id())),
+                'meus_sinistros' => \Filament\Resources\Components\Tab::make('Meus Sinistros')
+                    ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('analista_id', $user->id)),
                 
-                'fila_espera' => Tab::make('Fila de Espera')
-                    ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
-                    ->badge(Sinistro::whereNull('analista_id')->where('status', 'Aberto')->count()),
+                'fila_espera' => \Filament\Resources\Components\Tab::make('Fila de Espera')
+                    ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
+                    ->badge($quantidadeFilaEspera),
             ];
         }
         

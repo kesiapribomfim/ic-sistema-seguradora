@@ -88,8 +88,6 @@ class ViewCotacao extends ViewRecord
                             ->title('Aprovado! Apólice Emitida com Sucesso.')
                             ->success()
                             ->send();
-                            
-                        redirect()->to(ApoliceResource::getUrl('view', ['record' => $apolice->id]));
                     }
                 }),
         ];

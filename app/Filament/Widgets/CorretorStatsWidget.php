@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Apolice;
 use App\Models\Cotacao;
+use App\Models\Segurado;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -21,6 +22,11 @@ class CorretorStatsWidget extends BaseWidget
         $userId = auth()->id();
 
         return [
+            Stat:: make('Segurados', Segurado::where('corretor_id', $userId)->where('status', 1)->count())
+                ->description('Carteira de segurados ativos')
+                ->descriptionIcon('heroicon-m-users')
+                ->color('primary'),
+
             Stat::make('Cotações Pendentes', Cotacao::where('user_id', $userId)->whereIn('status', ['Em Elaboração', 'Enviada ao Cliente'])->count())
                 ->description('Aguardando fechamento')
                 ->descriptionIcon('heroicon-m-clock')

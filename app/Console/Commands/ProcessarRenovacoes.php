@@ -9,8 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
-//TODO: usar queue
 class ProcessarRenovacoes extends Command
 {
     use Queueable;
@@ -80,6 +80,7 @@ class ProcessarRenovacoes extends Command
         $this->newLine();
         $this->info("Processamento concluído!");
         $this->info("Renovações geradas: {$sucesso}");
+        Log::info("CRON: Renovações geradas: {$sucesso}");
         if ($falha > 0) {
             $this->error("Falhas: {$falha} (Verifique os logs do sistema)");
         }

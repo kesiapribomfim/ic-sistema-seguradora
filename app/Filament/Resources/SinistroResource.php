@@ -31,33 +31,60 @@ class SinistroResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $quantidade = static::getModel()::where('status', 'Aberto')->count();
-        $aprovado = static::getModel()::where('status', 'Aprovado')->count();
-
         /** @var \App\Models\User $user */
-        $user = Auth::user();
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $query = static::getModel()::query();
+
+        if (!$user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            
+            $query->whereHas('apolice', function ($q) use ($filiaisIds) {
+                $q->whereIn('filial_id', $filiaisIds);
+            });
+        }
+
+        if($user->hasRole('Gestor de Filial')) {
+            $quantidade = (clone $query)->where('status', 'Aguardando Gestor')->count();
+            return $quantidade > 0 ? (string) $quantidade : null;
+        }
 
         if ($user->hasRole('Analista de Sinistros')) {
-
+            $quantidade = (clone $query)->where('status', 'Aberto')->count();
             return $quantidade > 0 ? (string) $quantidade : null;
-        };
+        }
 
         if ($user->hasRole('Financeiro')) {
+            $aprovado = (clone $query)->where('status', 'Aprovado')->count();
             return $aprovado > 0 ? (string) $aprovado : null;
-        };
+        }
 
         return null;
     }
 
-    /**
-     * Define a cor do badge dependendo da quantidade.
-     */
     public static function getNavigationBadgeColor(): ?string
     {
-        $quantidade = static::getModel()::where('status', 'Aberto')->count();
+        /** @var \App\Models\User $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $query = static::getModel()::query();
+
+        if (!$user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
+            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+            
+            $query->whereHas('apolice', function ($q) use ($filiaisIds) {
+                $q->whereIn('filial_id', $filiaisIds);
+            });
+        }
+
+        $quantidade = 0;
+        
+        if ($user->hasRole('Analista de Sinistros')) {
+            $quantidade = (clone $query)->where('status', 'Aberto')->count();
+        } elseif ($user->hasRole('Financeiro')) {
+            $quantidade = (clone $query)->where('status', 'Aprovado')->count();
+        }
 
         if ($quantidade > 5) {
-            return 'danger';
+            return 'danger'; 
         }
 
         return 'warning'; 
@@ -133,8 +160,23 @@ class SinistroResource extends Resource
                         Forms\Components\DateTimePicker::make('data_hora_ocorrencia')
                             ->label('Data e Hora da Ocorrência')
                             ->displayFormat('d/m/Y H:i')
-                            ->required(),
-
+                            ->required()
+                            ->minDate(function (\Filament\Forms\Get $get) {
+                                $apoliceId = $get('apolice_id');
+                                if (!$apoliceId) return null;
+                                
+                                $apolice = \App\Models\Apolice::find($apoliceId);
+                                return $apolice ? $apolice->data_inicio : null;
+                            })
+                            ->maxDate(function (\Filament\Forms\Get $get) {
+                                $apoliceId = $get('apolice_id');
+                                if (!$apoliceId) return now(); 
+                                
+                                $apolice = \App\Models\Apolice::find($apoliceId);
+                                if (!$apolice) return now();
+                                
+                                return $apolice->data_fim->isPast() ? $apolice->data_fim : now();
+                            }),
                         Forms\Components\Placeholder::make('status_visual')
                             ->label('Status do Sinistro')
                             ->content(function ($record) {
@@ -362,15 +404,14 @@ public static function table(Table $table): Table
                         ->modalHeading('Assumir Sinistro')
                         ->modalDescription('Você será designado como o analista responsável por este sinistro. Deseja continuar?'),
 
-                    // 2. NOVA AÇÃO: Tentativa de Aprovação (Analista)
                     Tables\Actions\Action::make('aprovar')
                         ->label('Aprovar Sinistro')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(
                             fn(Model $record) =>
-                            $record->status === 'Em análise' &&
-                                auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])
+                            in_array($record->status, ['Em análise', 'Em perícia', 'Aguardando Documentação']) &&
+                            auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])
                         )
                         ->form([
                             Forms\Components\TextInput::make('valor_indenizacao')
@@ -466,7 +507,8 @@ public static function table(Table $table): Table
         $query = parent::getEloquentQuery()
                 ->with(['apolice.segurado.seguradoPf', 'apolice.segurado.seguradoPj']);
         
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         //Permissão super_admin
         if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {

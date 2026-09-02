@@ -865,12 +865,10 @@ class CotacaoResource extends Resource
 
                                 $produto = \App\Models\Produto::find($produtoId);
                                 
-                                // Puxa o limite da alçada do banco (ou avisa se for ilimitado)
                                 $limiteAlcada = $produto->valor_alcada 
                                     ? 'R$ ' . number_format($produto->valor_alcada, 2, ',', '.') 
                                     : 'Sem Limite (Aprovação Automática)';
 
-                                // Faz a soma silenciosa das coberturas só para mostrar na tela
                                 $coberturas = $get('cobertura_selecionada') ?? [];
                                 $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
                                 $riscoTotal = 'R$ ' . number_format($somaLmi, 2, ',', '.');
@@ -975,7 +973,7 @@ class CotacaoResource extends Resource
                                 return false; 
                             }
 
-                            if ($user != 'Corretor') {
+                            if (!$user->hasRole('Corretor')) {
                                 return false;
                             }
 
@@ -983,7 +981,6 @@ class CotacaoResource extends Resource
                         })
                         ->action(function (Cotacao $record, array $data) {
                             
-                            // Chama a classe de serviço
                             $servico = new \App\Services\EmissaoApoliceService();
                             $apolice = $servico->emitir(
                                 $record,
@@ -991,7 +988,6 @@ class CotacaoResource extends Resource
                                 (int) $data['quantidade_parcelas']    
                             );
 
-                            // Mostra notificação de sucesso e redireciona para a nova apólice
                             \Filament\Notifications\Notification::make()
                                 ->title('Apólice Emitida com Sucesso!')
                                 ->success()
@@ -1034,7 +1030,7 @@ class CotacaoResource extends Resource
                         ->visible(function (Cotacao $record) {
 
                             $user = auth()->user();
-                            if ($user != 'Corretor') {
+                            if (!$user->hasRole('Corretor')) {
                                 return false;
                             }
                             if (!in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente'])) {

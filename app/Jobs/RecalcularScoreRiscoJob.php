@@ -28,7 +28,7 @@ class RecalcularScoreRiscoJob implements ShouldQueue
             $novoScore = max(0, $segurado->score - 10);
 
             $segurado->update([
-                'score_risco' => $novoScore
+                'score' => $novoScore
             ]);
         }
     }

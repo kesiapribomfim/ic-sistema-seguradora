@@ -30,7 +30,6 @@ class SeguradoPolicy
         return $user->hasAnyRole([
             'Administrador Geral',
             'Gestor de Filial',
-            'Analista de Sinistros',
             'Corretor'
         ]);
     }

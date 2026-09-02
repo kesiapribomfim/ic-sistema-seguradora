@@ -12,9 +12,7 @@ class SinistroObserver
      */
     public function created(Sinistro $sinistro): void
     {
-        // 1. Cria automaticamente a primeira linha da timeline
         $sinistro->movimentacoes()->create([
-            // O fallback (?? 1) evita que o sistema quebre caso um sinistro seja criado via Seeder/Terminal
             'user_id' => auth()->id() ?? 1, 
             'data_hr_movimentacao' => now(),
             'acao_realizada' => 'Abertura',
@@ -27,7 +25,7 @@ class SinistroObserver
      */
     public function updated(Sinistro $sinistro): void
     {
-        if ($sinistro->wasChanged('status') && in_array($sinistro->status, ['Aprovado'])) {
+        if ($sinistro->wasChanged('status') && in_array($sinistro->status, ['Pago'])) {
 
             if ($sinistro->apolice && $sinistro->apolice->segurado_id) {
                 $seguradoId = $sinistro->apolice->segurado_id;
