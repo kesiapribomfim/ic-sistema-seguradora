@@ -42,14 +42,15 @@ Siga o passo a passo abaixo para rodar a aplicação na sua máquina:
 
 ```bash
 git clone https://github.com/kesiapribomfim/ic-sistema-seguradora.git
-cd sistema-seguradora
+cd ic-sistema-seguradora
 ```
 
 **2. Prepare o ambiente Backend**
 
 ```bash
-npm install
-npm run build
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
 **3. Compile o Frontend**
@@ -72,6 +73,20 @@ php artisan migrate:fresh --seed
 ```bash
 php artisan serve
 ```
+
+## Perfis de Acesso para Teste
+*(Utilize a senha `password` para todos os usuários)*
+
+| Perfil de Acesso | Nome do Usuário | E-mail de Teste | O que avaliar? |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | Super Admin | `super_admin@exemplo.com` | Acesso absoluto ao sistema, roles e permissões técnicas. |
+| **Administrador Geral** | Admin Geral | `admin@geral.com` | Visão total da seguradora, filiais e parametrizações gerais. |
+| **Gestor de Filial** | Gestor Teste | `gestor@filial.com` | Controle da sua filial e aprovação de sinistros acima da alçada. |
+| **Subscritor** | Subscritor Teste | `subscritor@seguradora.com` | Aprovação de Cotações acima da alçada do corretor |
+| **Corretor** | Corretor Teste | `corretor@seguradora.com` | Geração de cotações, emissão de apólices e restrições de alçada. |
+| **Analista de Sinistros** | Analista de Sinistros Teste | `analista@sinistros.com` | Regulação de sinistros, trilha de movimentações e laudos. |
+| **Financeiro** | Financeiro Teste | `financeiro@seguradora.com` | Acompanhamento de apólices, pagamentos e inadimplências. |
+| **Cliente** | Cliente Teste | `cliente@seguradora.com` | Visão completamente restrita apenas às suas próprias apólices, parcelas e criação de sinistros. |
 
 ## Testando as Rotinas Automáticas (Cron Jobs)
 
