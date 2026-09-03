@@ -1,7 +1,7 @@
 # SISTEMA DE GESTÃO DE SEGURADORA 
 
-Sistema completo de gestão de apólices, cotações, sinistros e inadimplências, desenvolvido como Projeto Acadêmico por **Késia Priscilla da Silva Bomfim**. 
-Arquitetura baseada em Multi-Tenancy (Filiais), controle rigoroso de acesso (ACL) e processos assíncronos (Jobs/Schedules).
+Sistema web para gestão de uma seguradora multi-ramo, contemplando os produtos de Seguro Auto, Seguro de Vida e Seguro Residencial. Permite o gerenciamento de todo o ciclo de vida de uma apólice — da cotação à liquidação de sinistro — com controle granular de acesso por perfil e por filial. Cada filial possui sua própria carteira de corretores, segurados, apólices e sinistros, mas compartilha o catálogo de produtos e a base de cadastros centrais (segurados e beneficiários). 
+Desenvolvido como Projeto Acadêmico por **Késia Priscilla da Silva Bomfim**.
 
 ## Tecnologias Utilizadas
 
