@@ -1,16 +1,21 @@
 <?php
 
-namespace Tests\Unit;
+test ('basic math must work correctly', function () {
+    $result = 10 + 10; //act
 
-use PHPUnit\Framework\TestCase;
+    expect($result)->toBe(20); //assert
+});
 
-class ExampleTest extends TestCase
-{
-    /**
-     * A basic test example.
-     */
-    public function test_that_true_is_true(): void
-    {
-        $this->assertTrue(true);
-    }
-}
+test ('model user must instance a user correctly', function () {
+    //Arrange
+    $user = new \App\Models\User();
+    $user->name = 'K.S. Bomfim';
+
+    //act
+    $nomeObtido = $user->name;
+
+    //assert
+    expect($nomeObtido)->toBe('K.S. Bomfim');
+    expect ($user)->toBeInstanceOf(\App\Models\User::class);
+
+});
