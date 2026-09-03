@@ -19,7 +19,7 @@ Para executar o projeto localmente, fazem-se necessários os seguintes component
 - **PostgreSQL** 
 - **Node.js e NPM** (para compilar o CSS/JS)
 
-## Principais Funcionalidades e Decisões de Arquitetura
+## Principais Funcionalidades
 
 1. **Multi-tenancy e Controle de Acesso (RBAC):**
    Implementação de perfis distintos (Corretor, Subscritor, Gestor, Financeiro, Analista e Cliente). Os dados são isolados por Filial, garantindo que um corretor ou financeiro só tenha acesso aos dados da sua própria jurisdição.
@@ -31,10 +31,7 @@ Para executar o projeto localmente, fazem-se necessários os seguintes component
    Produtos podem ter seus preços e taxas alterados no futuro, mas isso **não pode** afetar apólices já emitidas. Para garantir isso, a emissão da apólice salva um `Snapshot` (JSON) com as regras do produto no exato momento da compra.
    - **Endossos:** Alterações em apólices vigentes não sobrescrevem os dados originais. O sistema gera uma nova versão (clonagem) da apólice e inativa a anterior, preservando o histórico e a validade jurídica.
 
-4. **Automação de Inadimplência e Risco (Jobs e Commands):**
-   Foi criado um `Command` do Artisan (`seguradora:processar-inadimplencia`) desenhado para rodar diariamente (via Cron). Ele identifica parcelas vencidas, suspende a apólice automaticamente via `DB::transaction` e penaliza o `score_risco` do segurado, demonstrando processamento assíncrono e integridade relacional.
-
-5. **Trilha de Auditoria (Compliance):**
+4. **Trilha de Auditoria (Compliance):**
    Utilização do `Spatie Activitylog` conectado ao ciclo de vida (lifecycle hooks) das páginas do Filament para registrar passivamente (sem intervenção do usuário) todo acesso de leitura e escrita aos recursos sensíveis (Apólices e Sinistros).
 
 ## Como Executar o Projeto Localmente
@@ -62,6 +59,7 @@ npm run build
 ```
 
 **4. Banco de Dados e Migrações (Seeders)**
+
 Crie um banco PostgreSQL com o nome sistema_seguradora e configure as suas credenciais no arquivo .env gerado no passo 2.
 
 O sistema possui uma base de dados pronta para testes, incluindo usuários com diferentes níveis de acesso e filiais configuradas. Rode o comando:
@@ -75,8 +73,9 @@ php artisan migrate:fresh --seed
 php artisan serve
 ```
 
-*Testando as Rotinas Automáticas (Cron Jobs)*
+## Testando as Rotinas Automáticas (Cron Jobs)
 
+```bash
 php artisan seguradora:processar-inadimplencia
 php artisan seguradora:processar-renovacoes
 ```
