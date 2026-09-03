@@ -14,7 +14,6 @@ class MovimentacoesRelationManager extends RelationManager
     protected static string $relationship = 'movimentacoes';   
     protected static ?string $title = 'Linha do Tempo e Anexos';
     
-    //TODO: CRIAR FILTRO DO USER
     public function isReadOnly(): bool
     {
         $sinistro = $this->getOwnerRecord();
@@ -48,6 +47,15 @@ class MovimentacoesRelationManager extends RelationManager
                         'Encerramento' => 'Encerramento do Sinistro',
                     ])
                     ->required()
+                    ->live()
+                    ->columnSpanFull(),
+
+                Forms\Components\TextInput::make('valor_indenizacao')
+                    ->label('Valor da Indenização Calculada')
+                    ->numeric()
+                    ->prefix('R$')
+                    ->visible(fn (\Filament\Forms\Get $get) => $get('acao_realizada') === 'Aprovação')
+                    ->required(fn (\Filament\Forms\Get $get) => $get('acao_realizada') === 'Aprovação')
                     ->columnSpanFull(),
 
                 Forms\Components\Textarea::make('descricao')
@@ -97,14 +105,54 @@ class MovimentacoesRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Nova Movimentação')
                     ->icon('heroicon-o-plus')
-                    ->mutateFormDataUsing(function (array $data): array {
+                    ->mutateFormDataUsing(function (array $data, $livewire): array {
                         $data['user_id'] = auth()->id();
                         $data['data_hr_movimentacao'] = now();
+
+                        if (($data['acao_realizada'] ?? '') === 'Aprovação') {
+                            
+                            $sinistro = $livewire->getOwnerRecord();
+                            
+                            $valor = (float) ($data['valor_indenizacao'] ?? 0);
+                            $limite = (float) $sinistro->apolice?->cotacao?->produto?->valor_alcada_aprovacao;
+                            
+                            $valorFormatado = "R$ " . number_format($valor, 2, ',', '.');
+                            $limiteFormatado = "R$ " . number_format($limite, 2, ',', '.');
+
+                            if ($limite > 0 && $valor > $limite && !$sinistro->aprovado_gestor_id && $sinistro->status !== 'Aguardando Gestor') {
+                                $data['acao_realizada'] = 'Alçada Excedida';
+                                $data['descricao'] = "Indenização calculada ({$valorFormatado}) excede a alçada comercial ({$limiteFormatado}).\n\nParecer do Analista: " . $data['descricao'];
+                                
+                                $sinistro->update([
+                                    'valor_indenizacao' => $valor,
+                                    'status' => 'Aguardando Gestor'
+                                ]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Bloqueio de Alçada')
+                                    ->body('O valor excede a sua alçada. O sinistro foi encaminhado para o Gestor de Filial.')
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $data['descricao'] = "Indenização aprovada no valor de {$valorFormatado}.\n\nParecer do Analista: " . $data['descricao'];
+
+                                $sinistro->update([
+                                    'valor_indenizacao' => $valor,
+                                    'status' => 'Aprovado'
+                                ]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Sinistro Aprovado')
+                                    ->success()
+                                    ->send();
+                            }
+                        }
+                        unset($data['valor_indenizacao']);
+
                         return $data;
                     }),
             ])
             ->actions([
-                // A imutabilidade voltou! Nada de Edit ou Delete aqui.
                 Tables\Actions\ViewAction::make(), 
             ]);
     }

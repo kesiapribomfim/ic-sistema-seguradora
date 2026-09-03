@@ -74,11 +74,6 @@ class SinistroPolicy
             return $sinistro->apolice->segurado->user_id === $user->id;
         }
 
-        if ($user->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial', 'Financeiro'])) {
-            $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
-            return in_array($sinistro->apolice->filial_id, $filiaisIds);
-        }
-
         return false;
     }
 

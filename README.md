@@ -41,32 +41,42 @@ Para executar o projeto localmente, fazem-se necessários os seguintes component
 
 Siga o passo a passo abaixo para rodar a aplicação na sua máquina:
 
-**1. Clone o repositório e acesse a pasta:**
+**1. Clone o repositório**
+
 ```bash
-git clone [https://github.com/SEU-USUARIO/sistema-seguradora.git](https://github.com/SEU-USUARIO/sistema-seguradora.git)
+git clone https://github.com/kesiapribomfim/ic-sistema-seguradora.git
 cd sistema-seguradora
+```
 
 **2. Prepare o ambiente Backend**
+
+```bash
 npm install
 npm run build
+```
 
 **3. Compile o Frontend**
+```bash
 npm install
 npm run build
+```
 
 **4. Banco de Dados e Migrações (Seeders)**
 Crie um banco PostgreSQL com o nome sistema_seguradora e configure as suas credenciais no arquivo .env gerado no passo 2.
 
 O sistema possui uma base de dados pronta para testes, incluindo usuários com diferentes níveis de acesso e filiais configuradas. Rode o comando:
 
+```bash
 php artisan migrate:fresh --seed
-
+```
 **5. Inicie o Servidor**
+
+```bash
 php artisan serve
-
-
+```
 
 *Testando as Rotinas Automáticas (Cron Jobs)*
 
 php artisan seguradora:processar-inadimplencia
 php artisan seguradora:processar-renovacoes
+```
