@@ -2,18 +2,23 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 
-class ExampleTest extends TestCase
-{
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
-    {
-        $response = $this->get('/');
+uses(RefreshDatabase::class);
 
-        $response->assertStatus(200);
-    }
-}
+test('deve salvar um usuário no banco de dados corretamente', function() {
+    //Arrange
+    $user = new User();
+    $user->name = 'Analista';
+    $user->email = 'qa@seguradora.com';
+    $user->password = bcrypt('password');
+
+    //Act
+    $user->save();
+
+    //Assert
+    $this->assertDatabaseHas('users', [
+        'email' => 'qa@seguradora.com'
+    ]);
+});
