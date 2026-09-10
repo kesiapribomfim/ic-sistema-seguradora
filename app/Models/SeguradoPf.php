@@ -12,6 +12,7 @@ class SeguradoPf extends Model
     protected $table = 'segurado_pf';
 
     protected $fillable = [
+        'segurado_id',
         'cpf',
         'rg',
         'nome',

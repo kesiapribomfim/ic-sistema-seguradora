@@ -13,6 +13,7 @@ class SeguradoPj extends Model
 
 
     protected $fillable = [
+        'segurado_id',
         'cnpj',
         'razao_social',
         'inscricao_estadual'
