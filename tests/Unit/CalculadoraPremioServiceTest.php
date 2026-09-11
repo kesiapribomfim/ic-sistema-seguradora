@@ -78,28 +78,21 @@ test ('deve calcular premio base corretamente aplicando o score baixo', function
 // =========================================================================
 // RAMO: AUTO
 // =========================================================================
-
-// =========================================================================
-// RAMO: RESIDENCIAL
-// =========================================================================
-test('deve calcular agravantes do ramo residencial corretamente', function ($campoAgravante, $valorAgravante, $dadoChave, $dadoValor, $resultadoEsperado) {
-    
+test('deve calcular agravamento do ramo auto', function($campoAgravante, $valorAgravante, $dadosChave, $dadoValor, $resultadoEsperado) {
     $service = new CalculadoraPremioService();
-
-    // Fixamos o score em 50 para não ter nem desconto nem acréscimo de score.
-    $segurado = new Segurado(['score' => 50]); 
+    $segurado = new Segurado(['score' => 50]);
     
     $produto = new Produto();
-    $produto->ramo = 'Residencial';
-    // O array de parâmetros recebe a variável dinâmica!
+    $produto->ramo = 'Auto';
     $produto->parametros_calculo = [
         'taxa_base' => 5.0,
-        $campoAgravante => $valorAgravante 
+        $campoAgravante => $valorAgravante
     ];
 
     $dados = [
+        'ano' => (int) date('Y'),
         'valor_base_risco' => 100000,
-        $dadoChave => $dadoValor // O dado do front-end também é dinâmico!
+        $dadosChave => $dadoValor
     ];
 
     $resultado = $service->calcular($produto, $dados, $segurado);
@@ -107,9 +100,136 @@ test('deve calcular agravantes do ramo residencial corretamente', function ($cam
     expect($resultado)->toBe($resultadoEsperado);
 
 })->with([
-    'construcao em madeira' => ['fator_construcao_madeira', 3.0, 'tipo_construcao', 'madeira', 5150.0],
-    'casa de veraneio'      => ['fator_uso_veraneio', 5.0, 'uso_residencia', 'veraneio', 5250.0],
-    'regiao rural'          => ['fator_regiao_rural', 10.0, 'regiao', 'rural', 5500.0],
+    'veiculo antigo'    => ['fator_veiculo_antigo', 3.0, 'ano', (int) date('Y')-11, 5150.0],
+    'tipo moto'           => ['fator_tipo_moto', 5.0, 'tipo_veiculo', 'moto', 5250.0],
+    'tipo caminhao'       => ['fator_tipo_caminhao', 10.0, 'tipo_veiculo', 'caminhao', 5500.0],
+    'tem kit gas'         => ['fator_kit_gas', 2.0, 'kit_gas', true, 5100.0],
+    'eh blindado'         => ['fator_blindado', 4.0, 'blindado', true, 5200.0],
+    'uso comercial'       => ['fator_uso_comercial', 6.0, 'uso', ['comercial'], 5300.0],
+    'estaciona na rua'    => ['fator_estacionamento_rua', 3.0, 'estacionamento', 'rua', 5150.0],
+]);
+
+test('deve calcular os descontos simples do ramo auto', function ($campoDesconto, $valorDesconto, $dadoChave, $dadoValor, $resultadoEsperado) {
+    $service = new CalculadoraPremioService();
+    $segurado = new Segurado(['score' => 50]); 
+    
+    $produto = new Produto();
+    $produto->ramo = 'Auto';
+    $produto->parametros_calculo = [
+        'taxa_base' => 5.0,
+        $campoDesconto => $valorDesconto 
+    ];
+
+    $dados = [
+        'valor_base_risco' => 100000,
+        'ano' => (int) date('Y'),
+        $dadoChave => $dadoValor
+    ];
+
+    $resultado = $service->calcular($produto, $dados, $segurado);
+    expect($resultado)->toBe($resultadoEsperado);
+
+})->with([
+    'carro zero km'       => ['desconto_zero_km', 3.0, 'zero', true, 4850.0],
+    'garagem fechada'     => ['desconto_garagem', 2.0, 'estacionamento', 'garagem', 4900.0],
+]);
+test('deve aplicar agravante se tiver seguro antigo e uso anterior', function () {
+    $service = new CalculadoraPremioService();
+    $produto = new Produto(['ramo' => 'Auto', 'parametros_calculo' => [
+        'taxa_base' => 5.0,
+        'fator_sinistro_anterior' => 3.0 // Agravante de 3%
+    ]]);
+    $segurado = new Segurado(['score' => 50]); 
+    
+    $dados = [
+        'valor_base_risco' => 100000,
+        'uso_anterior' => 'sim', // Chave 1
+        'seguro_antigo' => true  // Chave 2 (ambas são necessárias)
+    ];
+
+    $resultado = $service->calcular($produto, $dados, $segurado);
+    expect($resultado)->toBe(5150.0);
+});
+
+test('deve calcular o desconto multiplicando a classe de bonus', function () {
+    $service = new CalculadoraPremioService();
+    $produto = new Produto(['ramo' => 'Auto', 'parametros_calculo' => [
+        'taxa_base' => 5.0,
+        'desconto_por_classe_bonus' => 2.0 // 2% de desconto POR CLASSE
+    ]]);
+    $segurado = new Segurado(['score' => 50]); 
+    
+    $dados = [
+        'valor_base_risco' => 100000,
+        'classe_bonus' => 3 // Matemática: 3 classes * 2% = 6% de desconto total
+    ];
+
+    // Prêmio base (5.000) - 6% (300) = 4.700
+    $resultado = $service->calcular($produto, $dados, $segurado);
+    expect($resultado)->toBe(4700.0);
+});
+// =========================================================================
+// RAMO: RESIDENCIAL
+// =========================================================================
+test('deve calcular agravantes do ramo residencial', function ($campoAgravante, $valorAgravante, $dadoChave, $dadoValor, $resultadoEsperado) {
+    
+    $service = new CalculadoraPremioService();
+
+    $segurado = new Segurado(['score' => 50]); 
+    
+    $produto = new Produto();
+    $produto->ramo = 'Residencial';
+
+    $produto->parametros_calculo = [
+        'taxa_base' => 5.0,
+        $campoAgravante => $valorAgravante 
+    ];
+
+    $dados = [
+        'valor_base_risco' => 100000,
+        $dadoChave => $dadoValor
+    ];
+
+    $resultado = $service->calcular($produto, $dados, $segurado);
+
+    expect($resultado)->toBe($resultadoEsperado);
+
+})->with([
+    'construcao em madeira'     => ['fator_construcao_madeira', 3.0, 'tipo_construcao', 'madeira', 5150.0],
+    'casa de veraneio'          => ['fator_uso_veraneio', 5.0, 'uso_residencia', 'veraneio', 5250.0],
+    'regiao rural'              => ['fator_regiao_rural', 10.0, 'regiao', 'rural', 5500.0],
+    'terreno baldio'            => ['fator_terreno_baldio', 3.0, 'terreno_baldio', 'sim', 5150.0],
+    'sinistro vez'              => ['fator_sinistro_anterior', 3.0, 'sinistros', 'uma_vez', 5150.0],
+    'sinistros duas vezes'      => ['fator_sinistro_anterior', 5.0, 'sinistros', 'duas_vezes', 5250.0],
+    'sinistros tres ou mais'    => ['fator_sinistro_anterior', 10.0, 'sinistros', 'tres_mais', 5500.0],
+    'imovel desocupado'         => ['fator_imovel_desocupado', 4.0, 'sobre_imovel', ['desocupado'], 5200.0],
+    'com agro comercial'        => ['fator_agro_comercial', 4.0, 'agro_comercial', 'com_agro_comercial', 5200.0]
+]);
+
+test('deve calcular os descontos do ramo residencial', function ($campoDesconto, $valorDesconto, $dadosChave, $dadoValor, $resultadoEsperado) {
+    $service = new CalculadoraPremioService;
+
+    $segurado = new Segurado(['score' => 50]); 
+    
+    $produto = new Produto();
+    $produto->ramo = 'Residencial';
+
+    $produto->parametros_calculo = [
+        'taxa_base' => 5.0,
+        $campoDesconto => $valorDesconto 
+    ];
+
+    $dados = [
+        'valor_base_risco' => 100000,
+        $dadosChave => $dadoValor
+    ];
+
+    $resultado = $service->calcular($produto, $dados, $segurado);
+
+    expect($resultado)->toBe($resultadoEsperado);
+})->with([
+    'apartamento'  => ['desconto_apartamento', 3.0, 'tipo_moradia', 'apartamento', 4850.0],
+    'condominio'   => ['desconto_condominio_horizontal', 3.0, 'tipo_moradia', 'condominio_horizontal', 4850.0],
 ]);
 
 
