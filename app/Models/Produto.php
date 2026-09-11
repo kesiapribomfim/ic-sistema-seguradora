@@ -45,4 +45,5 @@ class Produto extends Model
 // Migration: Criar uma nova migration (add_taxa_base_to_produtos_table).
 // Model: Adicionar ao $fillable e colocar um $casts de float.
 // Seeder: Tirar o valor de dentro do array JSON e passar para a coluna nova.
+
 // Filament Resource: Mudar o campo visual (provavelmente tirando de dentro de um KeyValue ou Repeater e virando um TextInput normal).
