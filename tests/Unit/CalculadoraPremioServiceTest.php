@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\Log;
 uses(Tests\TestCase::class);
 
 
-// =========================================================================
-// TESTES SCORE
-// =========================================================================
 describe(
     'SCORE',
         function () {
@@ -44,10 +41,6 @@ describe(
         }
 );
 
-
-// =========================================================================
-// RAMO: AUTO
-// =========================================================================
 describe(
     'RAMO: AUTO',
         function () {
@@ -106,6 +99,7 @@ describe(
                 'carro zero km'       => ['desconto_zero_km', 3.0, 'zero', true, 4850.0],
                 'garagem fechada'     => ['desconto_garagem', 2.0, 'estacionamento', 'garagem', 4900.0],
             ]);
+
             test('deve aplicar agravante se tiver seguro antigo e uso anterior', function () {
                 $service = new CalculadoraPremioService();
                 $produto = new Produto(['ramo' => 'Auto', 'parametros_calculo' => [
@@ -143,9 +137,8 @@ describe(
                 });
         }
 );
-// =========================================================================
-// RAMO: RESIDENCIAL
-// =========================================================================
+
+
 describe(
     'RAMO: RESIDENCIAL',
         function () {
@@ -211,9 +204,8 @@ describe(
             ]);
         }
 );
-// =========================================================================
-// RAMO: VIDA
-// =========================================================================
+
+
 describe(
     'RAMO: VIDA',
         function () {
@@ -244,7 +236,86 @@ describe(
                 'esportes radicais' => ['fator_esportes_radicais', 5.0, 'pratica_esportes_radicais', true, 5250.00],
             ]);
 
+            test('deve calcular agravante para IMC fora do padrao', function ($peso, $altura, $resultadoEsperado){
+                    $service = new CalculadoraPremioService;
+                    $segurado = new Segurado([
+                            'score' => 50,
+                    ]);
 
+                    $produto = new Produto();
+                    $produto->ramo = 'Vida';
+                    $produto->parametros_calculo = [
+                        'taxa_base' => 5.0,
+                        'fator_imc_fora_padrao' => 5.0,
+                    ];
+
+                    $dados = [
+                        'valor_base_risco' => 100000,
+                        'altura'           => $altura,
+                        'peso'             => $peso,
+                    ];
+
+                    $resultado = $service->calcular($produto, $dados, $segurado);
+
+                    expect($resultado)->toBe($resultadoEsperado);
+
+                })->with([
+                    'IMC abaixo' => [55, 180, 5250.0],
+                    'IMC acima'  => [95, 160, 5250.0]
+                ]);
+                
+            test('deve calcular agravante doenca', function($doencas, $resultadoEsperado) {
+                    $service = new CalculadoraPremioService;
+                    $segurado = new Segurado([
+                        'score' => 50,
+                    ]);
+                    $produto = new Produto();
+                    $produto->ramo = 'Vida';
+                    $produto->parametros_calculo = [
+                        'taxa_base'                  => 5.0,
+                        'fator_doenca_preexistente'  => 5.0,
+                        'fator_doenca_grave'         => 10.0,
+                    ];
+                    $dados = [
+                        'valor_base_risco'           => 100000,
+                        'possui_doenca_preexistente' => true,
+                        'doencas_diagnosticadas'     => $doencas,
+                    ];
+
+                    $resultado = $service->calcular($produto, $dados, $segurado);
+                    
+                    expect($resultado)->toBe($resultadoEsperado);
+            })->with([
+                'doenca preexistente' => [['osteomelite'], 5250.0],
+                'doenca grave'        => [['osteomelite', 'cancer'], 5500.0],        
+            ]);
+
+            test('deve calcular risco de dependentes', function ($dependentes, $resultadoEsperado){
+                $service = new CalculadoraPremioService;
+                $segurado = new Segurado(['score' => 50]);
+                $produto = new Produto();
+                $produto->ramo = 'Vida';
+                $produto->parametros_calculo = [
+                    'taxa_base'       => 5.0,
+                    'fator_fumante'   => 5.0,
+                ];
+
+                $dados = [
+                    'valor_base_risco' => 100000,
+                    'dependentes_vida' => $dependentes,
+                ];
+
+                $resultado = $service->calcular($produto, $dados, $segurado);
+                
+                expect($resultado)->toBe($resultadoEsperado);
+
+            })->with([
+                'conjuge saudavel'      => [[['parentesco' => 'conjuge']], 5500.0],
+                'conjuge com agravante' => [[['parentesco' => 'conjuge', 'fumante' => true]], 5750.0],
+                'filho saudavel'        => [[['parentesco' => 'filho']], 5250.0],
+                'dois filhos saudaveis' => [[['parentesco' =>'filho'],['parentesco' =>'filho']], 5500.0],
+            ]);
+            
             test('deve calcular desconto de perfil saudavel', function (){
                 $service = new CalculadoraPremioService;
                 $segurado = new Segurado (['score' => 50]);
@@ -265,7 +336,57 @@ describe(
                 $resultado = $service->calcular($produto, $dados, $segurado);
 
                 expect($resultado)->toBe(4500.0);
+            });
+            
+        }
+);
 
+describe(
+    'COBERTURAS', function() {
+        test('deve considerar adicional de coberturas', function ($coberturas, $resultadoEsperado){
+            $service = new CalculadoraPremioService;
+            $segurado = new Segurado(['score' => 50]);
+            $produto = new Produto();
+            $produto->ramo = 'Outro';
+            $produto->parametros_calculo = [
+                'taxa_base' => 5.0,
+            ];
+
+            $dados = [
+                'valor_base_risco' => 100000,
+                'cobertura_selecionada' => $coberturas
+            ];
+            $resultado = $service->calcular($produto, $dados, $segurado);
+
+            expect($resultado)->toBe($resultadoEsperado);
+
+        })->with([
+            'somente obrigatorias selecionadas' => [[['contratada'=> true, 'obrigatoria' => true, 'limite_maximo'=>1000]], 5000.0],
+            'opcionais selecionadas'            => [[['contratada' => true, 'obrigatoria' => false, 'limite_maximo' => 1000]], 5010.0]
+        ]);
+    }
+);
+
+describe(
+    'MAXIMO DESCONTO',
+        function() {
+            test('deve bloquear prêmio com valor inferior a 10% do valor base em caso de descontos extremos', function(){
+            $service = new CalculadoraPremioService;
+            $segurado = new Segurado(['score' => 50]);
+            $produto = new Produto();
+            $produto->ramo = 'Auto';
+            $produto->parametros_calculo = ([
+                'taxa_base'        => 5.0,
+                'desconto_garagem' => 95.0
+            ]);
+            $dados = [
+                'valor_base_risco' => 100000,
+                'estacionamento'   => 'garagem'
+            ];
+
+            $resultado = $service->calcular($produto, $dados, $segurado);
+
+            expect($resultado)->toBe(500.0);
             });
         }
 );
