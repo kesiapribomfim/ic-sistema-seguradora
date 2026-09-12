@@ -138,12 +138,12 @@ class CalculadoraPremioService
             // Lógica isolada para processar a saúde de qualquer pessoa (Titular ou Dependente)
             $processarRiscoSaude = function (array $pessoa) use ($parametros, &$totalAgravantes, &$totalDescontos) {
                 
-                // 1. Profissão de Risco (Geralmente só aplicável ao titular, mas verificamos de forma segura)
+                // Profissão de Risco (Geralmente só aplicável ao titular, mas verificamos de forma segura)
                 if (($pessoa['profissao_risco'] ?? 'nao') === 'sim') {
                     $totalAgravantes += (float) ($parametros['fator_profissao_risco'] ?? 0);
                 }
 
-                // 2. Cálculo de IMC
+                // Cálculo de IMC
                 $peso = $this->formatarNumero($pessoa['peso'] ?? 0);
                 $altura = $this->formatarNumero($pessoa['altura'] ?? 0);
                 
@@ -157,7 +157,7 @@ class CalculadoraPremioService
                     }
                 }
 
-                // 3. Doenças Preexistentes
+                // Doenças Preexistentes
                 $possuiDoenca = !empty($pessoa['possui_doenca_preexistente']);
                 if ($possuiDoenca) {
                     $doencasDiagnosticadas = $pessoa['doencas_diagnosticadas'] ?? [];
