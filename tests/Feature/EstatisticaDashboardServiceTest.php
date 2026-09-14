@@ -20,6 +20,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    //perfil
+    \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
 
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS GLOBAIS
@@ -29,6 +31,7 @@ beforeEach(function () {
     $ativos = Segurado::factory()->count(5)->create([
         'status' => true,
     ]);
+    //Para testes após aplicar filtro
     $inativos = Segurado::factory()->count(3)->create([
         'status' => false,
     ]);
@@ -37,6 +40,17 @@ beforeEach(function () {
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS LOCAIS
     ////////////////////////////////////////////////////////////////////////////////
+    $filialLocal = Filial::factory()->create([
+        'nome' => 'Local Teste'
+    ]);
+
+    $corretoresLocal = User::factory()->create(3); //três corretores na filial
+    foreach($corretoresLocal as $corretor) {
+        $corretor->filiais()->attach($filialLocal->id, [
+            'perfil_acesso' => 'Corretor',
+            'status' => true,
+        ]);
+    }
 
     //segurados vinculados a apolice local
     // $seguradosApoliceLocal = Segurado::factory()->count(3)->create([
@@ -55,62 +69,52 @@ beforeEach(function () {
     // ]);
 
 
+    // //corretor para relacionar a segurados que não podem estar diretamente vinculados a filial
+    // User::factory()->create([
+    //     'name' => 'Corretor Flutuante',
+    // ]);
+    // //Laço para vincular apolice e segurado a corretores locais
+    // foreach ($corretoresLocal as $corretor) {
+    //     //Vinculo do corretor a filial
+    //     $corretor->filiais()->attach($filialLocal->id, [
+    //         'perfil_acesso' => 'Corretor',
+    //         'status' => true,
+    //     ]);
 
+    //     //segurados vinculado ao corretor local -> +3 segurados
+    //     Segurado::factory()->count(3)->create([
+    //         'status' => true,
+    //         'corretor_id' => $corretor->id,
+    //     ]);
 
+    //     //apolices vinculadas a filial local -> +4 apolices vigentes
+    //     $apoliceLocalVigente = Apolice::factory()->count(4)->create([
+    //         'data_emissao' => '2026-09-01',
+    //         'valor_total'  => 100.00,
+    //         'status'       => 'Vigente',
+    //         'filial_id'    => $filialLocal->id(), //id da filial local
+    //     ]);
+    // }
 
-    //Dados da Filial Local (3 corretores)
-    $filialLocal = Filial::factory()->created([
-        'nome' => 'Ciranna Yuci',
-    ]);
-    $corretoresLocal = User::factory()->create(3);
-
-    //corretor para relacionar a segurados que não podem estar diretamente vinculados a filial
-    User::factory()->create([
-        'name' => 'Corretor Flutuante',
-    ]);
-    //Laço para vincular apolice e segurado a corretores locais
-    foreach ($corretoresLocal as $corretor) {
-        //Vinculo do corretor a filial
-        $corretor->filiais()->attach($filialLocal->id, [
-            'perfil_acesso' => 'Corretor',
-            'status' => true,
-        ]);
-
-        //segurados vinculado ao corretor local -> +3 segurados
-        Segurado::factory()->count(3)->create([
-            'status' => true,
-            'corretor_id' => $corretor->id,
-        ]);
-
-        //apolices vinculadas a filial local -> +4 apolices vigentes
-        $apoliceLocalVigente = Apolice::factory()->count(4)->create([
-            'data_emissao' => '2026-09-01',
-            'valor_total'  => 100.00,
-            'status'       => 'Vigente',
-            'filial_id'    => $filialLocal->id(), //id da filial local
-        ]);
-    }
-
-    Apolice::factory()->count(30)->create([
-        'status' => 'Vigente',
-    ]);
+    // Apolice::factory()->count(30)->create([
+    //     'status' => 'Vigente',
+    // ]);
     
-    Sinistro::factory()->cont(30)->create();
+    // Sinistro::factory()->cont(30)->create();
 
-    Segurado::factory()->count(24)->create();
+    // Segurado::factory()->count(24)->create();
 
-    $this->filialLocal = $filialLocal;
+    // $this->filialLocal = $filialLocal;
 
 
     /////////////////////////////////////////////////////////////////////////////////
-    // Variaveis Globais
+    // Variaveis
     ////////////////////////////////////////////////////////////////////////////////
-    $this->$filialLocalId = $filialLocal->id;
+    // $this->$filialLocalId = $filialLocal->id;
     
     $this->seguradosGlobais = [
         'ativos' => $ativos,
         'inativos' => $inativos,
-        // Dica bônus: já deixa a conta matemática pronta pra facilitar a sua vida no teste!
         'total_ativos' => $ativos->count(),
         'total_inativos' => $inativos->count(),
         'soma_tudo' => $ativos->count() + $inativos->count(),
@@ -128,7 +132,7 @@ test('deve contabilizar as estatisticas globalmente de forma correta', function(
 
     // 3. Como é global, a Service tem que somar TUDO que tem no banco de dados.
     // Nós puxamos as quantidades da mochila ($this) e somamos!
-    $quantidadeEsperada = $this->qtdSeguradosGlobais + $this->qtdSeguradosLocais; // 5 + 3 = 8
+    $quantidadeEsperada = $this->seguradosGlobais['soma_tudo']; // + 5
 
     // 4. A verificação final
     expect($resultado['total_segurados'])->toBe($quantidadeEsperada);
@@ -146,7 +150,7 @@ test('deve contabilizar as estatisticas globalmente de forma correta', function(
 
 test('deve contabilizar as esteticas localmente de forma correta', function() {
 
-    //Dados para estatística local:
+    //LINHAS DE TESTE DA SERVICE:
     //         if (!$isGlobal && !empty($filiaisIds)) {
     //             $seguradosQuery->where(function ($q) use ($filiaisIds) {
     //                 $q->whereHas('corretor.filiais', fn($q2) => $q2->whereIn('filiais.id', $filiaisIds))
