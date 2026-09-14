@@ -12,6 +12,7 @@ use App\Models\Sinistro;
 use App\Models\Cotacao;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Classe de teste destinada a EstatisticaDashboardService
@@ -22,159 +23,137 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     //perfil
     \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
+    Mail::fake();
 
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS GLOBAIS
     ////////////////////////////////////////////////////////////////////////////////
     
     // + 5 Segurados Globais
-    $ativos = Segurado::factory()->count(5)->create([
+    $segurados = Segurado::factory()->count(5)->create([
         'status' => true,
     ]);
-    //Para testes após aplicar filtro
-    $inativos = Segurado::factory()->count(3)->create([
-        'status' => false,
-    ]);
-    
+
+    //+5 apolices vigentes, + R$500 valor faturamento total
+    $faturamentoTotal = 0.0;
+    foreach ($segurados as $segurado) {
+        $cotacao = Cotacao::factory()->create([
+            'segurado_id' => $segurado->id,
+        ]);
+
+        $apoliceVigente = Apolice::factory()->create([
+            'segurado_id'  => $segurado->id,
+            'cotacao_id'   => $cotacao->id,
+            'data_emissao' => '2026-09-01',
+            'valor_total'  => 100.00,
+            'status'       => 'Vigente',
+        ]);
+        
+        $faturamentoTotal += $apoliceVigente->valor_total;
+    }
 
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS LOCAIS
     ////////////////////////////////////////////////////////////////////////////////
     $filialLocal = Filial::factory()->create([
-        'nome' => 'Local Teste'
+         'nome' => 'Local Teste'
     ]);
 
-    $corretoresLocal = User::factory()->create(3); //três corretores na filial
-    foreach($corretoresLocal as $corretor) {
-        $corretor->filiais()->attach($filialLocal->id, [
-            'perfil_acesso' => 'Corretor',
-            'status' => true,
+    $corretorLocal = User::factory()->create();
+    $corretorLocal->filials()->attach($filialLocal->id, [
+            'perfil_acesso' => 'Corretor'
+    ]);
+
+
+    //segurados vinculado ao corretor local -> +5 segurados
+    $seguradosLocais = Segurado::factory()->count(5)->create([
+        'corretor_id' => $corretorLocal->id,
+    ]);
+
+    $faturamentoTotalLocal = 0.0;
+
+    $seguradosApoliceLocal = Segurado::factory()->create();
+
+    foreach ($seguradosApoliceLocal as $segurado) {
+        $cotacao = Cotacao::factory()->create([
+            'segurado_id' => $segurado->id,
         ]);
+        $apoliceLocalVigente = Apolice::factory()->count(5)->create([
+        'data_emissao' => '2026-09-01',
+        'valor_total'  => 100.00,
+        'status'       => 'Vigente',
+        'filial_id'    => $filialLocal->id,
+    ]);
+        $faturamentoTotalLocal += $apoliceLocalVigente->valor_total;
     }
 
-    //segurados vinculados a apolice local
-    // $seguradosApoliceLocal = Segurado::factory()->count(3)->create([
-    //     'status' => true,
-    // ]);
-
-    // foreach($seguradosApoliceLocal as $segurado) {
-    //     $apoliceLocalVigente = [
-    //         'segurado_id' => $segurado->id,
-    //     ];
-    //     return $apoliceLocalVigente;
-    // }
-
-    // $seguradoCotacaoLocal = Segurado::factory()->count(3)->create([
-    //     'status' => true,
-    // ]);
-
-
-    // //corretor para relacionar a segurados que não podem estar diretamente vinculados a filial
-    // User::factory()->create([
-    //     'name' => 'Corretor Flutuante',
-    // ]);
-    // //Laço para vincular apolice e segurado a corretores locais
-    // foreach ($corretoresLocal as $corretor) {
-    //     //Vinculo do corretor a filial
-    //     $corretor->filiais()->attach($filialLocal->id, [
-    //         'perfil_acesso' => 'Corretor',
-    //         'status' => true,
-    //     ]);
-
-    //     //segurados vinculado ao corretor local -> +3 segurados
-    //     Segurado::factory()->count(3)->create([
-    //         'status' => true,
-    //         'corretor_id' => $corretor->id,
-    //     ]);
-
-    //     //apolices vinculadas a filial local -> +4 apolices vigentes
-    //     $apoliceLocalVigente = Apolice::factory()->count(4)->create([
-    //         'data_emissao' => '2026-09-01',
-    //         'valor_total'  => 100.00,
-    //         'status'       => 'Vigente',
-    //         'filial_id'    => $filialLocal->id(), //id da filial local
-    //     ]);
-    // }
-
-    // Apolice::factory()->count(30)->create([
-    //     'status' => 'Vigente',
-    // ]);
-    
-    // Sinistro::factory()->cont(30)->create();
-
-    // Segurado::factory()->count(24)->create();
-
-    // $this->filialLocal = $filialLocal;
+ 
 
 
     /////////////////////////////////////////////////////////////////////////////////
     // Variaveis
     ////////////////////////////////////////////////////////////////////////////////
-    // $this->$filialLocalId = $filialLocal->id;
     
-    $this->seguradosGlobais = [
-        'ativos' => $ativos,
-        'inativos' => $inativos,
-        'total_ativos' => $ativos->count(),
-        'total_inativos' => $inativos->count(),
-        'soma_tudo' => $ativos->count() + $inativos->count(),
+    //retorno dos dados globais
+    $this->dadosGlobais = [
+        'total_segurados'       => $segurados->count() + $seguradosLocais->count() + $seguradosApoliceLocal->count(),
+        'apolices_vigentes'     => $apoliceVigente->count() + $apoliceLocalVigente->count(),
+        'sinistros_analise'     => 0,
+        'faturamento_total'     => $faturamentoTotal + $faturamentoTotalLocal,
+        'custo_total_sinistros' => 0,
+        'sinistralidade'        => 0,
+    ];
+
+    //retorno dos dados locais
+    $this->filialLocalId = $filialLocal->id;
+
+    $this->dadosLocais = [
+        'total_segurados'       => $seguradosLocais->count() + $seguradosApoliceLocal->count(),
+        'apolices_vigentes'     => $apoliceLocalVigente->count(),
+        'sinistros_analise'     => 0,
+        'faturamento_total'     => $faturamentoTotalLocal,
+        'custo_total_sinistros' => 0,
+        'sinistralidade'        => 0,
     ];
 
 });
 
 
 test('deve contabilizar as estatisticas globalmente de forma correta', function() {
-    // 1. Instanciamos a Service
-    $service = new EstatisticaDashboardService();
+    
+$service = new EstatisticaDashboardService();
 
-    // 2. Chamamos o método no modo Global (ignorando o array de filiais e passando isGlobal como true)
     $resultado = $service->obterEstatisticas([], true);
 
-    // 3. Como é global, a Service tem que somar TUDO que tem no banco de dados.
-    // Nós puxamos as quantidades da mochila ($this) e somamos!
-    $quantidadeEsperada = $this->seguradosGlobais['soma_tudo']; // + 5
 
-    // 4. A verificação final
-    expect($resultado['total_segurados'])->toBe($quantidadeEsperada);
-
-
-    //ASSERT
-    // expect(count($seguradosQuery))->toBe();
-    // expect(count($apolicesVigentesQuery))->toBe();
-    // expect(count($sinistrosAnaliseQuery))->toBe();
-    // expect($faturamentoTotal)->toBe();
-    // expect($custoTotalSinistros)->toBe();
-    // expect($sinistralidade)->toBe();
+    expect($resultado)->toEqual($this->dadosGlobais);
 
 });
 
 test('deve contabilizar as esteticas localmente de forma correta', function() {
 
-    //LINHAS DE TESTE DA SERVICE:
-    //         if (!$isGlobal && !empty($filiaisIds)) {
-    //             $seguradosQuery->where(function ($q) use ($filiaisIds) {
-    //                 $q->whereHas('corretor.filiais', fn($q2) => $q2->whereIn('filiais.id', $filiaisIds))
-    //                     ->orWhereHas('apolices', fn($q3) => $q3->whereIn('filial_id', $filiaisIds))
-    //                     ->orWhereHas('cotacoes', fn($q4) => $q4->whereIn('filial_id', $filiaisIds))
-    //                     ->orWhereHas('user.filiais', fn($q5) => $q5->whereIn('filiais.id', $filiaisIds));
-    //             });
+//     //LINHAS DE TESTE DA SERVICE:
+//     //         if (!$isGlobal && !empty($filiaisIds)) {
+//     //             $seguradosQuery->where(function ($q) use ($filiaisIds) {
+//     //                 $q->whereHas('corretor.filiais', fn($q2) => $q2->whereIn('filiais.id', $filiaisIds))
+//     //                     ->orWhereHas('apolices', fn($q3) => $q3->whereIn('filial_id', $filiaisIds))
+//     //                     ->orWhereHas('cotacoes', fn($q4) => $q4->whereIn('filial_id', $filiaisIds))
+//     //                     ->orWhereHas('user.filiais', fn($q5) => $q5->whereIn('filiais.id', $filiaisIds));
+//     //             });
 
-    //             $apolicesVigentesQuery->whereIn('filial_id', $filiaisIds);
-    //             $faturamentoQuery->whereIn('filial_id', $filiaisIds);
+//     //             $apolicesVigentesQuery->whereIn('filial_id', $filiaisIds);
+//     //             $faturamentoQuery->whereIn('filial_id', $filiaisIds);
 
-    //             $sinistrosAnaliseQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-    //             $custoSinistrosQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-    //         }
-
+//     //             $sinistrosAnaliseQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
+//     //             $custoSinistrosQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
+//     //         }
     $service = new EstatisticaDashboardService;
 
-    //ASSERT
-    // expect(count($seguradosQuery))->toBe();
-    // expect(count($apolicesVigentesQuery))->toBe();
-    // expect(count($sinistrosAnaliseQuery))->tpBe();
-    // expect($faturamentoTotal)->toBe();
-    // expect($custoTotalSinistros)->toBe();
-    // expect($sinistralidade)->toBe();
+    $resultado = $service->obterEstatisticas([$this->filialLocalId], false);
+
+
+    expect($resultado)->toEqual($this->dadosLocais);
+
 });
 
 
