@@ -23,4 +23,5 @@ yarn-error.log
 /.zed
 escolhas.txt
 AGENTS.md
+/coverage-report
 /relatorio-cobertura
