@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\SeguradoResource;
 use App\Services\EstatisticaDashboardService;
 use App\Models\Segurado;
 use App\Models\Apolice;
@@ -10,7 +9,6 @@ use App\Models\Filial;
 use App\Models\User;
 use App\Models\Sinistro;
 use App\Models\Cotacao;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 
@@ -24,7 +22,7 @@ beforeEach(function () {
     //perfil
     \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
     Mail::fake();
-
+    
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS GLOBAIS
     ////////////////////////////////////////////////////////////////////////////////
@@ -38,6 +36,10 @@ beforeEach(function () {
     $faturamentoTotal = 0.0;
     $qtdApoliceVigenteTotal = 0;
 
+
+    $custoSinistros = 0.0;
+    $qtdSinistrosEmAnaliseTotal = 0;
+
     foreach ($segurados as $segurado) {
         $cotacao = Cotacao::factory()->create([
             'segurado_id' => $segurado->id,
@@ -46,14 +48,58 @@ beforeEach(function () {
         $apoliceVigente = Apolice::factory()->create([
             'segurado_id'  => $segurado->id,
             'cotacao_id'   => $cotacao->id,
-            'data_emissao' => '2026-09-01',
+            'data_emissao' => now()->format('Y-m-d'),
             'valor_total'  => 100.00,
             'status'       => 'Vigente',
         ]);
-        
         $faturamentoTotal += $apoliceVigente->valor_total;
         $qtdApoliceVigenteTotal ++;
+
+        Sinistro::factory()->createQuietly([
+            'apolice_id'           => $apoliceVigente->id,
+            'status'               => 'Em análise',
+            'valor_indenizacao'    => 0.0,
+            'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
+
+        ]);
+        $qtdSinistrosEmAnaliseTotal ++;
+
+        $sinistrosPago = Sinistro::factory()->createQuietly([
+            'apolice_id'        => $apoliceVigente->id,
+            'status'            => 'Pago',
+            'valor_indenizacao' => 50.0,
+            'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        $custoSinistros += $sinistrosPago->valor_indenizacao;
+        
     }
+
+        //apolices canceladas
+        Apolice::factory()->create([
+            'segurado_id'  => $segurado->id,
+            'cotacao_id'   => $cotacao->id,
+            'data_emissao' => now()->format('Y-m-d'),
+            'valor_total'  => 100.0,
+            'status'       => 'Cancelada',
+        ]);
+
+        //apolice antiga
+        $apoliceAntiga = Apolice::factory()->create([
+            'segurado_id' => $segurado->id,
+            'cotacao_id'  => $cotacao->id,
+            'data_emissao' => '2025-10-01',
+            'valor_total'  => 100.0,
+            'status'       => 'Vigente',
+        ]);
+
+        //sinistro negado
+        Sinistro::factory()->createQuietly([
+            'apolice_id'        => $apoliceAntiga->id,
+            'status'            => 'Negado',
+            'valor_indenizacao' => 50.0,
+            'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
+        ]);
 
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS LOCAIS
@@ -67,143 +113,120 @@ beforeEach(function () {
             'perfil_acesso' => 'Corretor'
     ]);
 
-
-    //segurados vinculado ao corretor local -> +5 segurados
+    //+5 segurados (vinculados a filial via corretor_id)
     $seguradosLocais = Segurado::factory()->count(5)->create([
         'corretor_id' => $corretorLocal->id,
     ]);
 
-    $faturamentoTotalLocal = 0.0;
+    $userLocal = User::factory()->create();
+    $userLocal->filiais()->attach($filialLocal->id, [
+        'perfil_acesso' => 'Cliente'
+    ]);
+    //+1 segurado (vinculado a perfil de user local)
+    Segurado::factory()->create(['user_id' => $userLocal->id]);
+
+    $seguradoCotacaoLocal = Segurado::factory()->create();
+    Cotacao::factory()->create([
+        'segurado_id' => $seguradoCotacaoLocal->id,
+        'filial_id'   => $filialLocal->id,
+    ]);
+
+    $faturamentoLocal = 0.0;
     $qtdApoliceVigenteLocal = 0;
 
+    $custoSinistrosLocal = 0.0;
+    $qtdSinistrosEmAnaliseLocal = 0;
+
+    //+5 segurados (com apolices locais vinculadas a eles)
     $seguradosApoliceLocal = Segurado::factory()->count(5)->create();
 
     foreach ($seguradosApoliceLocal as $segurado) {
         $cotacao = Cotacao::factory()->create([
             'segurado_id' => $segurado->id,
         ]);
-        $apoliceLocalVigente = Apolice::factory()->count(5)->create([
-        'data_emissao' => '2026-09-01',
-        'valor_total'  => 100.00,
-        'status'       => 'Vigente',
-        'filial_id'    => $filialLocal->id,
-    ]);
-        $faturamentoTotalLocal += $apoliceLocalVigente->valor_total;
+        $apoliceLocalVigente = Apolice::factory()->create([
+            'segurado_id'  => $segurado->id,
+            'cotacao_id'   => $cotacao->id,
+            'data_emissao' => now()->format('Y-m-d'),
+            'valor_total'  => 100.00,
+            'status'       => 'Vigente',
+            'filial_id'    => $filialLocal->id,
+        ]);
+        $faturamentoLocal += $apoliceLocalVigente->valor_total;
         $qtdApoliceVigenteLocal ++;
+
+        Sinistro::factory()->createQuietly([
+            'apolice_id'           => $apoliceLocalVigente->id,
+            'status'               => 'Em análise',
+            'valor_indenizacao'    => 0.0,
+            'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
+
+        ]);
+        $qtdSinistrosEmAnaliseLocal ++;
+
+        $sinistrosPago = Sinistro::factory()->createQuietly([
+            'apolice_id'        => $apoliceLocalVigente->id,
+            'status'            => 'Pago',
+            'valor_indenizacao' => 50.0,
+            'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),  
+        ]);
+
+        $custoSinistrosLocal += $sinistrosPago->valor_indenizacao;
     }
-
-
-
 
     /////////////////////////////////////////////////////////////////////////////////
     // Variaveis
     ////////////////////////////////////////////////////////////////////////////////
     
     //retorno dos dados globais
+    $faturamentoTotalGeral = $faturamentoTotal + $faturamentoLocal;
+    $custoSinistrosTotal = $custoSinistros + $custoSinistrosLocal;
+
     $this->dadosGlobais = [
-        'total_segurados'       => $segurados->count() + $seguradosLocais->count() + $seguradosApoliceLocal->count(),
-        'apolices_vigentes'     => $qtdApoliceVigenteLocal + $qtdApoliceVigenteTotal,
-        'sinistros_analise'     => 0,
-        'faturamento_total'     => $faturamentoTotal + $faturamentoTotalLocal,
-        'custo_total_sinistros' => 0,
-        'sinistralidade'        => 0,
+        'total_segurados'       => $segurados->count() + $seguradosLocais->count() + $seguradosApoliceLocal->count() + 2,
+        'apolices_vigentes'     => $qtdApoliceVigenteLocal + $qtdApoliceVigenteTotal + 1,
+        'sinistros_analise'     => $qtdSinistrosEmAnaliseTotal + $qtdSinistrosEmAnaliseLocal,
+        'faturamento_total'     => $faturamentoTotalGeral,
+        'custo_total_sinistros' => $custoSinistrosTotal,
+        'sinistralidade'        => $faturamentoTotalGeral > 0 ? ($custoSinistrosTotal / $faturamentoTotalGeral) * 100 : 0,
     ];
 
     //retorno dos dados locais
     $this->filialLocalId = $filialLocal->id;
 
     $this->dadosLocais = [
-        'total_segurados'       => $seguradosLocais->count() + $seguradosApoliceLocal->count(),
+        'total_segurados'       => $seguradosLocais->count() + $seguradosApoliceLocal->count() + 2,
         'apolices_vigentes'     => $qtdApoliceVigenteLocal,
-        'sinistros_analise'     => 0,
-        'faturamento_total'     => $faturamentoTotalLocal,
-        'custo_total_sinistros' => 0,
-        'sinistralidade'        => 0,
+        'sinistros_analise'     => $qtdSinistrosEmAnaliseLocal,
+        'faturamento_total'     => $faturamentoLocal,
+        'custo_total_sinistros' => $custoSinistrosLocal,
+        'sinistralidade'        => $faturamentoLocal > 0 ? ($custoSinistrosLocal / $faturamentoLocal) * 100 : 0,
     ];
 
 });
 
 
 test('deve contabilizar as estatisticas globalmente de forma correta', function() {
-    
-$service = new EstatisticaDashboardService();
-
+    $service = new EstatisticaDashboardService();
     $resultado = $service->obterEstatisticas([], true);
 
-
     expect($resultado)->toEqual($this->dadosGlobais);
-
 });
 
 test('deve contabilizar as esteticas localmente de forma correta', function() {
-
-//     //LINHAS DE TESTE DA SERVICE:
-//     //         if (!$isGlobal && !empty($filiaisIds)) {
-//     //             $seguradosQuery->where(function ($q) use ($filiaisIds) {
-//     //                 $q->whereHas('corretor.filiais', fn($q2) => $q2->whereIn('filiais.id', $filiaisIds))
-//     //                     ->orWhereHas('apolices', fn($q3) => $q3->whereIn('filial_id', $filiaisIds))
-//     //                     ->orWhereHas('cotacoes', fn($q4) => $q4->whereIn('filial_id', $filiaisIds))
-//     //                     ->orWhereHas('user.filiais', fn($q5) => $q5->whereIn('filiais.id', $filiaisIds));
-//     //             });
-
-//     //             $apolicesVigentesQuery->whereIn('filial_id', $filiaisIds);
-//     //             $faturamentoQuery->whereIn('filial_id', $filiaisIds);
-
-//     //             $sinistrosAnaliseQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-//     //             $custoSinistrosQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-//     //         }
     $service = new EstatisticaDashboardService;
-
     $resultado = $service->obterEstatisticas([$this->filialLocalId], false);
 
-
     expect($resultado)->toEqual($this->dadosLocais);
-
 });
 
+test('deve retornar sinistralidade zero se nao houver faturamento', function() {
+    
+    $filial = Filial::factory()->create();
+    
+    $service = new EstatisticaDashboardService();
+    $resultado = $service->obterEstatisticas([$filial->id], false);
 
-
-
-//  public function obterEstatisticas(array $filiaisIds = [], bool $isGlobal = false): array
-//     {
-//         $anoAtual = Carbon::now()->year;
-
-//         $seguradosQuery = Segurado::query();
-//         $apolicesVigentesQuery = Apolice::where('status', 'Vigente');
-//         $sinistrosAnaliseQuery = Sinistro::where('status', 'Em análise');
-
-//         $faturamentoQuery = Apolice::whereNotIn('status', ['Cancelada', 'Em Elaboração'])
-//             ->whereYear('data_emissao', $anoAtual);
-
-//         $custoSinistrosQuery = Sinistro::whereIn('status', ['Aprovado', 'Pago', 'Encerrado'])
-//             ->whereYear('data_hora_ocorrencia', $anoAtual);
-
-//         if (!$isGlobal && !empty($filiaisIds)) {
-//             $seguradosQuery->where(function ($q) use ($filiaisIds) {
-//                 $q->whereHas('corretor.filiais', fn($q2) => $q2->whereIn('filiais.id', $filiaisIds))
-//                     ->orWhereHas('apolices', fn($q3) => $q3->whereIn('filial_id', $filiaisIds))
-//                     ->orWhereHas('cotacoes', fn($q4) => $q4->whereIn('filial_id', $filiaisIds))
-//                     ->orWhereHas('user.filiais', fn($q5) => $q5->whereIn('filiais.id', $filiaisIds));
-//             });
-
-//             $apolicesVigentesQuery->whereIn('filial_id', $filiaisIds);
-//             $faturamentoQuery->whereIn('filial_id', $filiaisIds);
-
-//             $sinistrosAnaliseQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-//             $custoSinistrosQuery->whereHas('apolice', fn($q) => $q->whereIn('filial_id', $filiaisIds));
-//         }
-
-//         $faturamentoTotal = $faturamentoQuery->sum('valor_total');
-//         $custoTotalSinistros = $custoSinistrosQuery->sum('valor_indenizacao');
-
-//         $sinistralidade = $faturamentoTotal > 0 ? ($custoTotalSinistros / $faturamentoTotal) * 100 : 0;
-
-//         return [
-//             'total_segurados'       => $seguradosQuery->count(),
-//             'apolices_vigentes'     => $apolicesVigentesQuery->count(),
-//             'sinistros_analise'     => $sinistrosAnaliseQuery->count(),
-//             'faturamento_total'     => $faturamentoTotal,
-//             'custo_total_sinistros' => $custoTotalSinistros,
-//             'sinistralidade'        => $sinistralidade,
-//         ];
-//     }
+    expect($resultado['sinistralidade'])->toBe(0);
+    expect($resultado['faturamento_total'])->toBe(0);
+});
