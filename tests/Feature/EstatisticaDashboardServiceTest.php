@@ -36,6 +36,8 @@ beforeEach(function () {
 
     //+5 apolices vigentes, + R$500 valor faturamento total
     $faturamentoTotal = 0.0;
+    $qtdApoliceVigenteTotal = 0;
+
     foreach ($segurados as $segurado) {
         $cotacao = Cotacao::factory()->create([
             'segurado_id' => $segurado->id,
@@ -50,13 +52,14 @@ beforeEach(function () {
         ]);
         
         $faturamentoTotal += $apoliceVigente->valor_total;
+        $qtdApoliceVigenteTotal ++;
     }
 
     /////////////////////////////////////////////////////////////////////////////////
     // DADOS LOCAIS
     ////////////////////////////////////////////////////////////////////////////////
     $filialLocal = Filial::factory()->create([
-         'nome' => 'Local Teste'
+        'nome' => 'Local Teste'
     ]);
 
     $corretorLocal = User::factory()->create();
@@ -71,8 +74,9 @@ beforeEach(function () {
     ]);
 
     $faturamentoTotalLocal = 0.0;
+    $qtdApoliceVigenteLocal = 0;
 
-    $seguradosApoliceLocal = Segurado::factory()->create();
+    $seguradosApoliceLocal = Segurado::factory()->count(5)->create();
 
     foreach ($seguradosApoliceLocal as $segurado) {
         $cotacao = Cotacao::factory()->create([
@@ -85,9 +89,10 @@ beforeEach(function () {
         'filial_id'    => $filialLocal->id,
     ]);
         $faturamentoTotalLocal += $apoliceLocalVigente->valor_total;
+        $qtdApoliceVigenteLocal ++;
     }
 
- 
+
 
 
     /////////////////////////////////////////////////////////////////////////////////
@@ -97,7 +102,7 @@ beforeEach(function () {
     //retorno dos dados globais
     $this->dadosGlobais = [
         'total_segurados'       => $segurados->count() + $seguradosLocais->count() + $seguradosApoliceLocal->count(),
-        'apolices_vigentes'     => $apoliceVigente->count() + $apoliceLocalVigente->count(),
+        'apolices_vigentes'     => $qtdApoliceVigenteLocal + $qtdApoliceVigenteTotal,
         'sinistros_analise'     => 0,
         'faturamento_total'     => $faturamentoTotal + $faturamentoTotalLocal,
         'custo_total_sinistros' => 0,
@@ -109,7 +114,7 @@ beforeEach(function () {
 
     $this->dadosLocais = [
         'total_segurados'       => $seguradosLocais->count() + $seguradosApoliceLocal->count(),
-        'apolices_vigentes'     => $apoliceLocalVigente->count(),
+        'apolices_vigentes'     => $qtdApoliceVigenteLocal,
         'sinistros_analise'     => 0,
         'faturamento_total'     => $faturamentoTotalLocal,
         'custo_total_sinistros' => 0,
