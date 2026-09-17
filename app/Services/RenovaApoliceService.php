@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RenovaApoliceService {
-    //TODO: LÇÓGICA PARA NOVA APÓLICE SÓ PODER ENTRAR EM VALIDADE APÓS O VENCIMENTO DA ANTIGA
+    //TODO: LÓGICA PARA NOVA APÓLICE SÓ PODER ENTRAR EM VALIDADE APÓS O VENCIMENTO DA ANTIGA
     //gerar cotação nova
     public function GerarCotacao (Apolice $apolice): ?Cotacao
     {
