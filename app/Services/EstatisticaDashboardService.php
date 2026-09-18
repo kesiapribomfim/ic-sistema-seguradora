@@ -7,6 +7,7 @@ use App\Models\Apolice;
 use App\Models\Sinistro;
 use Carbon\Carbon; 
 
+//TODO (Reefatoração): Filtro segurados ativos
 class EstatisticaDashboardService
 {
     public function obterEstatisticas(array $filiaisIds = [], bool $isGlobal = false): array

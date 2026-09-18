@@ -20,7 +20,7 @@ describe(
                 $service = new CalculadoraPremioService();
 
                 $produto = new Produto();
-                $produto->ramo = 'Outro';
+                $produto->ramo = 'Vida';
                 $produto->parametros_calculo = ['taxa_base' => 5.0];
                 
                 $segurado = new Segurado();
@@ -347,7 +347,7 @@ describe(
             $service = new CalculadoraPremioService;
             $segurado = new Segurado(['score' => 50]);
             $produto = new Produto();
-            $produto->ramo = 'Outro';
+            $produto->ramo = 'Vida';
             $produto->parametros_calculo = [
                 'taxa_base' => 5.0,
             ];
@@ -398,13 +398,13 @@ describe(
                 ->once() 
                 ->withArgs(function ($mensagem, $contexto) {
                     return $mensagem === 'CalculadoraPremioService::calcular'
-                        && $contexto['ramo_processado'] === 'Outro'
+                        && $contexto['ramo_processado'] === 'Vida'
                         && array_key_exists('fatorMultiplicador', $contexto);
                 });
 
             $service = new CalculadoraPremioService();
             $segurado = new Segurado(['score' => 50]);
-            $produto = new Produto(['ramo' => 'Outro', 'parametros_calculo' => ['taxa_base' => 5.0]]);
+            $produto = new Produto(['ramo' => 'Vida', 'parametros_calculo' => ['taxa_base' => 5.0]]);
             $dados = ['valor_base_risco' => 100000];
 
             $service->calcular($produto, $dados, $segurado);

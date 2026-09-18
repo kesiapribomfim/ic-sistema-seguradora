@@ -30,7 +30,7 @@ class SeguradoFactory extends Factory
             'uf' => $this->faker->stateAbbr(),
             'cep' => $this->faker->numerify('########'),
             
-            'score' => $this->faker->numberBetween(0, 1000),
+            'score' => $this->faker->numberBetween(0, 100),
             'status' => $this->faker->boolean(80), // 80% chance of being true (Ativo)
         ];
     }
