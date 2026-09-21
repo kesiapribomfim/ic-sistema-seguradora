@@ -12,6 +12,8 @@ class EmissaoApoliceService
 {
     public function emitir(Cotacao $cotacao, string $formaPagamento, int $quantidadeParcelas): Apolice
     {
+        $quantidadeParcelas = max(1, $quantidadeParcelas);
+
         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
 
             // Snapshot do Produto
@@ -22,20 +24,13 @@ class EmissaoApoliceService
                 ],
                 'coberturas' => $cotacao->cobertura_selecionada,
             ];
-
-            //Cálculo da Parcela
-            $valorParcela = $quantidadeParcelas > 0 
-                ? ($cotacao->valor_total / $quantidadeParcelas) 
-                : $cotacao->valor_total;
-
-            //Extração e Limpeza do ID da Apólice de Origem (A Mágica da Renovação)
+            
+            $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
             $dadosEspecificos = $cotacao->dados_especificos ?? [];
             $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
             
-            // Removemos o campo temporário para não sujar o JSON final da nova apólice
             unset($dadosEspecificos['apolice_origem_id_temporario']); 
 
-            //Criação da Apólice
             $apolice = Apolice::create([
                 'segurado_id'          => $cotacao->segurado_id,
                 'user_id'              => $cotacao->user_id,
@@ -56,7 +51,6 @@ class EmissaoApoliceService
                 'valor_total'          => $cotacao->valor_total,
             ]);
 
-            // Associação de Beneficiários (Vida)
             $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
 
             foreach ($beneficiariosJson as $ben) {
@@ -78,7 +72,6 @@ class EmissaoApoliceService
                 ]);
             }
 
-            //Geração do Cronograma de Pagamentos
             for ($i = 1; $i <= $quantidadeParcelas; $i++) {
                 $isPrimeiraParcela = ($i === 1);
 

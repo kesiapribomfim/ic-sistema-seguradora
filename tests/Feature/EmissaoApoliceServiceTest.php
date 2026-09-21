@@ -1,9 +1,11 @@
 <?php
 
-use App\Services\CalculadoraPremioService;
+use App\Services\EmissaoApoliceService;
 use App\Models\Produto;
-use App\Models\Segurado;
-use Illuminate\Support\Facades\Log;
+use App\Models\Apolice;
+use App\Models\Cotacao;
+use App\Models\Beneficiario;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 
@@ -14,94 +16,141 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 
+beforeEach(function() {
+    \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
+    Queue::fake();
+
+    $produto = Produto::factory()->create([
+        'nome' => 'VIDA-TESTE',
+        'ramo' => 'Vida'
+    ]);
+    
+    $cotacao = Cotacao::factory()->createQuietly([
+        'valor_total'               => 1200.00,
+        'produto_id'                => $produto->id,
+        'dados_especificos'         => ['beneficiarios_vida' => [
+            ['cpf' => 77777777777, 'nome' => 'beneficiario um', 'data_nascimento' => '2000-01-01', 'percentual_rateio'=> 50, 'parentesco' => 'Filho'],
+            ['cpf' => 22222222222, 'nome' => 'beneficiario repetido', 'data_nascimento' => '2002-02-02', 'percentual_rateio' => 25, 'parentesco' => 'exemplo'],
+        ]],
+        'cobertura_selecionada'     => [
+            'invalidez', 'diarias por incapacidade temporaria', 'despesas medico-hospitalares'
+        ],    
+    ]);
+
+    Beneficiario::create([
+        'nome'              =>  'beneficiario repetido',
+        'cpf'               => '22222222222',
+        'data_nascimento'   => '2000-02-02',
+    ]);
+
+    $this->cotacao = $cotacao;
+    $this->formaPagamento = 'Pix';
+    $this->quantidadeParcelas = 10;
+    $this->snapshot = ['produto'=>['id'=> $cotacao->produto->id, 'nome'=>$cotacao->produto->nome],'coberturas'=>$cotacao->cobertura_selecionada];
+    $this->beneficiarios = $cotacao->dados_especificos['beneficiarios_vida'];
+});
+
+test('deve gerar o numero e valor das parcelas corretamente', function() {
+    $service = new EmissaoApoliceService;
+
+    $resultado = $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
+
+    expect($resultado->cotacao_id)->toBe($this->cotacao->id);
+    expect($resultado->valor_parcela)->toBe(120.00);
+    expect($resultado->forma_pagamento)->toBe('Pix');
+
+    $this->assertDatabaseCount('pagamentos', 10);
+
+    $this->assertDatabaseHas('pagamentos', [
+        'apolice_id'  => $resultado->id,
+        'num_parcela' => 1,
+        'status'      => 'Paga',
+    ]);
+
+    $this->assertDatabaseHas('pagamentos', [
+        'apolice_id'  => $resultado->id,
+        'num_parcela' => 2,
+        'status'      => 'Aberta',
+    ]);
 
 
+});
 
-// public function emitir(Cotacao $cotacao, string $formaPagamento, int $quantidadeParcelas): Apolice
-//     {
-//         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
+test ('deve gerar apolice corretamente com status vigente, snapshot do produto e numero de apolice valido', function() {
+    $service = new EmissaoApoliceService;
+    $resultado = $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
 
-//             // Snapshot do Produto
-//             $snapshot = [
-//                 'produto' => [
-//                     'id'   => $cotacao->produto->id ?? null,
-//                     'nome' => $cotacao->produto->nome ?? 'Produto Desconhecido',
-//                 ],
-//                 'coberturas' => $cotacao->cobertura_selecionada,
-//             ];
+    expect($resultado->numero_apolice)->toStartWith('AP-');
+    expect($resultado->status)->toBe('Vigente');
+    expect($resultado->snapshot)->toEqual($this->snapshot);
+});
 
-//             //Cálculo da Parcela
-//             $valorParcela = $quantidadeParcelas > 0 
-//                 ? ($cotacao->valor_total / $quantidadeParcelas) 
-//                 : $cotacao->valor_total;
+test('deve vincular beneficiarios a apolice de vida corretamente', function() {
+    $service = new EmissaoApoliceService;
+    $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
 
-//             //Extração e Limpeza do ID da Apólice de Origem (A Mágica da Renovação)
-//             $dadosEspecificos = $cotacao->dados_especificos ?? [];
-//             $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
-            
-//             // Removemos o campo temporário para não sujar o JSON final da nova apólice
-//             unset($dadosEspecificos['apolice_origem_id_temporario']); 
+    $this->assertDatabaseCount('beneficiarios', 2);
+    $this->assertDatabaseHas('beneficiarios', [
+        'cpf'  => $this->beneficiarios[0]['cpf'],
+        'nome' => $this->beneficiarios[0]['nome'],
+    ]);
+    $this->assertDatabaseHas('beneficiarios', [
+        'cpf'  => $this->beneficiarios[1]['cpf'],
+        'nome' => $this->beneficiarios[1]['nome'],
+    ]);
+});
 
-//             //Criação da Apólice
-//             $apolice = Apolice::create([
-//                 'segurado_id'          => $cotacao->segurado_id,
-//                 'user_id'              => $cotacao->user_id,
-//                 'filial_id'            => $cotacao->filial_id,
-//                 'cotacao_id'           => $cotacao->id,
-//                 'apolice_origem_id'    => $apoliceOrigemId,
-//                 'numero_apolice'       => 'AP-' . str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
-//                 'data_emissao'         => Carbon::now(),
-//                 'data_inicio'          => Carbon::now(),
-//                 'data_fim'             => Carbon::now()->addYear(),
-//                 'status'               => 'Vigente',
-//                 'snapshot'             => $snapshot, 
-//                 'dados_bem_assegurado' => $dadosEspecificos,
-//                 'beneficiarios'        => [], 
-//                 'forma_pagamento'      => $formaPagamento,
-//                 'quantidade_parcelas'  => $quantidadeParcelas,
-//                 'valor_parcela'        => $valorParcela,
-//                 'valor_total'          => $cotacao->valor_total,
-//             ]);
+test('deve gerar corretamente uma apolice sem numero de parcelas e beneficiarios', function() {
+    $cotacaoSemParcelas = Cotacao::factory()->createQuietly([
+        'valor_total'      => 1000.0,
+    ]);
 
-//             // Associação de Beneficiários (Vida)
-//             $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
+    $service = new EmissaoApoliceService;
 
-//             foreach ($beneficiariosJson as $ben) {
-//                 if (empty($ben['cpf']) || empty($ben['nome'])) {
-//                     continue;
-//                 }
-                
-//                 $beneficiario = \App\Models\Beneficiario::firstOrCreate(
-//                     ['cpf' => $ben['cpf']],
-//                     [
-//                         'nome' => $ben['nome'],
-//                         'data_nascimento' => null
-//                     ]
-//                 );
+    $resultado = $service->emitir($cotacaoSemParcelas, $this->formaPagamento, 0);
 
-//                 $apolice->beneficiarios()->attach($beneficiario->id, [
-//                     'percentual_rateio' => $ben['percentual_rateio'],
-//                     'parentesco'        => $ben['parentesco'],
-//                 ]);
-//             }
+    expect($resultado->cotacao_id)->toBe($cotacaoSemParcelas->id);
+    $this->assertDatabaseHas('pagamentos', [
+        'apolice_id'  => $resultado->id,
+        'num_parcela' => 1,
+        'status'      => 'Paga',
+    ]);
 
-//             //Geração do Cronograma de Pagamentos
-//             for ($i = 1; $i <= $quantidadeParcelas; $i++) {
-//                 $isPrimeiraParcela = ($i === 1);
+});
 
-//                 \App\Models\Pagamento::create([
-//                     'apolice_id'        => $apolice->id,
-//                     'num_parcela'       => $i,
-//                     'tipo_movimentacao' => 'Recebimento',
-//                     'valor'             => $valorParcela,
-//                     'data_vencimento'   => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
-//                     // A primeira parcela já nasce paga devido ao aceite no checkout
-//                     'status'            => $isPrimeiraParcela ? 'Paga' : 'Aberta',
-//                     'data_pagamento'    => $isPrimeiraParcela ? Carbon::now() : null,
-//                     'metodo_baixa'      => $isPrimeiraParcela ? 'Automática' : null,
-//                 ]);
-//             }
+test('deve retirar id da apolice antiga dos dados especificos da cotacao', function() {
+    $apoliceAntiga = Apolice::factory()->createQuietly();
 
-//             return $apolice;
-//         });
-//     }
+    $cotacaoRenovacao = Cotacao::factory()->createQuietly([
+        'dados_especificos' => ['apolice_origem_id_temporario' => $apoliceAntiga->id],
+    ]);
+
+    $service = new EmissaoApoliceService;
+
+    $resultado = $service->emitir($cotacaoRenovacao, $this->formaPagamento, $this->quantidadeParcelas);
+
+    expect($resultado->apolice_origem_id)->toBe($apoliceAntiga->id);
+    expect($resultado->dados_bem_assegurado)->not->toHaveKey('apolice_origem_id_temporario');
+});
+
+test('deve ignorar beneficiarios com nome ou cpf em branco', function () {
+
+    $cotacaoIncompleta = Cotacao::factory()->createQuietly([
+        'valor_total' => 1200.00,
+        'dados_especificos' => ['beneficiarios_vida' => [
+            ['cpf' => '', 'nome' => 'Sem CPF', 'percentual_rateio' => 50, 'parentesco' => 'Irmão'],
+            ['cpf' => '12345678900', 'nome' => '', 'percentual_rateio' => 50, 'parentesco' => 'Irmão'],
+            ['cpf' => '99999999999', 'nome' => 'Valido', 'percentual_rateio' => 100, 'parentesco' => 'Irmão'],
+        ]],
+    ]);
+
+    $service = new EmissaoApoliceService;
+
+    $service->emitir($cotacaoIncompleta, 'Pix', 1);
+
+    $this->assertDatabaseCount('beneficiarios', 2);
+    $this->assertDatabaseHas('beneficiarios', [
+        'cpf' => '99999999999',
+        'nome' => 'Valido'
+    ]);
+});

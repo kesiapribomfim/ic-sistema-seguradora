@@ -10,7 +10,6 @@ class Beneficiario extends Model
         'nome',
         'cpf',
         'data_nascimento',
-        'parentesco',
     ];
 
     public function apolices()
