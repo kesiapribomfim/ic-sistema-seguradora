@@ -44,9 +44,14 @@ class EmissaoApoliceService
     {
         $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
         $dadosEspecificos = $cotacao->dados_especificos ?? [];
-        $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
 
-        unset($dadosEspecificos['apolice_origem_id_temporario']);
+        //casos de renovação
+        $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
+        $inicioVigencia = $dadosEspecificos['inicio_vigencia_renovacao'] ?? null;
+
+        unset($dadosEspecificos['apolice_origem_id_temporario'], $dadosEspecificos['inicio_vigencia_renovacao']);
+        $dataInicio = $inicioVigencia ? Carbon::parse($inicioVigencia) : Carbon::now();
+        $dataFim = $dataInicio->copy()->addYear();
 
         $apolice = Apolice::create([
             'segurado_id' => $cotacao->segurado_id,
@@ -56,8 +61,8 @@ class EmissaoApoliceService
             'apolice_origem_id' => $apoliceOrigemId,
             'numero_apolice' => 'AP-'.str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
             'data_emissao' => Carbon::now(),
-            'data_inicio' => Carbon::now(),
-            'data_fim' => Carbon::now()->addYear(),
+            'data_inicio' => $dataInicio,
+            'data_fim' => $dataFim,
             'status' => 'Vigente',
             'snapshot' => $this->emitirSnapshot($cotacao),
             'dados_bem_assegurado' => $dadosEspecificos,

@@ -9,6 +9,7 @@ use App\Services\RenovaApoliceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Nette\Schema\Expect;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -59,7 +60,7 @@ describe(
                 ->with('Falha ao renovar: Produto não encontrado no snapshot da Apólice #AP-TEST123');
 
             $service = new RenovaApoliceService;
-            $resultado = $service->GerarCotacao($this->apolicesSemProduto);
+            $resultado = $service->gerarCotacao($this->apolicesSemProduto);
 
             expect($resultado)->toBeNull();
             Queue::assertNothingPushed();
@@ -72,7 +73,7 @@ describe(
                 });
 
             $service = new RenovaApoliceService;
-            $resultado = $service->GerarCotacao($this->apoliceBoa);
+            $resultado = $service->gerarCotacao($this->apoliceBoa);
 
             expect($resultado->id)->toBeInt()->toBeGreaterThan(0);
         });
@@ -80,11 +81,13 @@ describe(
 
 test('deve gerar cotacao em elaboracao corretamente segundo a apolice antiga', function () {
     $service = new RenovaApoliceService;
-    $resultado = $service->GerarCotacao($this->apoliceBoa);
+    $resultado = $service->gerarCotacao($this->apoliceBoa);
 
     expect($resultado->status)->toBe('Em Elaboração');
 
     expect($resultado->dados_especificos['apolice_origem_id_temporario'])->toBe($this->apoliceBoa->id);
+
+    expect($resultado->dados_especificos['inicio_vigencia_renovacao'])->toBe($this->apoliceBoa->data_fim->toJSON());
 
     Queue::assertPushed(RenovacaoEmailJob::class, function ($job) {
         return ! is_null($job->delay);
@@ -99,7 +102,7 @@ test('deve disparar erro ao receber apolice quebrada', function () {
         });
 
     $service = new RenovaApoliceService;
-    $resultado = $service->GerarCotacao($this->apoliceQuebrada);
+    $resultado = $service->gerarCotacao($this->apoliceQuebrada);
 
     expect($resultado)->toBeNull();
 });

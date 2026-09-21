@@ -151,3 +151,24 @@ test('deve ignorar beneficiarios com nome ou cpf em branco', function () {
         'nome' => 'Valido',
     ]);
 });
+
+test('deve emitir apolice de renovacao com data de inicio futura baseada na cotacao', function () {
+    $dataFutura = '2026-12-01';
+    
+    $cotacaoRenovacao = Cotacao::factory()->createQuietly([
+        'valor_total' => 1000.0,
+        'dados_especificos' => [
+            'inicio_vigencia_renovacao' => $dataFutura
+        ],
+    ]);
+
+    $service = new EmissaoApoliceService;
+
+    $resultado = $service->emitir($cotacaoRenovacao, $this->formaPagamento, $this->quantidadeParcelas);
+
+    expect($resultado->data_inicio->format('Y-m-d'))->toBe($dataFutura);
+    
+    expect($resultado->data_fim->format('Y-m-d'))->toBe('2027-12-01');
+    
+    expect($resultado->dados_bem_assegurado)->not->toHaveKey('inicio_vigencia_renovacao');
+});

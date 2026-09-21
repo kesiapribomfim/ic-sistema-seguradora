@@ -11,50 +11,59 @@ use Illuminate\Support\Facades\Log;
 
 class RenovaApoliceService
 {
-    // TODO: LÓGICA PARA NOVA APÓLICE SÓ PODER ENTRAR EM VALIDADE APÓS O VENCIMENTO DA ANTIGA
-    // gerar cotação nova
-    public function GerarCotacao(Apolice $apolice): ?Cotacao
+    public function gerarCotacao(Apolice $apolice): ?Cotacao
     {
-        return DB::transaction(function () use ($apolice) {
-            try {
+        $produtoId = $apolice->cotacao->produto_id ?? null;
 
-                $produtoId = $apolice->cotacao->produto_id ?? null;
+        if (! $produtoId) {
+            Log::error("Falha ao renovar: Produto não encontrado no snapshot da Apólice #{$apolice->numero_apolice}");
+            return null;
+        }
+                
+        try {
+            return DB::transaction(function () use ($apolice){
+                
+                $novaCotacao = $this->criarCotacaiRenovacao($apolice);
 
-                if (! $produtoId) {
-                    Log::error("Falha ao renovar: Produto não encontrado no snapshot da Apólice #{$apolice->numero_apolice}");
-
-                    return null;
-                }
-
-                $dadosEspecificos = $apolice->dados_bem_assegurado ?? [];
-                $dadosEspecificos['apolice_origem_id_temporario'] = $apolice->id;
-
-                $novaCotacao = Cotacao::create([
-                    'segurado_id' => $apolice->segurado_id,
-                    'user_id' => $apolice->user_id, // Corretor responsável
-                    'filial_id' => $apolice->filial_id,
-                    'produto_id' => $apolice->cotacao->produto_id,
-                    'cobertura_selecionada' => $apolice->snapshot['coberturas'] ?? [],
-                    'dados_especificos' => $dadosEspecificos,
-                    'status' => 'Em Elaboração',
-                    'validade' => Carbon::now()->addDays(30),
-
-                    'valor_total' => $apolice->valor_total,
-                ]);
-
-                $atrasoEmSegundos = rand(5, 15);
-                // delay
-                RenovacaoEmailJob::dispatch($apolice, $novaCotacao)->delay(now()->addSeconds($atrasoEmSegundos));
-
-                Log::info("Nova COTAÇÃO de renovação (#{$novaCotacao->id}) criada em estado 'Em elaboração' a partir da Apólice #{$apolice->numero_apolice}");
+                $this->enviarEmail($apolice, $novaCotacao);
 
                 return $novaCotacao;
 
-            } catch (\Exception $e) {
-                Log::error("Erro ao gerar cotação de renovação da Apólice #{$apolice->id}: ".$e->getMessage());
+                });
 
-                return null;
-            }
-        });
+        } catch (\Exception $e) {
+            Log::error("Erro ao gerar cotação de renovação da Apólice #{$apolice->id}: ".$e->getMessage());
+            return null;
+        }
+    }
+
+    private function criarCotacaiRenovacao(Apolice $apolice): Cotacao
+    {
+        $dadosEspecificos = $apolice->dados_bem_assegurado ?? [];
+        $dadosEspecificos['apolice_origem_id_temporario'] = $apolice->id;
+        $dadosEspecificos['inicio_vigencia_renovacao'] = $apolice->data_fim;
+
+        $novaCotacao = Cotacao::create([
+            'segurado_id' => $apolice->segurado_id,
+            'user_id' => $apolice->user_id, // Corretor responsável
+            'filial_id' => $apolice->filial_id,
+            'produto_id' => $apolice->cotacao->produto_id,
+            'cobertura_selecionada' => $apolice->snapshot['coberturas'] ?? [],
+            'dados_especificos' => $dadosEspecificos,
+            'status' => 'Em Elaboração',
+            'validade' => Carbon::now()->addDays(30),
+            'valor_total' => $apolice->valor_total,
+        ]);
+
+        return $novaCotacao;
+    }
+
+    private function enviarEmail(Apolice $apolice, Cotacao $cotacao)
+    {
+        $atrasoEmSegundos = rand(5, 15);
+                // delay
+                RenovacaoEmailJob::dispatch($apolice, $cotacao)->delay(now()->addSeconds($atrasoEmSegundos));
+
+                Log::info("Nova COTAÇÃO de renovação (#{$cotacao->id}) criada em estado 'Em elaboração' a partir da Apólice #{$apolice->numero_apolice}");
     }
 }
