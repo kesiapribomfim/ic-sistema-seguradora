@@ -28,7 +28,7 @@ class SubscritorStatsWidget extends BaseWidget
                 ->description('Catálogo de vendas liberado')
                 ->descriptionIcon('heroicon-m-cube')
                 ->color('success'),
-                
+
             Stat::make('Cotações Recusadas (Mês)', Cotacao::where('status', 'Recusada')->whereMonth('updated_at', now()->month)->count())
                 ->description('Riscos não aceitos')
                 ->color('gray'),

@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Produto;
 use App\Models\Cobertura;
+use App\Models\Produto;
+use Illuminate\Database\Seeder;
 
 class ProdutoSeeder extends Seeder
 {
@@ -102,7 +102,7 @@ class ProdutoSeeder extends Seeder
                 foreach ($coberturasDoRamo as $cobertura) {
                     $produto->coberturas()->attach($cobertura->id, [
                         'limite_maximo' => fake()->numberBetween(10, 150) * 1000,
-                        'obrigatoria' => fake()->boolean()
+                        'obrigatoria' => fake()->boolean(),
                     ]);
                 }
             } else {

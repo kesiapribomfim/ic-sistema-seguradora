@@ -3,16 +3,19 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Sinistro;
+use App\Models\User;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class FilaSinistrosWidget extends BaseWidget
 {
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 'full'; 
+
+    protected int|string|array $columnSpan = 'full';
+
     protected static ?string $heading = 'Fila de Análise (Sinistros Recentes)';
 
     public static function canView(): bool
@@ -22,13 +25,13 @@ class FilaSinistrosWidget extends BaseWidget
 
     public function table(Table $table): Table
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
         $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
 
         $query = Sinistro::with('apolice')->whereIn('status', ['Aberto', 'Em análise'])->latest();
 
-        if (!$isGlobal) {
+        if (! $isGlobal) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
             $query->whereHas('apolice', function (Builder $q) use ($filiaisIds) {
                 $q->whereIn('filial_id', $filiaisIds);
@@ -49,7 +52,7 @@ class FilaSinistrosWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'Aberto' => 'warning',
                         'Em análise' => 'info',
                         default => 'gray',

@@ -9,8 +9,6 @@ class SinistroMovimentacaoObserver
     /**
      * Handle the SinistroMovimentacao "created" event.
      */
-
-
     public function created(SinistroMovimentacao $movimentacao): void
     {
         $sinistro = $movimentacao->sinistro;
@@ -19,7 +17,7 @@ class SinistroMovimentacaoObserver
         $novoStatus = match ($movimentacao->acao_realizada) {
             'Abertura' => 'Aberto',
             'Análise' => 'Em análise',
-            'Perícia'=> 'Em perícia',
+            'Perícia' => 'Em perícia',
             'Aprovação' => 'Aprovado',
             'Negação' => 'Negado',
             'Pagamento' => 'Pago',

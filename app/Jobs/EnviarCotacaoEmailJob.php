@@ -2,9 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Mail\CotacaoMail;
+use App\Models\Cotacao;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use App\Models\Cotacao;
 use Illuminate\Support\Facades\Mail;
 
 class EnviarCotacaoEmailJob implements ShouldQueue
@@ -27,6 +28,6 @@ class EnviarCotacaoEmailJob implements ShouldQueue
     public function handle(): void
     {
         Mail::to($this->cotacao->segurado->email)
-            ->send(new \App\Mail\CotacaoMail($this->cotacao));
+            ->send(new CotacaoMail($this->cotacao));
     }
 }

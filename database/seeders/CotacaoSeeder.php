@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Cotacao;
 use App\Models\Produto;
 use App\Models\Segurado;
 use App\Models\User;
 use App\Services\CalculadoraPremioService;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class CotacaoSeeder extends Seeder
@@ -19,10 +19,11 @@ class CotacaoSeeder extends Seeder
 
         if ($produtos->isEmpty() || $segurados->isEmpty()) {
             $this->command->warn('Produtos ou Segurados não encontrados. Cotações não foram geradas.');
+
             return;
         }
 
-        $calculadora = new CalculadoraPremioService();
+        $calculadora = new CalculadoraPremioService;
         $statusDisponiveis = ['Em Elaboração', 'Enviada ao Cliente', 'Em Subscrição', 'Aceita', 'Recusada'];
 
         $this->command->info('Gerando Cotações dinâmicas e calculando prêmios reais...');
@@ -32,10 +33,14 @@ class CotacaoSeeder extends Seeder
             $segurado = $segurados->random();
 
             $corretor = User::with('filiais')->find($segurado->corretor_id);
-            if (!$corretor) continue;
+            if (! $corretor) {
+                continue;
+            }
 
             $filial = $corretor->filiais->where('pivot.perfil_acesso', 'Corretor')->first();
-            if (!$filial) continue;
+            if (! $filial) {
+                continue;
+            }
 
             $dadosEspecificos = $this->gerarDadosEspecificos($produto->ramo);
             $coberturas = $this->gerarCoberturas($produto);
@@ -76,7 +81,7 @@ class CotacaoSeeder extends Seeder
             $usos = fake()->randomElements(['trabalho', 'estudo', 'comercial'], rand(1, 2));
             $isComercial = in_array('comercial', $usos);
             $isTrabalhoEstudo = in_array('trabalho', $usos) || in_array('estudo', $usos);
-            
+
             $seguroAntigo = fake()->boolean(30);
 
             return [
@@ -91,12 +96,12 @@ class CotacaoSeeder extends Seeder
                 'kit_gas' => fake()->boolean(10),
                 'blindado' => fake()->boolean(5),
                 'imposto' => fake()->boolean(5),
-                
+
                 // Utilização (Dia)
                 'uso' => $usos,
                 'detalhe_uso_comercial' => $isComercial ? fake()->randomElement(['visita', 'entrega', 'motorista_app', 'taxi', 'outros']) : null,
                 'detalhe_uso_trabalho_estudo' => $isTrabalhoEstudo ? fake()->randomElements(['garagem', 'rua', 'estacionamento'], 1) : null,
-                
+
                 // Pernoite (Noite) e Endereço
                 'rua' => fake()->streetName(),
                 'numero' => fake()->buildingNumber(),
@@ -106,12 +111,12 @@ class CotacaoSeeder extends Seeder
                 'uf' => fake()->stateAbbr(),
                 'CEP' => fake()->numerify('########'), // Maiúsculo como no seu form, e sem formatação (stripCharacters)
                 'estacionamento' => fake()->randomElement(['garagem', 'rua', 'estacionamento']),
-                
+
                 // Contrato Anterior
                 'seguro_antigo' => $seguroAntigo,
                 'seguradora' => $seguroAntigo ? fake()->company() : null,
                 'numero_apolice' => $seguroAntigo ? fake()->numerify('###-####-####') : null,
-                'data_vencimento' => $seguroAntigo ? now()->addMonths(fake()->numberBetween(1,12))->format('Y-m-d') : null,
+                'data_vencimento' => $seguroAntigo ? now()->addMonths(fake()->numberBetween(1, 12))->format('Y-m-d') : null,
                 'classe_bonus' => $seguroAntigo ? fake()->numberBetween(0, 5) : null,
                 'uso_anterior' => $seguroAntigo ? fake()->randomElement(['nao', 'uma_vez', 'duas_vezes', 'tres_vezes', 'mais_de_tres_vezes']) : null,
             ];
@@ -125,7 +130,7 @@ class CotacaoSeeder extends Seeder
                 // Dados do Imóvel
                 'tipo_moradia' => $tipoMoradia,
                 'detalhe_apartamento' => ($tipoMoradia === 'apartamento') ? fake()->randomElement(['pavimento_terreo', 'pavimento_superior', 'cobertura', 'sobrado']) : null,
-                
+
                 // Endereço
                 'rua' => fake()->streetName(),
                 'numero' => fake()->buildingNumber(),
@@ -134,7 +139,7 @@ class CotacaoSeeder extends Seeder
                 'cidade' => fake()->city(),
                 'uf' => fake()->stateAbbr(),
                 'cep' => fake()->numerify('########'), // Minúsculo como no seu form
-                
+
                 // Detalhamento
                 'uso_residencia' => fake()->randomElement(['habitavel', 'veraneio']),
                 'tipo_construcao' => fake()->randomElement(['alvenaria', 'madeira']),
@@ -162,8 +167,8 @@ class CotacaoSeeder extends Seeder
                         'nome' => fake()->name(),
                         'cpf' => fake()->cpf(false),
                         'parentesco' => 'Cônjuge/Companheiro(a)',
-                        'percentual_rateio' => 100
-                    ]
+                        'percentual_rateio' => 100,
+                    ],
                 ],
             ];
         }

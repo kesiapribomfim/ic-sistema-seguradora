@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\BoasVindasApoliceMail;
 use App\Models\Apolice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -27,6 +28,6 @@ class EnviarApoliceEmailJob implements ShouldQueue
     public function handle(): void
     {
         Mail::to($this->apolice->segurado->email)
-            ->send(new \App\Mail\BoasVindasApoliceMail($this->apolice));
+            ->send(new BoasVindasApoliceMail($this->apolice));
     }
 }

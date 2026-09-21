@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Sinistro;
 use App\Models\Apolice;
-use App\Models\User;
+use App\Models\Pagamento;
+use App\Models\Sinistro;
+use Illuminate\Database\Seeder;
 
 class SinistroSeeder extends Seeder
 {
@@ -15,6 +15,7 @@ class SinistroSeeder extends Seeder
 
         if ($apolicesVigentes->isEmpty()) {
             $this->command->warn('Nenhuma Apólice vigente encontrada. Sinistros não foram gerados.');
+
             return;
         }
 
@@ -26,7 +27,9 @@ class SinistroSeeder extends Seeder
 
             $coberturasContratadas = $apolice->snapshot['coberturas'] ?? [];
 
-            if (empty($coberturasContratadas)) continue;
+            if (empty($coberturasContratadas)) {
+                continue;
+            }
 
             $coberturaAfetada = fake()->randomElement($coberturasContratadas);
             $nomeCobertura = $coberturaAfetada['nome_cobertura'] ?? 'o bem segurado';
@@ -38,7 +41,7 @@ class SinistroSeeder extends Seeder
                 'Aprovado',
                 'Negado',
                 'Pago',
-                'Encerrado'
+                'Encerrado',
             ]);
 
             $valorIndenizacao = null;
@@ -75,16 +78,16 @@ class SinistroSeeder extends Seeder
             ]);
 
             if ($valorPago > 0 && in_array($status, ['Pago', 'Encerrado'])) {
-                \App\Models\Pagamento::create([
-                    'apolice_id'        => $apolice->id,
-                    'sinistro_id'       => $sinistro->id,
-                    'num_parcela'       => null,
+                Pagamento::create([
+                    'apolice_id' => $apolice->id,
+                    'sinistro_id' => $sinistro->id,
+                    'num_parcela' => null,
                     'tipo_movimentacao' => 'Pagamento Indenização',
-                    'valor'             => $valorPago,
-                    'data_vencimento'   => now(),
-                    'status'            => 'Paga',
-                    'data_pagamento'    => now(),
-                    'metodo_baixa'      => 'Automática',
+                    'valor' => $valorPago,
+                    'data_vencimento' => now(),
+                    'status' => 'Paga',
+                    'data_pagamento' => now(),
+                    'metodo_baixa' => 'Automática',
                 ]);
             }
         }

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\SeguradoResource\Pages;
 
 use App\Filament\Resources\SeguradoResource;
-use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewSegurado extends ViewRecord

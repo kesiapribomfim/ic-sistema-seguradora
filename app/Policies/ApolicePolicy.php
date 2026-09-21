@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Apolice;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ApolicePolicy
@@ -13,10 +13,9 @@ class ApolicePolicy
     /**
      * Determine whether the user can view any models.
      */
-
     public function before(User $user, string $ability): ?bool
     {
-        //Acesso geral para suporte
+        // Acesso geral para suporte
         if ($user->hasRole('super_admin')) {
             return true;
         }
@@ -31,8 +30,8 @@ class ApolicePolicy
             'Gestor de Filial',
             'Analista de Sinistros',
             'Corretor',
-            'Cliente', 
-            'Financeiro'
+            'Cliente',
+            'Financeiro',
         ]);
     }
 
@@ -44,7 +43,7 @@ class ApolicePolicy
         if ($user->hasRole('Administrador Geral')) {
             return true;
         }
-        
+
         if ($user->hasRole('Corretor')) {
             return $apolice->user_id === $user->id;
         }
@@ -53,12 +52,13 @@ class ApolicePolicy
             return $apolice->segurado?->user_id === $user->id;
         }
 
-        if ($user -> hasAnyRole([
+        if ($user->hasAnyRole([
             'Gestor de Filial',
             'Analista de Sinistros',
-            'Financeiro'
+            'Financeiro',
         ])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+
             return in_array($apolice->filial_id, $filiaisIds);
         }
 
@@ -79,8 +79,9 @@ class ApolicePolicy
     public function update(User $user, Apolice $apolice): bool
     {
         return false;
-    
+
     }
+
     /**
      * Determine whether the user can delete the model.
      */

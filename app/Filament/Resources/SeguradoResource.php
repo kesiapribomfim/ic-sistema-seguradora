@@ -5,23 +5,22 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SeguradoResource\Pages;
 use App\Filament\Resources\SeguradoResource\RelationManagers;
 use App\Models\Segurado;
+use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\FormsComponent;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Forms\Components\Toggle;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
-use Filament\Pages\Page;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
+use Filament\Tables;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use Illuminate\Support\Facades\Auth;
 
 class SeguradoResource extends Resource
 {
@@ -33,8 +32,8 @@ class SeguradoResource extends Resource
     {
         return $form
             ->schema([
-                //selecionar tipo para modificar campos do fomulario
-                Forms\Components\Select::make('tipo')
+                // selecionar tipo para modificar campos do fomulario
+                Select::make('tipo')
                     ->label('Tipo de Cliente')
                     ->options([
                         'PF' => 'Pessoa Física',
@@ -43,15 +42,15 @@ class SeguradoResource extends Resource
                     ->required()
                     ->live(),
 
-                //Atributos PF
+                // Atributos PF
                 Forms\Components\Fieldset::make('Dados de Pessoa Física')
-                    ->relationship('seguradoPf') 
+                    ->relationship('seguradoPf')
                     ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PF')
                     ->schema([
                         Forms\Components\TextInput::make('nome')
                             ->required(),
                         Forms\Components\TextInput::make('cpf')
-                            ->label('CPF') 
+                            ->label('CPF')
                             ->mask('999.999.999-99')
                             ->stripCharacters(['.', '-'])
                             ->required()
@@ -67,10 +66,10 @@ class SeguradoResource extends Resource
                             ->required(),
                     ]),
 
-                //Atributos PJ
+                // Atributos PJ
                 Forms\Components\Fieldset::make('Dados de Pessoa Juridica')
                     ->relationship('seguradoPj')
-                    ->visible(fn(Forms\Get $get): bool => $get('tipo') === 'PJ')
+                    ->visible(fn (Forms\Get $get): bool => $get('tipo') === 'PJ')
                     ->schema([
                         Forms\Components\TextInput::make('cnpj')
                             ->label('CNPJ')
@@ -85,7 +84,7 @@ class SeguradoResource extends Resource
                             ->unique(ignoreRecord: true),
                     ]),
 
-                //Aributos comuns
+                // Aributos comuns
                 Forms\Components\Fieldset::make('Dados de Contato')
                     ->schema([
                         Forms\Components\TextInput::make('telefone')
@@ -96,9 +95,8 @@ class SeguradoResource extends Resource
                             ->required()
                             ->email(),
                     ]),
-                
 
-                //Endereço FieldSet
+                // Endereço FieldSet
                 Forms\Components\Fieldset::make('Endereço')
                     ->schema([
                         Forms\Components\TextInput::make('rua')
@@ -113,47 +111,44 @@ class SeguradoResource extends Resource
                         Forms\Components\TextInput::make('uf')
                             ->label('UF')
                             ->maxLength(2)
-                            //->Uppercase()
+                            // ->Uppercase()
                             ->required(),
                         Forms\Components\TextInput::make('cep')
                             ->label('CEP')
                             ->mask('99.999-999')
-                            ->stripCharacters(['.','-'])
+                            ->stripCharacters(['.', '-'])
                             ->required(),
 
-                    ]),           
-                
-                //linkando com a tabela Users
+                    ]),
+
+                // linkando com a tabela Users
                 Select::make('corretor_id')
-                            ->label('Selecione o Corretor Responsável')
-                            ->relationship(
-                                name: 'corretor',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query) => $query
-                                    ->where('status', true)
-                                    ->whereHas('filiais', function (Builder $q) {
-                                        $q->where('filial_user.perfil_acesso', 'Corretor');
-                                    })
-                            )
-                            ->default(fn () => auth()->id())
-                            ->searchable() 
-                            ->preload()   
-                            ->required(),
+                    ->label('Selecione o Corretor Responsável')
+                    ->relationship(
+                        name: 'corretor',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query) => $query
+                            ->where('status', true)
+                            ->whereHas('filiais', function (Builder $q) {
+                                $q->where('filial_user.perfil_acesso', 'Corretor');
+                            })
+                    )
+                    ->default(fn () => auth()->id())
+                    ->searchable()
+                    ->preload()
+                    ->required(),
 
-                
                 Forms\Components\TextInput::make('score'),
                 Toggle::make('status')
                     ->label('Ativo'),
 
-
-                
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->hasAnyRole(['super_admin', 'Administrador Geral'])) {
@@ -166,25 +161,25 @@ class SeguradoResource extends Resource
 
         if ($user->hasRole('Gestor de Filial')) {
             $filiaisIds = $user->filiais()->pluck('filiais.id');
-            
+
             return $query->where(function ($q) use ($filiaisIds) {
                 $q->whereHas('corretor.filiais', function ($q2) use ($filiaisIds) {
                     $q2->whereIn('filiais.id', $filiaisIds);
                 })
-                ->orWhereHas('apolices', function ($q3) use ($filiaisIds) {
-                    $q3->whereIn('filial_id', $filiaisIds);
-                })
-                ->orWhereHas('cotacoes', function ($q4) use ($filiaisIds) {
-                    $q4->whereIn('filial_id', $filiaisIds);
-                })
-                ->orWhereHas('user.filiais', function ($q5) use ($filiaisIds) {
-                    $q5->whereIn('filiais.id', $filiaisIds);
-                });
+                    ->orWhereHas('apolices', function ($q3) use ($filiaisIds) {
+                        $q3->whereIn('filial_id', $filiaisIds);
+                    })
+                    ->orWhereHas('cotacoes', function ($q4) use ($filiaisIds) {
+                        $q4->whereIn('filial_id', $filiaisIds);
+                    })
+                    ->orWhereHas('user.filiais', function ($q5) use ($filiaisIds) {
+                        $q5->whereIn('filiais.id', $filiaisIds);
+                    });
             });
         }
 
         return $query->where('id', 0);
-        
+
     }
 
     public static function table(Table $table): Table
@@ -201,8 +196,8 @@ class SeguradoResource extends Resource
                 Tables\Columns\TextColumn::make('identificacao_cliente')
                     ->label('Nome / Razão Social')
                     ->state(function (Segurado $record) {
-                        return $record->tipo === 'PF' 
-                            ? $record->seguradoPf?->nome 
+                        return $record->tipo === 'PF'
+                            ? $record->seguradoPf?->nome
                             : $record->seguradoPj?->razao_social;
                     })
                     ->searchable(query: function (Builder $query, string $search): Builder {
@@ -211,24 +206,24 @@ class SeguradoResource extends Resource
                             ->whereHas('seguradoPf', fn ($q) => $q->where('nome', 'like', "%{$search}%"))
                             ->orWhereHas('seguradoPj', fn ($q) => $q->where('razao_social', 'like', "%{$search}%"));
                     })
-                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
-                    //->sortable() (em ordem alfabetica)
+                    ->weight(FontWeight::Bold)
+                    // ->sortable() (em ordem alfabetica)
                     ->description(fn ($record) => "Corretor: {$record->corretor?->name}"),
-                    Tables\Columns\TextColumn::make('email'),
-                
+                Tables\Columns\TextColumn::make('email'),
+
                 Tables\Columns\IconColumn::make('status')
-                ->label('Ativo')
-                ->boolean(),
+                    ->label('Ativo')
+                    ->boolean(),
 
             ])
             ->recordUrl(null)
-            ->recordAction(Tables\Actions\ViewAction::class)
+            ->recordAction(ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('corretor_id')
                     ->label('Carteira do Corretor')
                     ->options(
                         // Aqui buscamos no banco: a Chave será o ID (oculto) e o Valor será o Nome (visível)
-                        \App\Models\User::role('Corretor')->pluck('name', 'id')->toArray()
+                        User::role('Corretor')->pluck('name', 'id')->toArray()
                     )
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('tipo')
@@ -241,13 +236,13 @@ class SeguradoResource extends Resource
                         1 => 'Ativo',
                         0 => 'Inativo',
                     ]),
-                
+
             ])
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
                     ViewAction::make(),
-                ])
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -257,7 +252,7 @@ class SeguradoResource extends Resource
                         ->exports([
                             ExcelExport::make()
                                 ->fromTable()
-                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->withFilename('relatorio_apolices_'.date('Y-m-d'))
                                 ->queue(), // Manda para a fila (Job) em vez de travar o navegador
                         ]),
                 ]),

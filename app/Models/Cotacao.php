@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Str;
 use App\Observers\CotacaoObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 #[ObservedBy(CotacaoObserver::class)]
 class Cotacao extends Model
@@ -14,7 +15,6 @@ class Cotacao extends Model
     use HasFactory;
 
     protected $table = 'cotacoes';
-
 
     protected $fillable = [
         'segurado_id',
@@ -31,7 +31,7 @@ class Cotacao extends Model
         'quantidade_parcelas_preferida',
     ];
 
-    protected $casts =[
+    protected $casts = [
         'dados_especificos' => 'array',
         'cobertura_selecionada' => 'array',
     ];
@@ -44,32 +44,38 @@ class Cotacao extends Model
         });
     }
 
-    //fk
-    public function segurado() {
-        return $this->belongsTo(Segurado::class); //muitos para um segurado
+    // fk
+    public function segurado()
+    {
+        return $this->belongsTo(Segurado::class); // muitos para um segurado
     }
 
-    public function produto() {
-        return $this->belongsTo(Produto::class); //muitos para um produto
+    public function produto()
+    {
+        return $this->belongsTo(Produto::class); // muitos para um produto
     }
 
-    public function user() {
-        return $this->belongsTo(User::class);//muitos para um usuario
+    public function user()
+    {
+        return $this->belongsTo(User::class); // muitos para um usuario
     }
 
-    public function filial() {
-        return $this->belongsTo(Filial::class); //muitos para uma filial
+    public function filial()
+    {
+        return $this->belongsTo(Filial::class); // muitos para uma filial
     }
 
-    public function apolice() {
-        return $this->hasOne(Apolice::class); //uma para uma apolice
+    public function apolice()
+    {
+        return $this->hasOne(Apolice::class); // uma para uma apolice
     }
 
-    public function gerarLinkCheckout () {
-        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    public function gerarLinkCheckout()
+    {
+        return URL::temporarySignedRoute(
             'checkout.cotacao',
-            now()->addDays(30), //puxar a validade
-            ['cotacao' => $this] //aponta para o uuid das cotações
+            now()->addDays(30), // puxar a validade
+            ['cotacao' => $this] // aponta para o uuid das cotações
         );
     }
 }

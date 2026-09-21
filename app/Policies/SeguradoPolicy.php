@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Segurado;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SeguradoPolicy
@@ -13,10 +13,9 @@ class SeguradoPolicy
     /**
      * Determine whether the user can view any models.
      */
-
     public function before(User $user, string $ability): ?bool
     {
-        //Acesso geral para suporte
+        // Acesso geral para suporte
         if ($user->hasRole('super_admin')) {
             return true;
         }
@@ -24,13 +23,12 @@ class SeguradoPolicy
         return null;
     }
 
-
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole([
             'Administrador Geral',
             'Gestor de Filial',
-            'Corretor'
+            'Corretor',
         ]);
     }
 
@@ -45,15 +43,15 @@ class SeguradoPolicy
 
         if ($user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros'])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
-            
+
             $hasApolice = $segurado->apolices()->whereIn('filial_id', $filiaisIds)->exists();
             $hasCotacao = $segurado->cotacoes()->whereIn('filial_id', $filiaisIds)->exists();
-            
+
             $corretorFiliais = $segurado->corretor ? $segurado->corretor->filiais()->pluck('filiais.id')->toArray() : [];
-            $hasCorretor = !empty(array_intersect($filiaisIds, $corretorFiliais));
+            $hasCorretor = ! empty(array_intersect($filiaisIds, $corretorFiliais));
 
             $userFiliais = $segurado->user ? $segurado->user->filiais()->pluck('filiais.id')->toArray() : [];
-            $hasUser = !empty(array_intersect($filiaisIds, $userFiliais));
+            $hasUser = ! empty(array_intersect($filiaisIds, $userFiliais));
 
             return $hasApolice || $hasCotacao || $hasCorretor || $hasUser;
         }
@@ -66,9 +64,10 @@ class SeguradoPolicy
      */
     public function create(User $user): bool
     {
-        if ($user->hasAnyRole(['Gestor de Filial','Corretor'])){
+        if ($user->hasAnyRole(['Gestor de Filial', 'Corretor'])) {
             return true;
         }
+
         return $user->can('create_segurado');
     }
 

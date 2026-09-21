@@ -1,56 +1,54 @@
 <?php
 
-use App\Services\EmissaoApoliceService;
-use App\Models\Produto;
 use App\Models\Apolice;
-use App\Models\Cotacao;
 use App\Models\Beneficiario;
-use Illuminate\Support\Facades\Queue;
+use App\Models\Cotacao;
+use App\Models\Produto;
+use App\Services\EmissaoApoliceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
+use Illuminate\Support\Facades\Queue;
+use Spatie\Permission\Models\Role;
 
 /**
  * Classe de teste destinada a Service EmissaoApoliceService
  */
-
 uses(RefreshDatabase::class);
 
-
-beforeEach(function() {
-    \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
+beforeEach(function () {
+    Role::firstOrCreate(['name' => 'Cliente', 'guard_name' => 'web']);
     Queue::fake();
 
     $produto = Produto::factory()->create([
         'nome' => 'VIDA-TESTE',
-        'ramo' => 'Vida'
+        'ramo' => 'Vida',
     ]);
-    
+
     $cotacao = Cotacao::factory()->createQuietly([
-        'valor_total'               => 1200.00,
-        'produto_id'                => $produto->id,
-        'dados_especificos'         => ['beneficiarios_vida' => [
-            ['cpf' => 77777777777, 'nome' => 'beneficiario um', 'data_nascimento' => '2000-01-01', 'percentual_rateio'=> 50, 'parentesco' => 'Filho'],
+        'valor_total' => 1200.00,
+        'produto_id' => $produto->id,
+        'dados_especificos' => ['beneficiarios_vida' => [
+            ['cpf' => 77777777777, 'nome' => 'beneficiario um', 'data_nascimento' => '2000-01-01', 'percentual_rateio' => 50, 'parentesco' => 'Filho'],
             ['cpf' => 22222222222, 'nome' => 'beneficiario repetido', 'data_nascimento' => '2002-02-02', 'percentual_rateio' => 25, 'parentesco' => 'exemplo'],
         ]],
-        'cobertura_selecionada'     => [
-            'invalidez', 'diarias por incapacidade temporaria', 'despesas medico-hospitalares'
-        ],    
+        'cobertura_selecionada' => [
+            'invalidez', 'diarias por incapacidade temporaria', 'despesas medico-hospitalares',
+        ],
     ]);
 
     Beneficiario::create([
-        'nome'              =>  'beneficiario repetido',
-        'cpf'               => '22222222222',
-        'data_nascimento'   => '2000-02-02',
+        'nome' => 'beneficiario repetido',
+        'cpf' => '22222222222',
+        'data_nascimento' => '2000-02-02',
     ]);
 
     $this->cotacao = $cotacao;
     $this->formaPagamento = 'Pix';
     $this->quantidadeParcelas = 10;
-    $this->snapshot = ['produto'=>['id'=> $cotacao->produto->id, 'nome'=>$cotacao->produto->nome],'coberturas'=>$cotacao->cobertura_selecionada];
+    $this->snapshot = ['produto' => ['id' => $cotacao->produto->id, 'nome' => $cotacao->produto->nome], 'coberturas' => $cotacao->cobertura_selecionada];
     $this->beneficiarios = $cotacao->dados_especificos['beneficiarios_vida'];
 });
 
-test('deve gerar o numero e valor das parcelas corretamente', function() {
+test('deve gerar o numero e valor das parcelas corretamente', function () {
     $service = new EmissaoApoliceService;
 
     $resultado = $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
@@ -62,21 +60,20 @@ test('deve gerar o numero e valor das parcelas corretamente', function() {
     $this->assertDatabaseCount('pagamentos', 10);
 
     $this->assertDatabaseHas('pagamentos', [
-        'apolice_id'  => $resultado->id,
+        'apolice_id' => $resultado->id,
         'num_parcela' => 1,
-        'status'      => 'Paga',
+        'status' => 'Paga',
     ]);
 
     $this->assertDatabaseHas('pagamentos', [
-        'apolice_id'  => $resultado->id,
+        'apolice_id' => $resultado->id,
         'num_parcela' => 2,
-        'status'      => 'Aberta',
+        'status' => 'Aberta',
     ]);
-
 
 });
 
-test ('deve gerar apolice corretamente com status vigente, snapshot do produto e numero de apolice valido', function() {
+test('deve gerar apolice corretamente com status vigente, snapshot do produto e numero de apolice valido', function () {
     $service = new EmissaoApoliceService;
     $resultado = $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
 
@@ -85,24 +82,24 @@ test ('deve gerar apolice corretamente com status vigente, snapshot do produto e
     expect($resultado->snapshot)->toEqual($this->snapshot);
 });
 
-test('deve vincular beneficiarios a apolice de vida corretamente', function() {
+test('deve vincular beneficiarios a apolice de vida corretamente', function () {
     $service = new EmissaoApoliceService;
     $service->emitir($this->cotacao, $this->formaPagamento, $this->quantidadeParcelas);
 
     $this->assertDatabaseCount('beneficiarios', 2);
     $this->assertDatabaseHas('beneficiarios', [
-        'cpf'  => $this->beneficiarios[0]['cpf'],
+        'cpf' => $this->beneficiarios[0]['cpf'],
         'nome' => $this->beneficiarios[0]['nome'],
     ]);
     $this->assertDatabaseHas('beneficiarios', [
-        'cpf'  => $this->beneficiarios[1]['cpf'],
+        'cpf' => $this->beneficiarios[1]['cpf'],
         'nome' => $this->beneficiarios[1]['nome'],
     ]);
 });
 
-test('deve gerar corretamente uma apolice sem numero de parcelas e beneficiarios', function() {
+test('deve gerar corretamente uma apolice sem numero de parcelas e beneficiarios', function () {
     $cotacaoSemParcelas = Cotacao::factory()->createQuietly([
-        'valor_total'      => 1000.0,
+        'valor_total' => 1000.0,
     ]);
 
     $service = new EmissaoApoliceService;
@@ -111,14 +108,14 @@ test('deve gerar corretamente uma apolice sem numero de parcelas e beneficiarios
 
     expect($resultado->cotacao_id)->toBe($cotacaoSemParcelas->id);
     $this->assertDatabaseHas('pagamentos', [
-        'apolice_id'  => $resultado->id,
+        'apolice_id' => $resultado->id,
         'num_parcela' => 1,
-        'status'      => 'Paga',
+        'status' => 'Paga',
     ]);
 
 });
 
-test('deve retirar id da apolice antiga dos dados especificos da cotacao', function() {
+test('deve retirar id da apolice antiga dos dados especificos da cotacao', function () {
     $apoliceAntiga = Apolice::factory()->createQuietly();
 
     $cotacaoRenovacao = Cotacao::factory()->createQuietly([
@@ -151,6 +148,6 @@ test('deve ignorar beneficiarios com nome ou cpf em branco', function () {
     $this->assertDatabaseCount('beneficiarios', 2);
     $this->assertDatabaseHas('beneficiarios', [
         'cpf' => '99999999999',
-        'nome' => 'Valido'
+        'nome' => 'Valido',
     ]);
 });

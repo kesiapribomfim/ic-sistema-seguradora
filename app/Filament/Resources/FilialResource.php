@@ -7,36 +7,36 @@ use App\Filament\Resources\FilialResource\RelationManagers;
 use App\Models\Filial;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
-use Illuminate\Database\Eloquent\Model;
+use Filament\Tables\Table;
 
 class FilialResource extends Resource
 {
     protected static ?string $model = Filial::class;
+
     protected static ?string $modelLabel = 'Filial';
+
     protected static ?string $pluralModelLabel = 'Filiais';
+
     protected static ?string $slug = 'filiais';
+
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                //id, nome, cnpj, telefone, endereco, bairro, cidade, estado, cep
+                // id, nome, cnpj, telefone, endereco, bairro, cidade, estado, cep
                 Forms\Components\TextInput::make('nome')
                     ->label('Nome da Filial')
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('cnpj') //forçar nome a ser "CNPJ"
+                Forms\Components\TextInput::make('cnpj') // forçar nome a ser "CNPJ"
                     ->label('CNPJ')
                     ->required()
                     ->unique(ignoreRecord: true)
@@ -46,27 +46,27 @@ class FilialResource extends Resource
                     ->label('Telefone')
                     ->required()
                     ->mask('(99) 99999-9999')
-                    ->stripCharacters(['(',' ',')', '-']),
+                    ->stripCharacters(['(', ' ', ')', '-']),
                 Forms\Components\TextInput::make('rua')
                     ->label('Rua')
                     ->required(),
                 Forms\Components\TextInput::make('numero')
                     ->label('Numero')
                     ->required(),
-                Forms\Components\TextInput::make('bairro') ->required(),
+                Forms\Components\TextInput::make('bairro')->required(),
                 Forms\Components\TextInput::make('complemento'),
-                Forms\Components\TextInput::make('cidade') -> required(),
+                Forms\Components\TextInput::make('cidade')->required(),
                 Forms\Components\TextInput::make('uf')
                     ->label('UF')
                     ->required()
                     ->maxLength(2)
-                    ->extraAttributes(['style'=>'text-transform: uppercase']),
+                    ->extraAttributes(['style' => 'text-transform: uppercase']),
                 Forms\Components\TextInput::make('cep')
                     ->label('CEP')
                     ->required()
                     ->mask('99.999-999')
                     ->stripCharacters(['.', '-']),
-                
+
             ]);
 
     }
@@ -87,6 +87,7 @@ class FilialResource extends Resource
                         if (strlen($limpo) === 10) {
                             return preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $limpo);
                         }
+
                         return $state;
                     }),
                 Tables\Columns\TextColumn::make('uf')
@@ -98,23 +99,23 @@ class FilialResource extends Resource
                     ->color(fn (string $state): string => $state === 'Não definido' ? 'gray' : 'primary')
                     ->state(function ($record) {
                         $gestor = $record
-                                ->users()
-                                ->wherePivot('perfil_acesso', 'Gestor de Filial')
-                                ->first();
-        
+                            ->users()
+                            ->wherePivot('perfil_acesso', 'Gestor de Filial')
+                            ->first();
+
                         return $gestor ? $gestor->name : null;
-                    }),                                
+                    }),
             ])
             ->recordUrl(null)
-            ->recordAction(Tables\Actions\ViewAction::class)
+            ->recordAction(ViewAction::class)
             ->filters([
-                    
+
             ])
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
                     ViewAction::make(),
-                ])
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -138,7 +139,7 @@ class FilialResource extends Resource
         return [
             'index' => Pages\ListFilials::route('/'),
             'create' => Pages\CreateFilial::route('/create'),
-            'view' => Pages\ViewFilial::route('/{record}/view'),            
+            'view' => Pages\ViewFilial::route('/{record}/view'),
             'edit' => Pages\EditFilial::route('/{record}/edit'),
         ];
     }

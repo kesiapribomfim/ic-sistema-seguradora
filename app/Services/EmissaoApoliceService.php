@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Cotacao;
 use App\Models\Apolice;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\Models\Beneficiario;
+use App\Models\Cotacao;
+use App\Models\Pagamento;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class EmissaoApoliceService
 {
@@ -19,36 +20,36 @@ class EmissaoApoliceService
             // Snapshot do Produto
             $snapshot = [
                 'produto' => [
-                    'id'   => $cotacao->produto->id ?? null,
+                    'id' => $cotacao->produto->id ?? null,
                     'nome' => $cotacao->produto->nome ?? 'Produto Desconhecido',
                 ],
                 'coberturas' => $cotacao->cobertura_selecionada,
             ];
-            
+
             $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
             $dadosEspecificos = $cotacao->dados_especificos ?? [];
             $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
-            
-            unset($dadosEspecificos['apolice_origem_id_temporario']); 
+
+            unset($dadosEspecificos['apolice_origem_id_temporario']);
 
             $apolice = Apolice::create([
-                'segurado_id'          => $cotacao->segurado_id,
-                'user_id'              => $cotacao->user_id,
-                'filial_id'            => $cotacao->filial_id,
-                'cotacao_id'           => $cotacao->id,
-                'apolice_origem_id'    => $apoliceOrigemId,
-                'numero_apolice'       => 'AP-' . str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
-                'data_emissao'         => Carbon::now(),
-                'data_inicio'          => Carbon::now(),
-                'data_fim'             => Carbon::now()->addYear(),
-                'status'               => 'Vigente',
-                'snapshot'             => $snapshot, 
+                'segurado_id' => $cotacao->segurado_id,
+                'user_id' => $cotacao->user_id,
+                'filial_id' => $cotacao->filial_id,
+                'cotacao_id' => $cotacao->id,
+                'apolice_origem_id' => $apoliceOrigemId,
+                'numero_apolice' => 'AP-'.str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
+                'data_emissao' => Carbon::now(),
+                'data_inicio' => Carbon::now(),
+                'data_fim' => Carbon::now()->addYear(),
+                'status' => 'Vigente',
+                'snapshot' => $snapshot,
                 'dados_bem_assegurado' => $dadosEspecificos,
-                'beneficiarios'        => [], 
-                'forma_pagamento'      => $formaPagamento,
-                'quantidade_parcelas'  => $quantidadeParcelas,
-                'valor_parcela'        => $valorParcela,
-                'valor_total'          => $cotacao->valor_total,
+                'beneficiarios' => [],
+                'forma_pagamento' => $formaPagamento,
+                'quantidade_parcelas' => $quantidadeParcelas,
+                'valor_parcela' => $valorParcela,
+                'valor_total' => $cotacao->valor_total,
             ]);
 
             $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
@@ -57,34 +58,34 @@ class EmissaoApoliceService
                 if (empty($ben['cpf']) || empty($ben['nome'])) {
                     continue;
                 }
-                
-                $beneficiario = \App\Models\Beneficiario::firstOrCreate(
+
+                $beneficiario = Beneficiario::firstOrCreate(
                     ['cpf' => $ben['cpf']],
                     [
                         'nome' => $ben['nome'],
-                        'data_nascimento' => null
+                        'data_nascimento' => null,
                     ]
                 );
 
                 $apolice->beneficiarios()->attach($beneficiario->id, [
                     'percentual_rateio' => $ben['percentual_rateio'],
-                    'parentesco'        => $ben['parentesco'],
+                    'parentesco' => $ben['parentesco'],
                 ]);
             }
 
             for ($i = 1; $i <= $quantidadeParcelas; $i++) {
                 $isPrimeiraParcela = ($i === 1);
 
-                \App\Models\Pagamento::create([
-                    'apolice_id'        => $apolice->id,
-                    'num_parcela'       => $i,
+                Pagamento::create([
+                    'apolice_id' => $apolice->id,
+                    'num_parcela' => $i,
                     'tipo_movimentacao' => 'Recebimento',
-                    'valor'             => $valorParcela,
-                    'data_vencimento'   => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
+                    'valor' => $valorParcela,
+                    'data_vencimento' => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
                     // A primeira parcela já nasce paga devido ao aceite no checkout
-                    'status'            => $isPrimeiraParcela ? 'Paga' : 'Aberta',
-                    'data_pagamento'    => $isPrimeiraParcela ? Carbon::now() : null,
-                    'metodo_baixa'      => $isPrimeiraParcela ? 'Automática' : null,
+                    'status' => $isPrimeiraParcela ? 'Paga' : 'Aberta',
+                    'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
+                    'metodo_baixa' => $isPrimeiraParcela ? 'Automática' : null,
                 ]);
             }
 

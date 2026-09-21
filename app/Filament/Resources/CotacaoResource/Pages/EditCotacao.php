@@ -2,11 +2,16 @@
 
 namespace App\Filament\Resources\CotacaoResource\Pages;
 
-use App\Filament\Resources\ApoliceResource;
 use App\Filament\Resources\CotacaoResource;
+use App\Jobs\EnviarCotacaoEmailJob;
+use App\Models\Produto;
+use App\Models\Segurado;
+use App\Services\CalculadoraPremioService;
+use App\Services\EmissaoApoliceService;
 use Filament\Actions;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Redirect;
 
 class EditCotacao extends EditRecord
 {
@@ -14,10 +19,10 @@ class EditCotacao extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $produto = \App\Models\Produto::find($data['produto_id']);
-        $segurado = \App\Models\Segurado::find($data['segurado_id']);
-        
-        $calculadora = new \App\Services\CalculadoraPremioService();
+        $produto = Produto::find($data['produto_id']);
+        $segurado = Segurado::find($data['segurado_id']);
+
+        $calculadora = new CalculadoraPremioService;
         $data['valor_total'] = $calculadora->calcular($produto, $data, $segurado);
 
         return $data;
@@ -27,9 +32,9 @@ class EditCotacao extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
-            
-            //Action de envio ao cliente (role: corretor)
-            \Filament\Actions\Action::make('enviar_cliente')
+
+            // Action de envio ao cliente (role: corretor)
+            Action::make('enviar_cliente')
                 ->label('Enviar para o Cliente')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
@@ -37,21 +42,21 @@ class EditCotacao extends EditRecord
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')
-                ->action(function () { 
-                    $cotacao = $this->record; 
-                    
-                    $cotacao->update(['status' => 'Enviada ao Cliente']);
-                    
-                    \App\Jobs\EnviarCotacaoEmailJob::dispatch($cotacao);
+                ->action(function () {
+                    $cotacao = $this->record;
 
-                    \Filament\Notifications\Notification::make()
+                    $cotacao->update(['status' => 'Enviada ao Cliente']);
+
+                    EnviarCotacaoEmailJob::dispatch($cotacao);
+
+                    Notification::make()
                         ->title('E-mail na fila de envio!')
                         ->success()
                         ->send();
-                        
+
                     return redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
                 }),
-            Actions\Action::make('avaliar_subscricao')
+            Action::make('avaliar_subscricao')
                 ->label('Avaliar Risco')
                 ->icon('heroicon-o-shield-check')
                 ->color('info')
@@ -65,29 +70,29 @@ class EditCotacao extends EditRecord
                         ])
                         ->required(),
                 ])
-                ->action(function (array $data, \App\Services\EmissaoApoliceService $emissaoService) {
+                ->action(function (array $data, EmissaoApoliceService $emissaoService) {
                     $cotacao = $this->record;
-                    
+
                     if ($data['decisao'] === 'Recusada') {
                         $cotacao->update(['status' => 'Recusada']);
-                        
-                        \Filament\Notifications\Notification::make()
+
+                        Notification::make()
                             ->title('Risco recusado.')
                             ->danger()
                             ->send();
-                            
+
                         return; // Encerra a execução aqui
                     }
-                    
+
                     if ($data['decisao'] === 'Aceita') {
                         $cotacao->update(['status' => 'Aceita']);
-                        
+
                         $formaPagamento = $cotacao->forma_pagamento_preferida ?? 'Boleto Bancário';
                         $parcelas = $cotacao->quantidade_parcelas_preferida ?? 1;
 
                         $apolice = $emissaoService->emitir($cotacao, $formaPagamento, $parcelas);
-                        
-                        \Filament\Notifications\Notification::make()
+
+                        Notification::make()
                             ->title('Aprovado! Apólice Emitida com Sucesso.')
                             ->success()
                             ->send();

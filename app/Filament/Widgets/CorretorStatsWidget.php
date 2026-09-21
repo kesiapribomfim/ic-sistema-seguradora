@@ -22,7 +22,7 @@ class CorretorStatsWidget extends BaseWidget
         $userId = auth()->id();
 
         return [
-            Stat:: make('Segurados', Segurado::where('corretor_id', $userId)->where('status', 1)->count())
+            Stat::make('Segurados', Segurado::where('corretor_id', $userId)->where('status', 1)->count())
                 ->description('Carteira de segurados ativos')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('primary'),
@@ -37,7 +37,7 @@ class CorretorStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('success'),
 
-            Stat::make('Prêmios Vendidos (Mês)', 'R$ ' . number_format(Apolice::where('user_id', $userId)->whereMonth('data_emissao', now()->month)->sum('valor_total'), 2, ',', '.'))
+            Stat::make('Prêmios Vendidos (Mês)', 'R$ '.number_format(Apolice::where('user_id', $userId)->whereMonth('data_emissao', now()->month)->sum('valor_total'), 2, ',', '.'))
                 ->description('Volume de vendas no mês atual')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('info'),

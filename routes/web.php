@@ -1,11 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Livewire\CheckoutCotacao;
 use App\Http\Controllers\ApolicePdfController;
+use App\Livewire\CheckoutCotacao;
 use App\Livewire\SolicitarCotacao;
-
-
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');

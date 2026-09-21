@@ -4,48 +4,57 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CotacaoResource\Pages;
 use App\Models\Cotacao;
-use Filament\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
+use App\Models\Produto;
+use App\Models\Segurado;
+use App\Models\User;
+use App\Services\CalculadoraPremioService;
+use App\Services\EmissaoApoliceService;
+use Carbon\Carbon;
 use Filament\Forms;
+use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Get;
-use Filament\Forms\Components\Wizard;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\Auth;
-use Filament\Infolists\Components\Tabs;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
-use Filament\Notifications\Notification;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class CotacaoResource extends Resource
 {
     protected static ?string $model = Cotacao::class;
+
     protected static ?string $modelLabel = 'Cotação';
+
     protected static ?string $pluralModelLabel = 'Cotações';
+
     protected static ?string $slug = 'cotacoes';
+
     protected static ?string $navigationIcon = 'heroicon-o-calculator';
-    
+
     public static function getNavigationBadge(): ?string
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->hasRole('Subscritor')) {
             $filiaisIds = $user->filiais()->pluck('filiais.id');
-            
+
             $count = static::getModel()::whereIn('filial_id', $filiaisIds)
-                ->where('status', 'Aguardando Subscrição') 
+                ->where('status', 'Aguardando Subscrição')
                 ->count();
-            
+
             return $count > 0 ? (string) $count : null;
         }
 
@@ -75,7 +84,7 @@ class CotacaoResource extends Resource
 
                     Wizard\Step::make('Validade')
                         ->schema([
-                            self::getResumoSchema()
+                            self::getResumoSchema(),
                         ]),
 
                 ])->columnSpanFull(),
@@ -86,12 +95,12 @@ class CotacaoResource extends Resource
     {
         $query = parent::getEloquentQuery()
             ->with([
-                'segurado:id,tipo,user_id,corretor_id,status', 
-                
-                'segurado.seguradoPf:id,segurado_id,nome', 
-                
+                'segurado:id,tipo,user_id,corretor_id,status',
+
+                'segurado.seguradoPf:id,segurado_id,nome',
+
                 'segurado.seguradoPj:id,segurado_id,razao_social',
-                
+
                 'user:id,name',
                 'filial:id,nome',
                 'produto:id,nome,ramo',
@@ -131,34 +140,34 @@ class CotacaoResource extends Resource
                 ->label('Selecione o Cliente')
                 ->relationship(
                     name: 'segurado',
-                    modifyQueryUsing: function(Builder $query) {
+                    modifyQueryUsing: function (Builder $query) {
                         $user = auth()->user();
 
-                        $query->where('status', 1); 
+                        $query->where('status', 1);
 
                         if ($user->hasRole('Corretor')) {
                             $query->where('corretor_id', $user->id);
                         }
 
                         if ($user->hasRole('Cliente')) {
-                            $query->where('user_id', $user->id); 
+                            $query->where('user_id', $user->id);
                         }
 
                         return $query;
                     }
                 )
-                ->getOptionLabelFromRecordUsing(fn (Model $record) => $record->tipo === 'PF' 
-                    ? "{$record->seguradoPf?->nome} (PF)" 
+                ->getOptionLabelFromRecordUsing(fn (Model $record) => $record->tipo === 'PF'
+                    ? "{$record->seguradoPf?->nome} (PF)"
                     : "{$record->seguradoPj?->razao_social} (PJ)"
                 )
                 ->searchable()
                 ->preload()
                 ->required(),
-                // ->visible(
-                //     if ($user->hasRole('Cliente')){
-                //         return (fn () => new HtmlString('Cadastrar novo cliente <a href="' . \App\Filament\Resources\SeguradoResource::getUrl('create') . '" class="text-primary-600 underline">aqui</a>.'));
-                //     }
-                // ),
+            // ->visible(
+            //     if ($user->hasRole('Cliente')){
+            //         return (fn () => new HtmlString('Cadastrar novo cliente <a href="' . \App\Filament\Resources\SeguradoResource::getUrl('create') . '" class="text-primary-600 underline">aqui</a>.'));
+            //     }
+            // ),
             Forms\Components\ToggleButtons::make('ramo')
                 ->label('Selecione o Ramo do Produto')
                 ->options([
@@ -182,75 +191,78 @@ class CotacaoResource extends Resource
 
             Forms\Components\Select::make('produto_id')
                 ->label('Selecione o produto')
-                ->options(function (Forms\Get $get) {
+                ->options(function (Get $get) {
                     $ramoEscolhido = $get('ramo');
-                    if (! $ramoEscolhido) return [];
+                    if (! $ramoEscolhido) {
+                        return [];
+                    }
 
-                    return \App\Models\Produto::where('ramo', $ramoEscolhido)
+                    return Produto::where('ramo', $ramoEscolhido)
                         ->where('status', true)
-                        ->pluck('nome','id');
+                        ->pluck('nome', 'id');
                 })
                 ->live()
                 ->required()
                 ->afterStateUpdated(function (Forms\Set $set, $state) {
                     if (! $state) {
-                        $set('cobertura_selecionada', []); 
-                         return;
+                        $set('cobertura_selecionada', []);
+
+                        return;
                     }
 
-                    $produto = \App\Models\Produto::with('coberturas')->find($state);
+                    $produto = Produto::with('coberturas')->find($state);
 
                     if ($produto && $produto->coberturas->isNotEmpty()) {
-                       $coberturasFormatadas = [];
-                       
-                       foreach ($produto->coberturas as $cobertura) {
-                           $uuid = (string) \Illuminate\Support\Str::uuid();
-                           $isObrigatoria = (bool) $cobertura->pivot->obrigatoria;
-                           $coberturasFormatadas[$uuid] = [
-                               'cobertura_id' => $cobertura->id, 
-                               'nome_cobertura' => $cobertura->nome, 
-                               'limite_maximo'  => $cobertura->pivot->limite_maximo,
-                               'obrigatoria'    => $isObrigatoria, 
-                               'contratada'     => true,
-                           ];
-                       }
+                        $coberturasFormatadas = [];
+
+                        foreach ($produto->coberturas as $cobertura) {
+                            $uuid = (string) Str::uuid();
+                            $isObrigatoria = (bool) $cobertura->pivot->obrigatoria;
+                            $coberturasFormatadas[$uuid] = [
+                                'cobertura_id' => $cobertura->id,
+                                'nome_cobertura' => $cobertura->nome,
+                                'limite_maximo' => $cobertura->pivot->limite_maximo,
+                                'obrigatoria' => $isObrigatoria,
+                                'contratada' => true,
+                            ];
+                        }
                         $set('cobertura_selecionada', $coberturasFormatadas);
                     } else {
                         $set('cobertura_selecionada', []);
                     }
                 }),
-                Forms\Components\Fieldset::make('Informações do Sistema')
+            Forms\Components\Fieldset::make('Informações do Sistema')
                 ->schema([
                     Forms\Components\Placeholder::make('status_visual')
                         ->label('Status da Cotação')
                         ->content(function ($record) {
                             $status = $record ? $record->status : 'Em Elaboração';
-                            
-                            $cor = match($status) {
+
+                            $cor = match ($status) {
                                 'Em Elaboração' => '#f59e0b',      // Corresponde ao 'info' (Azul)
                                 'Enviada ao Cliente' => '#3b82f6', // Corresponde ao 'warning' (Laranja)
                                 'Em Subscrição' => '#eb84e6',
                                 'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
                                 'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
                                 'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)
-                                default => '#6b7280',              
+                                default => '#6b7280',
                             };
-                            
-                            return new \Illuminate\Support\HtmlString(
+
+                            return new HtmlString(
                                 "<span style='color: {$cor}; font-weight: bold;'>{$status}</span>"
                             );
                         }),
 
                     Forms\Components\Hidden::make('status')
                         ->default('Em Elaboração'),
-                        
+
                     Forms\Components\Hidden::make('user_id')
-                        ->default(fn () => \Illuminate\Support\Facades\Auth::id()),
+                        ->default(fn () => Auth::id()),
 
                     Forms\Components\Placeholder::make('user_visual')
                         ->label('Corretor Responsável')
                         ->content(function ($record) {
-                            return $record ? $record->user?->name : \Illuminate\Support\Facades\Auth::user()->name;
+                            return $record ? $record->user?->name : Auth::user()->name;
                         }),
 
                     Forms\Components\Placeholder::make('filial_visual')
@@ -260,32 +272,32 @@ class CotacaoResource extends Resource
                                 return $record->filial ? $record->filial->nome : 'Nenhuma filial vinculada';
                             }
 
-                            $user = \Illuminate\Support\Facades\Auth::user();
+                            $user = Auth::user();
                             $filial = $user->filiais
                                 ->where('pivot.perfil_acesso', 'Corretor')
                                 ->first();
-                                
-                            return $filial ? $filial->nome :  new \Illuminate\Support\HtmlString(
+
+                            return $filial ? $filial->nome : new HtmlString(
                                 '<span style="color: #ef4444; font-weight: bold;">⚠️ Nenhuma filial vinculada ao corretor</span>'
                             );
                         }),
 
                     Forms\Components\Hidden::make('filial_id')
-                        ->default(function(){
-                            $user = \Illuminate\Support\Facades\Auth::user();
-                            
+                        ->default(function () {
+                            $user = Auth::user();
+
                             $filial = $user->filiais
                                 ->where('pivot.perfil_acesso', 'Corretor')
                                 ->first();
-                                
+
                             return $filial?->id;
                         }),
                     Forms\Components\Textarea::make('observacao_cliente')
-                    ->label('Pedido Original do Cliente (Via Site)')
-                    ->placeholder('Nenhuma observação registrada.')
-                    ->disabled() 
-                    ->columnSpanFull()
-                    ->visible(fn ($record) => $record && !empty($record->observacao_cliente)),
+                        ->label('Pedido Original do Cliente (Via Site)')
+                        ->placeholder('Nenhuma observação registrada.')
+                        ->disabled()
+                        ->columnSpanFull()
+                        ->visible(fn ($record) => $record && ! empty($record->observacao_cliente)),
                 ])->columns(2),
         ];
     }
@@ -293,13 +305,16 @@ class CotacaoResource extends Resource
     // DADOS ESPECIFICOS (Auto, Vida, Residencial)
     // =========================================================================
 
-    //AUTO
+    // AUTO
     private static function getAutoSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
             ->visible(function (Get $get) {
                 $ramo = $get('../ramo');
-                if (! $ramo) return false;
+                if (! $ramo) {
+                    return false;
+                }
+
                 return $ramo === 'Auto';
             })
             ->schema([
@@ -309,10 +324,10 @@ class CotacaoResource extends Resource
                         Forms\Components\Group::make()->schema([
                             Forms\Components\TextInput::make('placa')
                                 ->label('Placa do Veículo')
-                                ->disabled(fn (\Filament\Forms\Get $get): bool => $get('sem_placa') === true)
-                                ->required(fn (\Filament\Forms\Get $get): bool => ! $get('sem_placa'))
-                                ->dehydrated(), 
-                            
+                                ->disabled(fn (Get $get): bool => $get('sem_placa') === true)
+                                ->required(fn (Get $get): bool => ! $get('sem_placa'))
+                                ->dehydrated(),
+
                             Forms\Components\Checkbox::make('sem_placa')
                                 ->label('Ainda não possui placa')
                                 ->live() // O 'live()' é a mágica que faz a tela reagir na mesma hora ao clique
@@ -342,7 +357,7 @@ class CotacaoResource extends Resource
                             Forms\Components\Toggle::make('kit_gas')->label('Possui kit a gas?')->default(false),
                             Forms\Components\Toggle::make('blindado')->label('Blindado?')->default(false),
                             Forms\Components\Toggle::make('imposto')->label('É isento de imposto?')->default(false),
-                        ])->columns(4),                           
+                        ])->columns(4),
                     ]),
                 Forms\Components\Section::make('Utilização')
                     ->icon('heroicon-o-map-pin')
@@ -359,7 +374,7 @@ class CotacaoResource extends Resource
                                 Forms\Components\Select::make('detalhe_uso_comercial')
                                     ->label('Qual o tipo de uso comercial?')
                                     ->visible(fn (Get $get): bool => in_array('comercial', $get('uso') ?? []))
-                                    ->options(['visita' => 'Visitar cliente', 'entrega' => 'Fazer entregas', 'motorista_app' => 'Transporte por aplicativo', 'taxi'=>'Táxi', 'outros'=>'Outros'])
+                                    ->options(['visita' => 'Visitar cliente', 'entrega' => 'Fazer entregas', 'motorista_app' => 'Transporte por aplicativo', 'taxi' => 'Táxi', 'outros' => 'Outros'])
                                     ->required(fn (Get $get): bool => in_array('comercial', $get('uso') ?? [])),
                                 Forms\Components\ToggleButtons::make('detalhe_uso_trabalho_estudo')
                                     ->label('Durante o trabalho/estudo, fica estacionado onde?')
@@ -380,7 +395,7 @@ class CotacaoResource extends Resource
                                     ->label('UF')
                                     ->required()
                                     ->maxLength(2)
-                                    ->extraAttributes(['style'=>'text-transform: uppercase']),
+                                    ->extraAttributes(['style' => 'text-transform: uppercase']),
                                 Forms\Components\TextInput::make('CEP')->label('CEP')->required()->mask('99.999-999')->stripCharacters(['.', '-']),
                                 Forms\Components\ToggleButtons::make('estacionamento')->label('Em qual local?')->options(['garagem' => 'Garagem', 'rua' => 'Rua', 'estacionamento' => 'Estacionamento']),
                             ]),
@@ -395,117 +410,119 @@ class CotacaoResource extends Resource
                                 Forms\Components\TextInput::make('seguradora')->label('Seguradora')->required(),
                                 Forms\Components\TextInput::make('numero_apolice')->label('Número da Apólice')->required(),
                                 Forms\Components\DatePicker::make('data_vencimento')->label('Vigência Fim')->required(),
-                                Forms\Components\TextInput::make('classe_bonus')->label('Classe de Bônus')->required(), 
+                                Forms\Components\TextInput::make('classe_bonus')->label('Classe de Bônus')->required(),
                                 Forms\Components\Select::make('uso_anterior')
-                                    ->label ('O seguro atual foi utilizado?')
+                                    ->label('O seguro atual foi utilizado?')
                                     ->options(['nao' => 'Não', 'uma_vez' => 'Uma vez', 'duas_vezes' => 'Duas vezes', 'tres_vezes' => 'Três vezes', 'mais_de_tres_vezes' => 'Mais de três vezes']),
-                            ])
+                            ]),
                     ]),
             ]);
     }
 
-    //RESIDENCIAL
+    // RESIDENCIAL
     private static function getResidencialSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
             ->visible(function (Get $get) {
                 $ramo = $get('../ramo');
-                if (! $ramo) return false;
+                if (! $ramo) {
+                    return false;
+                }
+
                 return $ramo === 'Residencial';
             })
             ->schema([
                 Forms\Components\Section::make('Dados da Residência')->icon('heroicon-o-home')
-                ->schema([
-                    Forms\Components\Section::make('Dados do Imóvel')
-                        ->icon('heroicon-o-home')
-                        ->schema([
-                            Forms\Components\Select::make('tipo_moradia')
-                                ->label('Tipo de residência')
-                                ->required()
-                                ->options([
-                                    'casa' => 'Casa',
-                                    'apartamento' => 'Apartamento',
-                                    'condominio_horizontal' => 'Condomínio Horizontal',
-                                ])
-                                ->live(),
-                            Forms\Components\Select::make('detalhe_apartamento')
-                                ->label('Tipo de Apartamento')
-                                ->visible(fn (Forms\Get $get): bool => $get('tipo_moradia') === 'apartamento')
-                                ->options([
-                                    'pavimento_terreo' => 'Pavimento Térreo',
-                                    'pavimento_superior' => 'Pavimento Superior',
-                                    'cobertura' => 'Cobertura',
-                                    'sobrado' => 'Sobrado',
-                                ]),
-                            Forms\Components\Fieldset::make('Endereço do Imóvel')
-                                ->schema([
-                                    Forms\Components\TextInput::make('rua')->label('Rua')->required(),
-                                    Forms\Components\TextInput::make('numero')->label('Número')->required(),
-                                    Forms\Components\TextInput::make('bairro')->label('Bairro')->required(),
-                                    Forms\Components\TextInput::make('complemento')->label('Complemento'),
-                                    Forms\Components\TextInput::make('cidade')->label('Cidade')->required(),
-                                    Forms\Components\TextInput::make('uf')->label('UF')->required()->maxLength(2)->extraAttributes(['style'=>'text-transform: uppercase']),
-                                    Forms\Components\TextInput::make('cep')->label('CEP')->required()->mask('99.999-999')->stripCharacters(['.', '-']),
-                                ]),
-                        ]),
+                    ->schema([
+                        Forms\Components\Section::make('Dados do Imóvel')
+                            ->icon('heroicon-o-home')
+                            ->schema([
+                                Forms\Components\Select::make('tipo_moradia')
+                                    ->label('Tipo de residência')
+                                    ->required()
+                                    ->options([
+                                        'casa' => 'Casa',
+                                        'apartamento' => 'Apartamento',
+                                        'condominio_horizontal' => 'Condomínio Horizontal',
+                                    ])
+                                    ->live(),
+                                Forms\Components\Select::make('detalhe_apartamento')
+                                    ->label('Tipo de Apartamento')
+                                    ->visible(fn (Get $get): bool => $get('tipo_moradia') === 'apartamento')
+                                    ->options([
+                                        'pavimento_terreo' => 'Pavimento Térreo',
+                                        'pavimento_superior' => 'Pavimento Superior',
+                                        'cobertura' => 'Cobertura',
+                                        'sobrado' => 'Sobrado',
+                                    ]),
+                                Forms\Components\Fieldset::make('Endereço do Imóvel')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('rua')->label('Rua')->required(),
+                                        Forms\Components\TextInput::make('numero')->label('Número')->required(),
+                                        Forms\Components\TextInput::make('bairro')->label('Bairro')->required(),
+                                        Forms\Components\TextInput::make('complemento')->label('Complemento'),
+                                        Forms\Components\TextInput::make('cidade')->label('Cidade')->required(),
+                                        Forms\Components\TextInput::make('uf')->label('UF')->required()->maxLength(2)->extraAttributes(['style' => 'text-transform: uppercase']),
+                                        Forms\Components\TextInput::make('cep')->label('CEP')->required()->mask('99.999-999')->stripCharacters(['.', '-']),
+                                    ]),
+                            ]),
                         Forms\Components\Section::make('Detalhamento')
-                        ->icon('heroicon-o-home')
-                        ->schema([
-                            Forms\Components\Select::make('uso_residencia')
-                                ->label('Qual é o uso?')
-                                ->options([
-                                    'habitavel' => 'Habitável',
-                                    'veraneio' => 'Veraneio',
-                                ]),
-                            Forms\Components\Select::make('tipo_construcao')
-                                ->label('Qual é o tipo de construção?')
-                                ->options([
-                                    'madeira' => 'Madeira',
-                                    'alvenaria' => 'Alvenaria',
-                                ])
-                                ->required(),
-                            Forms\Components\Select::make('regiao')
-                                ->label('Qual o local?')
-                                ->required()
-                                ->live()
-                                ->options([
-                                    'urbano' => 'Urbano',
-                                    'rural' => 'Rural',
-                                ]),
-                            Forms\Components\Select::make('agro_comercial')
-                                ->label('Há atividades agropecuárias de fins comerciais?')
-                                ->visible(fn (Forms\Get $get): bool => $get('regiao') === 'rural')
-                                ->options([
-                                    'com_agro_comercial' => 'Sim',
-                                    'sem_agro_comercial' => 'Não',
-                                ]),
-                            Forms\Components\ToggleButtons::make('sobre_imovel')
+                            ->icon('heroicon-o-home')
+                            ->schema([
+                                Forms\Components\Select::make('uso_residencia')
+                                    ->label('Qual é o uso?')
+                                    ->options([
+                                        'habitavel' => 'Habitável',
+                                        'veraneio' => 'Veraneio',
+                                    ]),
+                                Forms\Components\Select::make('tipo_construcao')
+                                    ->label('Qual é o tipo de construção?')
+                                    ->options([
+                                        'madeira' => 'Madeira',
+                                        'alvenaria' => 'Alvenaria',
+                                    ])
+                                    ->required(),
+                                Forms\Components\Select::make('regiao')
+                                    ->label('Qual o local?')
+                                    ->required()
+                                    ->live()
+                                    ->options([
+                                        'urbano' => 'Urbano',
+                                        'rural' => 'Rural',
+                                    ]),
+                                Forms\Components\Select::make('agro_comercial')
+                                    ->label('Há atividades agropecuárias de fins comerciais?')
+                                    ->visible(fn (Get $get): bool => $get('regiao') === 'rural')
+                                    ->options([
+                                        'com_agro_comercial' => 'Sim',
+                                        'sem_agro_comercial' => 'Não',
+                                    ]),
+                                Forms\Components\ToggleButtons::make('sobre_imovel')
                                     ->label('O imóvel é:')
                                     ->multiple()
-                                    ->options(['proprio' => 'Próprio', 'alugado'=>'Alugado','desocupado' => 'Desocupado'])
+                                    ->options(['proprio' => 'Próprio', 'alugado' => 'Alugado', 'desocupado' => 'Desocupado'])
                                     ->live()
                                     ->nullable(),
-                            Forms\Components\Select::make('terreno_baldio')
-                                ->label('Faz divisa com terreno baldio ou área descampadas?')
-                                ->options(['sim'=>'Sim','nao'=>'Não'])
-                                ->required(),
-                            Forms\Components\TextInput::make('valor_base_risco')
-                                ->label('Qual é o valor do imóvel?')
-                                ->numeric()
-                                ->prefix('R$')
-                                ->required(),
-                            Forms\Components\Select::make('sinistros')
-                                ->label('Houve sinistros?')
-                                ->options(['nao'=>'Não','uma_vez'=>'Sim, uma vez','duas_vezes'=>'Sim, duas vezes','tres_mais'=>'Sim, três ou mais vezes'])
-                                ->required(),
-                            
-                        ])
-                ]),
+                                Forms\Components\Select::make('terreno_baldio')
+                                    ->label('Faz divisa com terreno baldio ou área descampadas?')
+                                    ->options(['sim' => 'Sim', 'nao' => 'Não'])
+                                    ->required(),
+                                Forms\Components\TextInput::make('valor_base_risco')
+                                    ->label('Qual é o valor do imóvel?')
+                                    ->numeric()
+                                    ->prefix('R$')
+                                    ->required(),
+                                Forms\Components\Select::make('sinistros')
+                                    ->label('Houve sinistros?')
+                                    ->options(['nao' => 'Não', 'uma_vez' => 'Sim, uma vez', 'duas_vezes' => 'Sim, duas vezes', 'tres_mais' => 'Sim, três ou mais vezes'])
+                                    ->required(),
+
+                            ]),
+                    ]),
             ]);
     }
 
-
-    //VIDA
+    // VIDA
     private static function getPerguntasSaudeSchema(): array
     {
         return [
@@ -531,39 +548,42 @@ class CotacaoResource extends Resource
                         ])
                         ->columns(2)
                         ->default([])
-                        ->visible(fn (Forms\Get $get) => $get('possui_doenca_preexistente') === true),
+                        ->visible(fn (Get $get) => $get('possui_doenca_preexistente') === true),
 
                     Forms\Components\Textarea::make('detalhes_saude')
-                                    ->label('Detalhes Adicionais do Histórico Médico')
-                                    ->placeholder('Informe a data do diagnóstico, tratamentos realizados, uso contínuo de medicamentos, etc.')
-                                    ->visible(fn (Forms\Get $get) => $get('possui_doenca_preexistente') === true)
-                                    ->columnSpanFull(),
+                        ->label('Detalhes Adicionais do Histórico Médico')
+                        ->placeholder('Informe a data do diagnóstico, tratamentos realizados, uso contínuo de medicamentos, etc.')
+                        ->visible(fn (Get $get) => $get('possui_doenca_preexistente') === true)
+                        ->columnSpanFull(),
 
-                                // Fatores de risco (Essenciais para a subscrição de Vida)
-                                Forms\Components\Fieldset::make('Hábitos e Fatores de Risco')
-                                    ->schema([
-                                        Forms\Components\Toggle::make('fumante')
-                                            ->label('Fumante?'),
-                                            
-                                        Forms\Components\Toggle::make('consome_alcool')
-                                            ->label('Consome bebida alcoólica?'),
-                                            
-                                        Forms\Components\Toggle::make('pratica_esportes_radicais')
-                                            ->label('Pratica esportes radicais?'),
-                                    ])->columns(3),
-                ])
+                    // Fatores de risco (Essenciais para a subscrição de Vida)
+                    Forms\Components\Fieldset::make('Hábitos e Fatores de Risco')
+                        ->schema([
+                            Forms\Components\Toggle::make('fumante')
+                                ->label('Fumante?'),
+
+                            Forms\Components\Toggle::make('consome_alcool')
+                                ->label('Consome bebida alcoólica?'),
+
+                            Forms\Components\Toggle::make('pratica_esportes_radicais')
+                                ->label('Pratica esportes radicais?'),
+                        ])->columns(3),
+                ]),
         ];
     }
 
     private static function getVidaSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(function (Forms\Get $get) {
+            ->visible(function (Get $get) {
                 $ramo = $get('../ramo');
-                if (! $ramo) return false;
+                if (! $ramo) {
+                    return false;
+                }
+
                 return $ramo === 'Vida';
             })
-            ->dehydrated(fn (Forms\Get $get) => $get('../ramo') === 'Vida')
+            ->dehydrated(fn (Get $get) => $get('../ramo') === 'Vida')
             ->schema([
                 // ---------------------------------------------------------
                 // 1. DADOS DO TITULAR
@@ -583,7 +603,7 @@ class CotacaoResource extends Resource
                                             ->prefix('R$')
                                             ->required()
                                             ->live(onBlur: true),
-                                        //puxar o nome e data de nascimento direto do banco de dados
+                                        // puxar o nome e data de nascimento direto do banco de dados
                                         // Forms\Components\Placeholder::make('nome')
                                         //     ->label('Nome Completo')
                                         //     ->live(),
@@ -595,7 +615,7 @@ class CotacaoResource extends Resource
                                                 ->label('Peso (kg)')
                                                 ->numeric()
                                                 ->required(),
-                                                
+
                                             Forms\Components\TextInput::make('altura')
                                                 ->label('Altura (cm)')
                                                 ->numeric()
@@ -606,14 +626,14 @@ class CotacaoResource extends Resource
                                             ->label('Profissão de Risco?')
                                             ->options(['nao' => 'Não', 'sim' => 'Sim'])
                                             ->required(),
-                                    ]) 
+                                    ])
                                     ->columns(2),
 
                                 Forms\Components\Tabs\Tab::make('Saúde')
                                     ->icon('heroicon-o-heart')
                                     ->schema(self::getPerguntasSaudeSchema())
                                     ->columns(2),
-                            ])
+                            ]),
                     ]),
 
                 // ---------------------------------------------------------
@@ -630,7 +650,7 @@ class CotacaoResource extends Resource
                                         Forms\Components\TextInput::make('nome')
                                             ->label('Nome Completo')
                                             ->required(),
-                                            
+
                                         Forms\Components\Select::make('parentesco')
                                             ->options([
                                                 'conjuge' => 'Cônjuge/Companheiro(a)',
@@ -643,10 +663,10 @@ class CotacaoResource extends Resource
                                             ->label('Data de Nascimento')
                                             ->required()
                                             ->rules([
-                                                fn (Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
                                                     $parentesco = $get('parentesco');
                                                     if ($parentesco === 'filho') {
-                                                        $idade = \Carbon\Carbon::parse($value)->age;
+                                                        $idade = Carbon::parse($value)->age;
                                                         if ($idade > 21) {
                                                             $fail('Filhos e enteados dependentes devem ter no máximo 21 anos.');
                                                         }
@@ -658,7 +678,7 @@ class CotacaoResource extends Resource
                                                 ->label('Peso (kg)')
                                                 ->numeric()
                                                 ->required(),
-                                                
+
                                             Forms\Components\TextInput::make('altura')
                                                 ->label('Altura (cm)')
                                                 ->numeric()
@@ -668,11 +688,11 @@ class CotacaoResource extends Resource
 
                                 Forms\Components\Tabs\Tab::make('Saúde do Dependente')
                                     ->icon('heroicon-o-heart')
-                                    ->schema(self::getPerguntasSaudeSchema()) 
+                                    ->schema(self::getPerguntasSaudeSchema())
                                     ->columns(2),
-                            ])
+                            ]),
                     ])
-                    ->defaultItems(0) 
+                    ->defaultItems(0)
                     ->addActionLabel('Adicionar Dependente')
                     ->collapsible()
                     ->itemLabel(fn (array $state): ?string => $state['nome'] ?? null),
@@ -723,42 +743,42 @@ class CotacaoResource extends Resource
     private static function getCoberturasSchema(): Forms\Components\Component
     {
         return Forms\Components\Group::make()
-            ->visible(fn (Forms\Get $get) => filled(($get('ramo'))))
+            ->visible(fn (Get $get) => filled(($get('ramo'))))
             ->schema([
 
                 Forms\Components\Repeater::make('cobertura_selecionada')
                     ->label('Coberturas Disponíveis no Plano')
                     ->schema([
-                        Forms\Components\Hidden::make('cobertura_id'), 
-                        Forms\Components\Hidden::make('obrigatoria'), 
+                        Forms\Components\Hidden::make('cobertura_id'),
+                        Forms\Components\Hidden::make('obrigatoria'),
 
                         // O GATILHO DE CONTRATAÇÃO
                         Forms\Components\Toggle::make('contratada')
-                            ->label(fn (Forms\Get $get) => $get('obrigatoria') ? 'Obrigatória' : 'Opcional')
+                            ->label(fn (Get $get) => $get('obrigatoria') ? 'Obrigatória' : 'Opcional')
                             ->live()
-                            ->afterStateHydrated(function (Forms\Components\Toggle $component, $state, Forms\Get $get) {
+                            ->afterStateHydrated(function (Forms\Components\Toggle $component, $state, Get $get) {
                                 // Se a cobertura for obrigatória, ela nasce ligada independentemente de qualquer coisa
                                 if ($get('obrigatoria')) {
                                     $component->state(true);
-                                } 
+                                }
                                 // Se não for obrigatória e o estado estiver vazio (novo form), nasce desligada
                                 elseif ($state === null || $state === '') {
                                     $component->state(false);
                                 }
                             })
-                            ->disabled(fn (Forms\Get $get) => (bool) $get('obrigatoria'))
+                            ->disabled(fn (Get $get) => (bool) $get('obrigatoria'))
                             ->dehydrated(),
 
                         Forms\Components\TextInput::make('nome_cobertura')
                             ->label('Cobertura')
                             ->readOnly(),
-                            
+
                         Forms\Components\TextInput::make('limite_maximo')
                             ->label('Limite Máximo (R$)')
                             ->numeric()
                             ->prefix('R$')
-                            ->disabled(fn (Forms\Get $get) => $get('contratada') === false)
-                            ->required(fn (Forms\Get $get) => $get('contratada') === true)
+                            ->disabled(fn (Get $get) => $get('contratada') === false)
+                            ->required(fn (Get $get) => $get('contratada') === true)
                             ->dehydrated(),
                     ])
                     ->columns(3)
@@ -781,21 +801,21 @@ class CotacaoResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('resumo_cliente')
                             ->label('Cliente Selecionado')
-                            ->content( function (Forms\Get $get){
+                            ->content(function (Get $get) {
                                 $seguradoId = $get('segurado_id');
 
                                 if (! $seguradoId) {
                                     return 'Nenhum cliente selecionado';
                                 }
 
-                                $cliente = \App\Models\Segurado::with(['seguradoPf','seguradoPj'])->find($seguradoId);
+                                $cliente = Segurado::with(['seguradoPf', 'seguradoPj'])->find($seguradoId);
 
-                                if(! $cliente){
+                                if (! $cliente) {
                                     return 'Erro ao buscar cliente';
                                 }
-                                if($cliente->tipo === 'PF'){
+                                if ($cliente->tipo === 'PF') {
                                     return "{$cliente->seguradoPf?->nome} (CPF:{$cliente->seguradoPf->cpf})";
-                                } else{
+                                } else {
                                     return "{$cliente->seguradoPj?->razao_social} (CNPJ:{$cliente->seguradoPj->cnpj})";
                                 }
 
@@ -804,9 +824,12 @@ class CotacaoResource extends Resource
                         // Mostra o Produto
                         Forms\Components\Placeholder::make('resumo_produto')
                             ->label('Plano Escolhido')
-                            ->content(function (Forms\Get $get) {
-                                if (!$get('produto_id')) return 'Nenhum plano selecionado';
-                                $produto = \App\Models\Produto::find($get('produto_id'));
+                            ->content(function (Get $get) {
+                                if (! $get('produto_id')) {
+                                    return 'Nenhum plano selecionado';
+                                }
+                                $produto = Produto::find($get('produto_id'));
+
                                 return $produto ? $produto->nome : 'Erro ao buscar';
                             }),
                     ])->columns(2),
@@ -815,65 +838,70 @@ class CotacaoResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('premio_calculado_visual')
                             ->label('Prêmio Total Calculado')
-                            ->content(function (Forms\Get $get, $livewire) {
+                            ->content(function (Get $get, $livewire) {
                                 $produtoId = $get('produto_id');
                                 $seguradoId = $get('segurado_id');
 
-                                if (!$produtoId || !$seguradoId) {
-                                    return new \Illuminate\Support\HtmlString('<span style="color: #6b7280; font-style: italic;">Preencha o cliente e o produto nas etapas anteriores.</span>');
+                                if (! $produtoId || ! $seguradoId) {
+                                    return new HtmlString('<span style="color: #6b7280; font-style: italic;">Preencha o cliente e o produto nas etapas anteriores.</span>');
                                 }
 
-                                $produto = \App\Models\Produto::find($produtoId);
-                                $segurado = \App\Models\Segurado::find($seguradoId);
-                                
+                                $produto = Produto::find($produtoId);
+                                $segurado = Segurado::find($seguradoId);
+
                                 // Pega tudo que o corretor digitou até agora
                                 $dadosDoFormulario = $livewire->form->getRawState();
-                                
+
                                 // Roda o serviço em tempo real para exibir
-                                $calculadora = new \App\Services\CalculadoraPremioService();
+                                $calculadora = new CalculadoraPremioService;
                                 $premioFinal = $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
 
-                                return new \Illuminate\Support\HtmlString(
-                                    '<span style="font-size: 1.5rem; font-weight: bold; color: #10b981;">R$ ' . number_format($premioFinal, 2, ',', '.') . '</span>'
+                                return new HtmlString(
+                                    '<span style="font-size: 1.5rem; font-weight: bold; color: #10b981;">R$ '.number_format($premioFinal, 2, ',', '.').'</span>'
                                 );
                             }),
 
                         Forms\Components\Hidden::make('valor_total')
-                            ->dehydrateStateUsing(function (Forms\Get $get, $livewire) {
+                            ->dehydrateStateUsing(function (Get $get, $livewire) {
                                 $produtoId = $get('produto_id');
                                 $seguradoId = $get('segurado_id');
 
                                 // Se faltar dados, salva zerado para não dar erro de null no banco
-                                if (!$produtoId || !$seguradoId) return 0.0; 
+                                if (! $produtoId || ! $seguradoId) {
+                                    return 0.0;
+                                }
 
-                                $produto = \App\Models\Produto::find($produtoId);
-                                $segurado = \App\Models\Segurado::find($seguradoId);
-                                
+                                $produto = Produto::find($produtoId);
+                                $segurado = Segurado::find($seguradoId);
+
                                 // Pega os dados exatos do formulário no momento do clique em "Salvar"
                                 $dadosDoFormulario = $livewire->form->getRawState();
-                                
+
                                 // Roda o cálculo e injeta o valor direto na coluna do banco!
-                                $calculadora = new \App\Services\CalculadoraPremioService();
+                                $calculadora = new CalculadoraPremioService;
+
                                 return $calculadora->calcular($produto, $dadosDoFormulario, $segurado);
                             }),
 
                         Forms\Components\Placeholder::make('info_alcada')
                             ->label('Informações de Subscrição')
-                            ->content(function (Forms\Get $get) {
+                            ->content(function (Get $get) {
                                 $produtoId = $get('produto_id');
-                                if (!$produtoId) return 'Selecione um plano para visualizar os limites.';
+                                if (! $produtoId) {
+                                    return 'Selecione um plano para visualizar os limites.';
+                                }
 
-                                $produto = \App\Models\Produto::find($produtoId);
-                                
-                                $limiteAlcada = $produto->valor_alcada 
-                                    ? 'R$ ' . number_format($produto->valor_alcada, 2, ',', '.') 
+                                $produto = Produto::find($produtoId);
+
+                                $limiteAlcada = $produto->valor_alcada
+                                    ? 'R$ '.number_format($produto->valor_alcada, 2, ',', '.')
                                     : 'Sem Limite (Aprovação Automática)';
 
                                 $coberturas = $get('cobertura_selecionada') ?? [];
-                                $somaLmi = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
-                                $riscoTotal = 'R$ ' . number_format($somaLmi, 2, ',', '.');
+                                $somaLmi = collect($coberturas)->sum(fn ($c) => (float) ($c['limite_maximo'] ?? 0));
+                                $riscoTotal = 'R$ '.number_format($somaLmi, 2, ',', '.');
 
-                                return new \Illuminate\Support\HtmlString(
+                                return new HtmlString(
                                     "<span style='color: #4b5563;'>
                                         <strong>Limite de Alçada do Produto:</strong> {$limiteAlcada} <br>
                                         <strong>Risco Total (Soma das Coberturas):</strong> {$riscoTotal}
@@ -884,7 +912,7 @@ class CotacaoResource extends Resource
 
                         Forms\Components\DatePicker::make('validade')
                             ->label('Validade da Proposta')
-                            ->default(now()->addDays(30)) 
+                            ->default(now()->addDays(30))
                             ->required(),
                     ]),
             ]);
@@ -898,11 +926,11 @@ class CotacaoResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with([
-                'segurado.seguradoPf', 
-                'segurado.seguradoPj', 
-                'user', 
-                'produto', 
-                'apolice'
+                'segurado.seguradoPf',
+                'segurado.seguradoPj',
+                'user',
+                'produto',
+                'apolice',
             ]))
             ->columns([
                 Tables\Columns\TextColumn::make('identificacao_segurado')
@@ -924,7 +952,7 @@ class CotacaoResource extends Resource
                     }),
             ])
             ->recordUrl(fn ($record): string => static::getUrl('view', ['record' => $record]))
-            ->recordAction(Tables\Actions\ViewAction::class)
+            ->recordAction(ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status da Cotação')
@@ -951,7 +979,7 @@ class CotacaoResource extends Resource
                     EditAction::make(),
                     ViewAction::make(),
 
-                    Tables\Actions\Action::make('emitir_apolice')
+                    Action::make('emitir_apolice')
                         ->label('Emitir Apólice')
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
@@ -963,37 +991,37 @@ class CotacaoResource extends Resource
 
                             $user = auth()->user();
 
-                            if (!in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente', 'Aprovada'])) {
+                            if (! in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente', 'Aprovada'])) {
                                 return false;
                             }
 
                             $limite = $record->produto?->valor_alcada;
-                            
+
                             if ($limite && $record->valor_total > $limite && $record->status !== 'Aprovada') {
-                                return false; 
+                                return false;
                             }
 
-                            if (!$user->hasRole('Corretor')) {
+                            if (! $user->hasRole('Corretor')) {
                                 return false;
                             }
 
                             return true;
                         })
                         ->action(function (Cotacao $record, array $data) {
-                            
-                            $servico = new \App\Services\EmissaoApoliceService();
+
+                            $servico = new EmissaoApoliceService;
                             $apolice = $servico->emitir(
                                 $record,
                                 $data['forma_pagamento'],
-                                (int) $data['quantidade_parcelas']    
+                                (int) $data['quantidade_parcelas']
                             );
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Apólice Emitida com Sucesso!')
                                 ->success()
                                 ->send();
 
-                            redirect()->to('/admin/apolices/' . $apolice->id . '/view');
+                            redirect()->to('/admin/apolices/'.$apolice->id.'/view');
                         })
                         ->form([
                             Forms\Components\Select::make('forma_pagamento')
@@ -1004,7 +1032,7 @@ class CotacaoResource extends Resource
                                     'Pix' => 'Pix',
                                 ])
                                 ->required(),
-                                
+
                             Forms\Components\Select::make('quantidade_parcelas')
                                 ->label('Quantidade de Parcelas')
                                 ->options([
@@ -1023,30 +1051,30 @@ class CotacaoResource extends Resource
                                 ])
                                 ->required(),
                         ]),
-                    Tables\Actions\Action::make('link_checkout')
+                    Action::make('link_checkout')
                         ->label('Link de Pagamento')
                         ->icon('heroicon-o-link')
                         ->color('info')
                         ->visible(function (Cotacao $record) {
 
                             $user = auth()->user();
-                            if (!$user->hasRole('Corretor')) {
+                            if (! $user->hasRole('Corretor')) {
                                 return false;
                             }
-                            if (!in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente'])) {
+                            if (! in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente'])) {
                                 return false;
                             }
 
                             return true;
                         })
                         ->action(function (Cotacao $record) {
-                            $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                                'checkout.cotacao', 
+                            $url = URL::temporarySignedRoute(
+                                'checkout.cotacao',
                                 now()->addDays(30), // O link expira em 30 dias
-                                ['cotacao' => $record] //aponta para o uuid das cotações
+                                ['cotacao' => $record] // aponta para o uuid das cotações
                             );
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Link Gerado com sucesso!')
                                 ->body($url)
                                 ->success()
@@ -1055,15 +1083,15 @@ class CotacaoResource extends Resource
                     Action::make('ver_apolice')
                         ->label('Abrir Apólice')
                         ->icon('heroicon-o-document-check')
-                        ->color ('info')
-                        ->visible(function (Model $record){
+                        ->color('info')
+                        ->visible(function (Model $record) {
                             return $record->apolice()->exists();
                         })
                         ->url(function (Model $record) {
-                            //mudei para edit->view
+                            // mudei para edit->view
                             return ApoliceResource::getUrl('view', ['record' => $record->apolice->id]);
                         }),
-                ])
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -1073,20 +1101,24 @@ class CotacaoResource extends Resource
                         ->exports([
                             ExcelExport::make()
                                 ->fromTable()
-                                ->withFilename('relatorio_apolices_' . date('Y-m-d'))
+                                ->withFilename('relatorio_apolices_'.date('Y-m-d'))
                                 ->queue(), // Manda para a fila (Job) em vez de travar o navegador
                         ]),
                 ])]);
     }
 
-    public static function getRelations(): array { 
-        return []; }
-    public static function getPages(): array { 
+    public static function getRelations(): array
+    {
+        return [];
+    }
+
+    public static function getPages(): array
+    {
         return [
-            'index' => Pages\ListCotacaos::route('/'), 
-            'create' => Pages\CreateCotacao::route('/create'), 
+            'index' => Pages\ListCotacaos::route('/'),
+            'create' => Pages\CreateCotacao::route('/create'),
             'view' => Pages\ViewCotacao::route('/{record}/view'),
-            'edit' => Pages\EditCotacao::route('/{record}/edit')
+            'edit' => Pages\EditCotacao::route('/{record}/edit'),
         ];
     }
 }

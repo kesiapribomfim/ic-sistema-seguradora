@@ -2,25 +2,28 @@
 
 namespace App\Filament\Resources\FilialResource\RelationManagers;
 
+use App\Filament\Resources\SeguradoResource;
+use App\Filament\Resources\UserResource;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Resources\Components\Tab;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Eloquent\Model;
-use Filament\Resources\Components\Tab;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\AttachAction;
 use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\Action;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class UsersRelationManager extends RelationManager
 {
     protected static string $relationship = 'users';
+
     protected static ?string $title = 'Usuários';
+
     protected static ?string $icon = 'heroicon-o-users';
 
     public function form(Form $form): Form
@@ -35,7 +38,7 @@ class UsersRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name'),
-                Tables\Columns\TextColumn::make('perfil_acesso')
+                Tables\Columns\TextColumn::make('perfil_acesso'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('perfil_acesso')
@@ -45,14 +48,14 @@ class UsersRelationManager extends RelationManager
                         'Gestor de Filial' => 'Gestor de Filial',
                         'Analista de Sinistro' => 'Analista de Sinistro',
                         'Subscritor' => 'Subscritor',
-                    ])
+                    ]),
             ])
             ->headerActions([
-                Tables\Actions\AttachAction::make()
+                AttachAction::make()
                     ->preloadRecordSelect()
-                    ->form(fn (Tables\Actions\AttachAction $action): array => [
+                    ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(), // O campo obrigatório que escolhe "quem" é a pessoa
-                        
+
                         Forms\Components\Select::make('perfil_acesso')
                             ->label('Perfil na Filial')
                             ->options([
@@ -74,24 +77,24 @@ class UsersRelationManager extends RelationManager
                     Action::make('ver_usuario')
                         ->label('Ver Perfil')
                         ->icon('heroicon-o-eye')
-                        ->url(fn (Model $record) => \App\Filament\Resources\UserResource::getUrl('view', ['record' => $record->id]))
+                        ->url(fn (Model $record) => UserResource::getUrl('view', ['record' => $record->id]))
                         ->openUrlInNewTab(), // Abre em nova aba para não perder a tela da filial
                     Action::make('ver_carteira')
                         ->label('Ver Carteira')
                         ->icon('heroicon-o-identification')
                         ->visible(fn (Model $record): bool => $record->pivot->perfil_acesso === 'Corretor')
-                        ->url(fn (Model $record): string => \App\Filament\Resources\SeguradoResource::getUrl('index', [
+                        ->url(fn (Model $record): string => SeguradoResource::getUrl('index', [
                             'tableFilters' => [
                                 'corretor_id' => ['value' => $record->id],
                             ],
                         ])),
                     DetachAction::make()
-                        ->before(function (Model $record){
+                        ->before(function (Model $record) {
                             $record->removeRole($record->perfil_acesso);
                         }),
 
-                ])
-   
+                ]),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -102,12 +105,12 @@ class UsersRelationManager extends RelationManager
 
     public function getTabs(): array
     {
-        return[
+        return [
             'todos' => Tab::make('Todos os Vínculos'),
-        
+
             'corretores' => Tab::make('Corretores')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('filial_user.perfil_acesso', 'Corretor')),
-    ];
-        
+        ];
+
     }
 }

@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Apolice;
 use App\Models\Pagamento;
 use App\Models\Sinistro;
+use Illuminate\Database\Seeder;
 
 class PagamentoSeeder extends Seeder
 {
@@ -15,10 +14,10 @@ class PagamentoSeeder extends Seeder
      */
     public function run(): void
     {
-        $apolices = Apolice::where('status','vigente')->get();
-        $sinistros = Sinistro::where('status','aprovado')->get();
+        $apolices = Apolice::where('status', 'vigente')->get();
+        $sinistros = Sinistro::where('status', 'aprovado')->get();
 
-        foreach($apolices as $apolice){
+        foreach ($apolices as $apolice) {
             Pagamento::factory()->create([
                 'apolice_id' => $apolice->id,
                 'sinistro_id' => null, // Força a ser nulo
@@ -26,15 +25,14 @@ class PagamentoSeeder extends Seeder
 
             ]);
         }
-        
-        foreach($sinistros as $sinistro){
+
+        foreach ($sinistros as $sinistro) {
             Pagamento::factory()->create([
-                'sinistro_id'=>$sinistro->id,
-                'apolice_id'=>$sinistro->apolice_id,
+                'sinistro_id' => $sinistro->id,
+                'apolice_id' => $sinistro->apolice_id,
                 'tipo_movimentacao' => 'Pagamento Indenização',
             ]);
         }
 
-        
     }
 }

@@ -3,11 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Cotacao;
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Segurado;
-use App\Models\User;
 use App\Models\Filial;
 use App\Models\Produto;
+use App\Models\Segurado;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<Cotacao>
@@ -23,13 +23,13 @@ class CotacaoFactory extends Factory
     {
         return [
             'uuid' => $this->faker->unique()->uuid(),
-            //fk
+            // fk
             'segurado_id' => Segurado::factory(),
             'user_id' => User::factory(),
             'filial_id' => Filial::factory(),
             'produto_id' => Produto::factory(),
 
-            //ajustar dados jsonb depois
+            // ajustar dados jsonb depois
             'dados_especificos' => [
                 'categoria' => $this->faker->randomElement(['Veículo', 'Imóvel Residencial', 'Equipamento Solar', 'Frota Corporativa']),
                 'ano_fabricacao' => $this->faker->year(),
@@ -41,25 +41,25 @@ class CotacaoFactory extends Factory
                 [
                     'tipo' => 'Danos Morais e Materiais a Terceiros',
                     'indenizacao_maxima' => 100000.00,
-                    'franquia' => 0.00
+                    'franquia' => 0.00,
                 ],
                 [
                     'tipo' => $this->faker->randomElement(['Roubo e Furto', 'Incêndio', 'Desastres Naturais']),
                     'indenizacao_maxima' => 50000.00,
-                    'franquia' => 1500.00
-                ]
+                    'franquia' => 1500.00,
+                ],
             ],
-            
+
             'status' => $this->faker->randomElement([
-                'Em Elaboração', 
-                'Enviada ao Cliente', 
-                'Aceita', 
-                'Recusada', 
-                'Expirada'
+                'Em Elaboração',
+                'Enviada ao Cliente',
+                'Aceita',
+                'Recusada',
+                'Expirada',
             ]),
-            'valor_total'=> $this->faker->randomFloat(2,1000,5000),
-            'validade'=> $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
-            
+            'valor_total' => $this->faker->randomFloat(2, 1000, 5000),
+            'validade' => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
+
         ];
     }
 }

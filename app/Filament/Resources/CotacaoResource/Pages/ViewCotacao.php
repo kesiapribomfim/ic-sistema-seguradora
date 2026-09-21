@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\CotacaoResource\Pages;
 
 use App\Filament\Resources\CotacaoResource;
+use App\Jobs\EnviarCotacaoEmailJob;
+use App\Services\EmissaoApoliceService;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Illuminate\Database\Console\Migrations\StatusCommand;
-use App\Filament\Resources\ApoliceResource;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ViewRecord;
 
 class ViewCotacao extends ViewRecord
 {
@@ -23,7 +23,7 @@ class ViewCotacao extends ViewRecord
                 ->action(function () {
                     $this->redirect($this->getResource()::getUrl('edit', ['record' => $this->record]));
                 }),
-            
+
             Actions\Action::make('enviar_cliente')
                 ->label('Enviar para o Cliente')
                 ->icon('heroicon-o-paper-airplane')
@@ -32,22 +32,22 @@ class ViewCotacao extends ViewRecord
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')
-                ->action(function () { 
-                    $cotacao = $this->record; 
-                    
-                    $cotacao->update(['status' => 'Enviada ao Cliente']);
-                    
-                    \App\Jobs\EnviarCotacaoEmailJob::dispatch($cotacao);
+                ->action(function () {
+                    $cotacao = $this->record;
 
-                    \Filament\Notifications\Notification::make()
+                    $cotacao->update(['status' => 'Enviada ao Cliente']);
+
+                    EnviarCotacaoEmailJob::dispatch($cotacao);
+
+                    Notification::make()
                         ->title('E-mail na fila de envio!')
                         ->success()
                         ->send();
-                        
+
                     return redirect()->to(CotacaoResource::getUrl('view', ['record' => $cotacao->id]));
                 }),
 
-            //Action subscrição
+            // Action subscrição
             Actions\Action::make('avaliar_subscricao')
                 ->label('Avaliar Risco')
                 ->icon('heroicon-o-shield-check')
@@ -62,29 +62,29 @@ class ViewCotacao extends ViewRecord
                         ])
                         ->required(),
                 ])
-                ->action(function (array $data, \App\Services\EmissaoApoliceService $emissaoService) {
+                ->action(function (array $data, EmissaoApoliceService $emissaoService) {
                     $cotacao = $this->record;
-                    
+
                     if ($data['decisao'] === 'Recusada') {
                         $cotacao->update(['status' => 'Recusada']);
-                        
-                        \Filament\Notifications\Notification::make()
+
+                        Notification::make()
                             ->title('Risco recusado.')
                             ->danger()
                             ->send();
-                            
+
                         return; // Encerra a execução aqui
                     }
-                    
+
                     if ($data['decisao'] === 'Aceita') {
                         $cotacao->update(['status' => 'Aceita']);
-                        
+
                         $formaPagamento = $cotacao->forma_pagamento_preferida ?? 'Boleto Bancário';
                         $parcelas = $cotacao->quantidade_parcelas_preferida ?? 1;
 
                         $apolice = $emissaoService->emitir($cotacao, $formaPagamento, $parcelas);
-                        
-                        \Filament\Notifications\Notification::make()
+
+                        Notification::make()
                             ->title('Aprovado! Apólice Emitida com Sucesso.')
                             ->success()
                             ->send();
@@ -93,4 +93,3 @@ class ViewCotacao extends ViewRecord
         ];
     }
 }
-

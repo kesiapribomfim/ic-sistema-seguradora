@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use App\Observers\SinistroObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[ObservedBy([SinistroObserver::class])]
 
@@ -26,7 +26,7 @@ class Sinistro extends Model
         'cidade',
         'uf',
         'cep',
-        
+
         'descricao',
         'coberturas_envolvidas',
         'status',
@@ -46,22 +46,23 @@ class Sinistro extends Model
     /**
      * Configura como o log será gerado
      */
-    
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logAll() // Registra alterações em todas as colunas
             ->logOnlyDirty() // Só gera log das colunas que realmente mudaram
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "O sinistro foi {$eventName}");
+            ->setDescriptionForEvent(fn (string $eventName) => "O sinistro foi {$eventName}");
     }
 
-    //relacionamentos
-    public function apolice(){
+    // relacionamentos
+    public function apolice()
+    {
         return $this->belongsTo(Apolice::class);
     }
 
-    public function movimentacoes() {
+    public function movimentacoes()
+    {
         return $this->hasMany(SinistroMovimentacao::class);
     }
 
@@ -74,5 +75,4 @@ class Sinistro extends Model
     {
         return $this->belongsTo(User::class, 'aprovado_gestor_id');
     }
-
 }

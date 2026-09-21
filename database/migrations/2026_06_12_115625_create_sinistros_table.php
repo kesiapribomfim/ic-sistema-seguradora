@@ -13,29 +13,29 @@ return new class extends Migration
     {
         Schema::create('sinistros', function (Blueprint $table) {
             $table->id();
-            //fk
+            // fk
             $table->foreignId('apolice_id')
                 ->constrained('apolices')
                 ->restrictOnDelete();
-            
+
             $table->dateTime('data_hora_ocorrencia');
 
             $table->string('rua');
             $table->string('numero', length: 20);
             $table->string('bairro');
-            $table->string('complemento',100) ->nullable();
+            $table->string('complemento', 100)->nullable();
             $table->string('cidade');
             $table->string('uf', length: 2);
             $table->string('cep', length: 20);
 
             $table->text('descricao');
-            
+
             $table->jsonb('coberturas_envolvidas');
-            $table->string('status', length: 20); //Em analise, em perícia, aprovado, negado, pago, encerrado
+            $table->string('status', length: 20); // Em analise, em perícia, aprovado, negado, pago, encerrado
 
             $table->decimal('valor_indenizacao', 10, 2)->nullable();
             $table->decimal('valor_pago', 10, 2)->nullable();
-            
+
             $table->timestamps();
         });
     }

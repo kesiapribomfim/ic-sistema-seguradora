@@ -2,30 +2,31 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Cotacao;
-use Livewire\Attributes\Layout;
 use App\Services\EmissaoApoliceService;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
 
-#[Layout('components.layouts.app')] 
+#[Layout('components.layouts.app')]
 class CheckoutCotacao extends Component
 {
     public Cotacao $cotacao;
-    public bool $pagamentoConcluido = false;
-    
-    public bool $emSubscricao = false; 
 
-    //default
+    public bool $pagamentoConcluido = false;
+
+    public bool $emSubscricao = false;
+
+    // default
     public $formaPagamento = 'Cartão de Crédito';
+
     public $quantidadeParcelas = 1;
 
-    //TODO: Adicionar um link para upload de pagamento antes do aceite
+    // TODO: Adicionar um link para upload de pagamento antes do aceite
 
     public function mount(Cotacao $cotacao)
     {
         $this->cotacao = $cotacao;
 
-        
         if ($this->cotacao->status === 'Aceita') {
             $this->pagamentoConcluido = true;
         } elseif ($this->cotacao->status === 'Em Subscrição') {
@@ -33,19 +34,20 @@ class CheckoutCotacao extends Component
         }
     }
 
-    //pega os parametros selecionados pelo cliente na pagina externa (wire:click)
-    public function processarAceite (EmissaoApoliceService $service)
+    // pega os parametros selecionados pelo cliente na pagina externa (wire:click)
+    public function processarAceite(EmissaoApoliceService $service)
     {
         if ($this->cotacao->status === 'Em Subscrição' || $this->emSubscricao) {
             $this->emSubscricao = true;
+
             return;
         }
-        
+
         $this->validate([
             'formaPagamento' => 'required|string',
             'quantidadeParcelas' => 'required|integer|min:1|max:12',
         ]);
-        
+
         try {
             // 1. Salva intenções e tenta dar o aceite
             $this->cotacao->forma_pagamento_preferida = $this->formaPagamento;
@@ -59,6 +61,7 @@ class CheckoutCotacao extends Component
             // 3. Verifica o que o Observer fez com ela
             if ($this->cotacao->status === 'Em Subscrição') {
                 $this->emSubscricao = true;
+
                 return; // Corta o fluxo aqui! O cliente vê o aviso.
             }
 
@@ -83,7 +86,7 @@ class CheckoutCotacao extends Component
         }
     }
 
-    //renderiza a view blade
+    // renderiza a view blade
     public function render()
     {
         return view('livewire.checkout-cotacao');

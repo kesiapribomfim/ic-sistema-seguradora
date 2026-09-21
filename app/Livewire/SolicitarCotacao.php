@@ -2,15 +2,15 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
+use App\Models\Cotacao;
+use App\Models\Filial;
+use App\Models\Segurado;
+use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
-use Filament\Forms;
-use App\Models\Segurado;
-use App\Models\Cotacao;
-use App\Models\Filial;
 use Filament\Notifications\Notification;
+use Livewire\Component;
 
 class SolicitarCotacao extends Component implements HasForms
 {
@@ -49,7 +49,7 @@ class SolicitarCotacao extends Component implements HasForms
                             ->required(),
 
                         Forms\Components\TextInput::make('email')->email()->required(),
-                        
+
                         Forms\Components\TextInput::make('telefone')
                             ->mask('(99) 99999-9999')
                             ->required(),
@@ -65,11 +65,11 @@ class SolicitarCotacao extends Component implements HasForms
                             ])
                             ->required()
                             ->live(),
-                            
+
                         Forms\Components\Select::make('filial_id')
                             ->label('Selecione a Filial mais próxima')
                             ->options(function () {
-                                return \App\Models\Filial::pluck('nome', 'id')->toArray();
+                                return Filial::pluck('nome', 'id')->toArray();
                             })
                             ->searchable()
                             ->required(),
@@ -87,7 +87,7 @@ class SolicitarCotacao extends Component implements HasForms
     {
         $dados = $this->form->getState();
         $tipo = $dados['tipo_pessoa'];
-        
+
         // Remove pontuações do documento para buscar/salvar limpo
         $documentoLimpo = preg_replace('/[^0-9]/', '', $dados['documento']);
 
@@ -98,7 +98,7 @@ class SolicitarCotacao extends Component implements HasForms
         })->first();
 
         // 2. Se não existir, cria a estrutura completa
-        if (!$segurado) {
+        if (! $segurado) {
             // Cria o pai
             $segurado = Segurado::create([
                 'tipo' => $tipo,
@@ -125,7 +125,7 @@ class SolicitarCotacao extends Component implements HasForms
         Cotacao::create([
             'segurado_id' => $segurado->id,
             'filial_id' => $dados['filial_id'],
-            'status' => 'Em Elaboração', 
+            'status' => 'Em Elaboração',
             'dados_especificos' => ['observacao_cliente' => $dados['dados_iniciais']],
             'ramo' => $dados['ramo'],
             'validade' => now()->addDays(30),
@@ -142,6 +142,6 @@ class SolicitarCotacao extends Component implements HasForms
 
     public function render()
     {
-        return view('livewire.solicitar-cotacao'); 
+        return view('livewire.solicitar-cotacao');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,8 +12,8 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -54,8 +55,8 @@ class User extends Authenticatable implements FilamentUser
     public function filiais()
     {
         return $this->belongsToMany(Filial::class, 'filial_user')
-        ->withPivot('perfil_acesso')
-        ->withTimestamps();
+            ->withPivot('perfil_acesso')
+            ->withTimestamps();
     }
 
     public function filials()
@@ -66,10 +67,11 @@ class User extends Authenticatable implements FilamentUser
     public function segurados()
     {
         return $this->hasMany(Segurado::class);
-        
+
     }
 
-    public function movimentacoes(){
+    public function movimentacoes()
+    {
         return $this->hasMany(SinistroMovimentacao::class);
     }
 

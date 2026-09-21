@@ -2,19 +2,19 @@
 
 namespace App\Filament\Resources\SeguradoResource\RelationManagers;
 
+use App\Models\Cotacao;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Models\Cotacao;
 
 class CotacoesRelationManager extends RelationManager
 {
     protected static string $relationship = 'cotacoes';
+
     protected static ?string $title = 'Cotações';
+
     protected static ?string $icon = 'heroicon-o-calculator';
 
     public function form(Form $form): Form
@@ -33,17 +33,17 @@ class CotacoesRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
-                ->label('Data de Criação')
-                ->date('d/m/Y')
-                ->sortable(),
+                    ->label('Data de Criação')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('identificacao_segurado')
                     ->label('Cliente')
                     ->state(fn (Cotacao $record) => $record->segurado?->tipo === 'PF' ? $record->segurado?->seguradoPf?->nome : $record->segurado?->seguradoPj?->razao_social)
                     ->sortable(),
-                    // ->searchable(),
+                // ->searchable(),
                 Tables\Columns\TextColumn::make('user.name')->label('Corretor Responsável')
                     ->sortable(),
-                    // ->searchable(),
+                // ->searchable(),
                 Tables\Columns\TextColumn::make('produto.nome')->label('Produto')->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

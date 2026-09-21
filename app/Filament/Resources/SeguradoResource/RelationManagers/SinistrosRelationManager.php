@@ -2,18 +2,18 @@
 
 namespace App\Filament\Resources\SeguradoResource\RelationManagers;
 
+use App\Filament\Resources\ApoliceResource;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Model;
 
 class SinistrosRelationManager extends RelationManager
 {
     protected static string $relationship = 'sinistros';
+
     protected static ?string $icon = 'heroicon-o-exclamation-triangle';
 
     public function form(Form $form): Form
@@ -32,9 +32,9 @@ class SinistrosRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
-                ->label('Data de Criação')
-                ->date('d/m/Y')
-                ->sortable(),
+                    ->label('Data de Criação')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('id')
                     ->label('Protocolo')
                     ->sortable()
@@ -49,7 +49,7 @@ class SinistrosRelationManager extends RelationManager
                     ->sortable()
                     ->color('info')
                     // Link direto para a apólice, mantendo a excelente navegabilidade que você criou
-                    ->url(fn (Model $record) => $record->apolice_id ? \App\Filament\Resources\ApoliceResource::getUrl('view', ['record' => $record->apolice_id]) : null)
+                    ->url(fn (Model $record) => $record->apolice_id ? ApoliceResource::getUrl('view', ['record' => $record->apolice_id]) : null)
                     ->openUrlInNewTab(),
 
                 // Buscando o cliente dinamicamente através do relacionamento da Apólice
@@ -57,10 +57,12 @@ class SinistrosRelationManager extends RelationManager
                     ->label('Segurado')
                     ->state(function (Model $record) {
                         $segurado = $record->apolice?->segurado;
-                        if (!$segurado) return '-';
-                        
-                        return $segurado->tipo === 'PF' 
-                            ? $segurado->seguradoPf?->nome 
+                        if (! $segurado) {
+                            return '-';
+                        }
+
+                        return $segurado->tipo === 'PF'
+                            ? $segurado->seguradoPf?->nome
                             : $segurado->seguradoPj?->razao_social;
                     })
                     ->searchable()

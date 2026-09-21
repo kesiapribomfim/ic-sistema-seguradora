@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\ApoliceResource\Pages;
 
 use App\Filament\Resources\ApoliceResource;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ViewApolice extends ViewRecord
 {
@@ -18,7 +18,7 @@ class ViewApolice extends ViewRecord
                 ->label('Baixar PDF')
                 ->color('danger')
                 ->icon('heroicon-o-document-arrow-down')
-                ->visible(fn() => $this->getRecord()->status !== 'Cancelada')
+                ->visible(fn () => $this->getRecord()->status !== 'Cancelada')
                 ->action(function () {
                     $record = $this->getRecord();
 
@@ -26,26 +26,26 @@ class ViewApolice extends ViewRecord
                         'segurado.seguradoPf',
                         'segurado.seguradoPj',
                         'cotacao.produto',
-                        'pagamentos'
+                        'pagamentos',
                     ]);
 
                     $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $record]);
 
                     return response()->streamDownload(
-                        fn() => print($pdf->output()),
+                        fn () => print ($pdf->output()),
                         "apolice-{$record->numero_apolice}.pdf"
                     );
                 }),
         ];
     }
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         parent::mount($record);
 
         activity()
-            ->causedBy(auth()->user()) 
-            ->performedOn($this->record) 
+            ->causedBy(auth()->user())
+            ->performedOn($this->record)
             ->event('view')
             ->log('Visualizou os dados da Apólice');
     }

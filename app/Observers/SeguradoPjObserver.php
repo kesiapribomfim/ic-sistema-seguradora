@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\SeguradoPj;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
 
 class SeguradoPjObserver
 {
@@ -14,13 +14,14 @@ class SeguradoPjObserver
         $seguradoAtualizado = $seguradoPj->segurado()->first();
 
         if ($seguradoAtualizado && $seguradoAtualizado->user_id) {
-            $user = \App\Models\User::find($seguradoAtualizado->user_id);
-            
+            $user = User::find($seguradoAtualizado->user_id);
+
             if ($user) {
                 $user->updateQuietly(['name' => $seguradoPj->razao_social]);
             }
         }
     }
+
     /**
      * Handle the SeguradoPj "created" event.
      */

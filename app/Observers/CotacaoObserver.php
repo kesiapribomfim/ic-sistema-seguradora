@@ -19,18 +19,19 @@ class CotacaoObserver
     public function updating(Cotacao $cotacao): void
     {
         if ($cotacao->isDirty('status') && $cotacao->status === 'Aceita') {
-            
+
             $statusAnterior = $cotacao->getOriginal('status');
-            //Fluxo Elaboração->Subscrição->Aceite
+            // Fluxo Elaboração->Subscrição->Aceite
             if ($statusAnterior === 'Em Subscrição') {
-                $usuario = \Illuminate\Support\Facades\Auth::user();
-                
+                $usuario = Auth::user();
+
                 if ($usuario && $usuario->hasRole('Subscritor')) {
                     return;
                 } else {
                     // Se foi o cliente (sem login) ou um corretor tentando forçar a barra:
-                    $cotacao->status = 'Em Subscrição'; 
-                    return; 
+                    $cotacao->status = 'Em Subscrição';
+
+                    return;
                 }
             }
 
@@ -38,15 +39,15 @@ class CotacaoObserver
             $limiteAlcada = $produto->valor_alcada ?? 9999999999.99;
 
             $coberturas = $cotacao->cobertura_selecionada ?? [];
-            $riscoTotal = collect($coberturas)->sum(fn($c) => (float) ($c['limite_maximo'] ?? 0));
+            $riscoTotal = collect($coberturas)->sum(fn ($c) => (float) ($c['limite_maximo'] ?? 0));
 
             if ($riscoTotal > $limiteAlcada) {
                 $cotacao->status = 'Em Subscrição';
-                
+
                 Log::info('Cotação enviada para subscrição por excesso de alçada.', [
                     'cotacao_id' => $cotacao->id,
                     'risco_total' => $riscoTotal,
-                    'limite_produto' => $limiteAlcada
+                    'limite_produto' => $limiteAlcada,
                 ]);
 
                 // TODO: Aqui você pode colocar um Job para mandar e-mail para a equipe de Subscrição

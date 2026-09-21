@@ -2,18 +2,19 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Apolice;
+use App\Models\Cotacao;
 use App\Services\RenovaApoliceService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Console\Command;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ProcessarRenovacoes extends Command
 {
     use Queueable;
+
     /**
      * The name and signature of the console command.
      */
@@ -35,16 +36,16 @@ class ProcessarRenovacoes extends Command
         $data30Dias = Carbon::now()->addDays(30)->toDateString();
         $data15Dias = Carbon::now()->addDays(15)->toDateString();
 
-
         $apolicesParaRenovar = Apolice::where('status', 'Vigente')
             ->whereIn(DB::raw('DATE(data_fim)'), [
-                $data60Dias, 
-                $data30Dias, 
-                $data15Dias
+                $data60Dias,
+                $data30Dias,
+                $data15Dias,
             ])->get();
 
         if ($apolicesParaRenovar->isEmpty()) {
             $this->line('Nenhuma apólice atingiu o gatilho de renovação hoje.');
+
             return;
         }
 
@@ -54,19 +55,20 @@ class ProcessarRenovacoes extends Command
         $falha = 0;
 
         foreach ($apolicesParaRenovar as $apolice) {
-            $jaPossuiRenovacao = \App\Models\Cotacao::whereJsonContains('dados_especificos->apolice_origem_id_temporario', $apolice->id)
+            $jaPossuiRenovacao = Cotacao::whereJsonContains('dados_especificos->apolice_origem_id_temporario', $apolice->id)
                 ->whereIn('status', ['Em Elaboração', 'Enviada ao Cliente', 'Aceita'])
                 ->exists();
 
             if ($jaPossuiRenovacao) {
                 $this->line("A Apólice {$apolice->numero_apolice} já possui uma renovação em andamento. Pulando...");
+
                 continue;
             }
 
             $this->line("Processando Apólice: {$apolice->numero_apolice}...");
-            
+
             $this->line("Processando Apólice: {$apolice->numero_apolice} (Vencimento: {$apolice->data_fim->format('d/m/Y')})");
-            
+
             $novaCotacao = $renovaService->gerarCotacao($apolice);
 
             if ($novaCotacao) {
@@ -78,7 +80,7 @@ class ProcessarRenovacoes extends Command
         }
 
         $this->newLine();
-        $this->info("Processamento concluído!");
+        $this->info('Processamento concluído!');
         $this->info("Renovações geradas: {$sucesso}");
         Log::info("CRON: Renovações geradas: {$sucesso}");
         if ($falha > 0) {

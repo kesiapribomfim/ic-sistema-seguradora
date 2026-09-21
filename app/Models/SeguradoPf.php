@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class SeguradoPf extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'segurado_pf';
 
     protected $fillable = [
@@ -17,7 +17,7 @@ class SeguradoPf extends Model
         'rg',
         'nome',
         'data_nascimento',
-        'profissao'
+        'profissao',
     ];
 
     public function segurado()

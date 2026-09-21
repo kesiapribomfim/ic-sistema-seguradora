@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Sinistro;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class SinistroPolicy
 {
@@ -14,7 +13,7 @@ class SinistroPolicy
      */
     public function before(User $user, string $ability): ?bool
     {
-        //Acesso geral para suporte
+        // Acesso geral para suporte
         if ($user->hasRole('super_admin')) {
             return true;
         }
@@ -24,14 +23,14 @@ class SinistroPolicy
 
     public function viewAny(User $user): bool
     {
-        
+
         return $user->hasAnyRole([
             'Administrador Geral',
             'Gestor de Filial',
             'Analista de Sinistros',
             'Corretor',
             'Cliente',
-            'Financeiro'
+            'Financeiro',
         ]);
     }
 
@@ -47,6 +46,7 @@ class SinistroPolicy
 
         if ($user->hasAnyRole(['Gestor de Filial', 'Analista de Sinistros', 'Financeiro'])) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
+
             return in_array($sinistro->apolice->filial_id, $filiaisIds);
         }
 
@@ -80,7 +80,7 @@ class SinistroPolicy
     public function delete(User $user, Sinistro $sinistro): bool
     {
         // Como o documento exige imutabilidade (PoLP e auditoria), ninguém apaga sinistros.
-        return false; 
+        return false;
     }
 
     public function restore(User $user, Sinistro $sinistro): bool

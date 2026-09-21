@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Pagamento;
 use App\Mail\AvisoVencimentoMail;
+use App\Models\Pagamento;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,7 +26,7 @@ class EnviarAvisoVencimentoJob implements ShouldQueue
     {
         // Pega o e-mail do segurado através dos relacionamentos
         $emailSegurado = $this->pagamento->apolice->segurado->email;
-        
+
         Mail::to($emailSegurado)->send(new AvisoVencimentoMail($this->pagamento));
     }
 }

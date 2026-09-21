@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Observers\SinistroMovimentacaoObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
-use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 #[ObservedBy([SinistroMovimentacaoObserver::class])]
 class SinistroMovimentacao extends Model
@@ -36,15 +36,16 @@ class SinistroMovimentacao extends Model
             ->logAll() // Registra alterações em todas as colunas
             ->logOnlyDirty() // Só gera log das colunas que realmente mudaram
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "O sinistro foi {$eventName}");
+            ->setDescriptionForEvent(fn (string $eventName) => "O sinistro foi {$eventName}");
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function sinistro(){
+    public function sinistro()
+    {
         return $this->belongsTo(Sinistro::class);
     }
-
 }

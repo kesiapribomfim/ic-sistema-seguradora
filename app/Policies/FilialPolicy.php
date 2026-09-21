@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Filial;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class FilialPolicy
@@ -22,12 +22,12 @@ class FilialPolicy
 
         // Gestor de Filial só tem acesso se estiver vinculado a ESTA filial específica
         if ($user->hasRole('Gestor de Filial')) {
-            
+
             $filiaisComoGestorIds = $user->filiais()
-                ->wherePivot('perfil_acesso', 'Gestor de Filial') 
+                ->wherePivot('perfil_acesso', 'Gestor de Filial')
                 ->pluck('filiais.id')
                 ->toArray();
-            
+
             return in_array($filial->id, $filiaisComoGestorIds);
         }
 

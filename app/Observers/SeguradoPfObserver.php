@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\SeguradoPf;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
 
 class SeguradoPfObserver
 {
@@ -13,8 +13,8 @@ class SeguradoPfObserver
         $seguradoAtualizado = $seguradoPf->segurado()->first();
 
         if ($seguradoAtualizado && $seguradoAtualizado->user_id) {
-            $user = \App\Models\User::find($seguradoAtualizado->user_id);
-            
+            $user = User::find($seguradoAtualizado->user_id);
+
             if ($user) {
                 $user->updateQuietly(['name' => $seguradoPf->nome]);
             }

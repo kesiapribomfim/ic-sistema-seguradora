@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('segurado_pf', function (Blueprint $table) {
             $table->id();
-            //fk
+            // fk
             $table->foreignId('segurado_id')
                 ->constrained('segurados')
                 ->onDelete('cascade');
-            
+
             $table->string('cpf', length: 11)->unique();
             $table->string('rg', length: 20)->unique();
             $table->string('nome');

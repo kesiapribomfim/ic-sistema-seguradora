@@ -9,14 +9,13 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('seguradora:processar-inadimplencia')
-    ->dailyAt('21:02') 
-    ->withoutOverlapping() 
+    ->dailyAt('21:02')
+    ->withoutOverlapping()
     ->onOneServer();
 
 Schedule::command('seguradora:processar-renovacoes')
-    ->dailyAt('21:03') 
-    ->withoutOverlapping() 
+    ->dailyAt('21:03')
+    ->withoutOverlapping()
     ->onOneServer();
 
-
-//comando artisan: php artisan schedule:work
+// comando artisan: php artisan schedule:work

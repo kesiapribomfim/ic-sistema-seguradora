@@ -8,7 +8,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class CoberturasRelationManager extends RelationManager
 {
@@ -43,12 +42,12 @@ class CoberturasRelationManager extends RelationManager
                 // Tables\Actions\CreateAction::make(),
                 Tables\Actions\AttachAction::make()
                     ->recordSelectOptionsQuery(fn (Builder $query) => $query->where('ramo', $this->getOwnerRecord()->ramo))
-                    
+
                     ->preloadRecordSelect()
-                    
+
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
                         $action->getRecordSelect(),
-                        
+
                         Forms\Components\TextInput::make('limite_maximo')
                             ->label('Limite Máximo (R$)')
                             ->numeric()

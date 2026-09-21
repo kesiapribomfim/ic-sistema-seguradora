@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ApoliceResource\RelationManagers;
 
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -20,7 +21,7 @@ class BeneficiariosRelationManager extends RelationManager
     public function isReadOnly(): bool
     {
         $apolice = $this->getOwnerRecord();
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if (in_array($apolice->status, ['Pago', 'Negado', 'Encerrado'])) {
@@ -28,7 +29,7 @@ class BeneficiariosRelationManager extends RelationManager
         }
 
         if ($user->hasAnyRole(['Cliente', 'Corretor'])) {
-            return true; 
+            return true;
         }
 
         return false;
@@ -49,7 +50,7 @@ class BeneficiariosRelationManager extends RelationManager
                     ->unique(ignoreRecord: true),
                 Forms\Components\DatePicker::make('data_nascimento')
                     ->label('Data de Nascimento'),
-                    
+
                 Forms\Components\TextInput::make('percentual_rateio')
                     ->label('Rateio (%)')
                     ->numeric()
@@ -87,7 +88,7 @@ class BeneficiariosRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Novo Beneficiário')
                     ->icon('heroicon-o-plus'),
-                    
+
                 // Ação 2: Busca um CPF/Nome que já existe na base para vincular
                 Tables\Actions\AttachAction::make()
                     ->label('Vincular Existente')
@@ -95,7 +96,7 @@ class BeneficiariosRelationManager extends RelationManager
                     ->preloadRecordSelect()
                     ->form(fn (Tables\Actions\AttachAction $action): array => [
                         $action->getRecordSelect(), // O select automático de busca
-                        
+
                         // Pedimos apenas os dados do vínculo (Pivot) na hora de anexar
                         Forms\Components\TextInput::make('percentual_rateio')
                             ->label('Rateio (%)')
@@ -111,7 +112,7 @@ class BeneficiariosRelationManager extends RelationManager
                 Tables\Actions\EditAction::make(),
                 // DetachAction apenas desvincula da apólice, sem apagar o cadastro central da pessoa
                 Tables\Actions\DetachAction::make()
-                    ->label('Desvincular'), 
+                    ->label('Desvincular'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

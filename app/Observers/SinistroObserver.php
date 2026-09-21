@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Sinistro;
 use App\Jobs\RecalcularScoreRiscoJob;
+use App\Models\Sinistro;
 
 class SinistroObserver
 {
@@ -13,10 +13,10 @@ class SinistroObserver
     public function created(Sinistro $sinistro): void
     {
         $sinistro->movimentacoes()->create([
-            'user_id' => auth()->id() ?? 1, 
+            'user_id' => auth()->id() ?? 1,
             'data_hr_movimentacao' => now(),
             'acao_realizada' => 'Abertura',
-            'descricao' => 'Abertura automática do sinistro. Relato inicial: ' . $sinistro->descricao,
+            'descricao' => 'Abertura automática do sinistro. Relato inicial: '.$sinistro->descricao,
         ]);
     }
 
@@ -30,7 +30,7 @@ class SinistroObserver
             if ($sinistro->apolice && $sinistro->apolice->segurado_id) {
                 $seguradoId = $sinistro->apolice->segurado_id;
 
-                \App\Jobs\RecalcularScoreRiscoJob::dispatch($seguradoId);
+                RecalcularScoreRiscoJob::dispatch($seguradoId);
             }
         }
     }

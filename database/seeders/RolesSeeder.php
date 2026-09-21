@@ -1,7 +1,7 @@
 <?php
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -16,7 +16,7 @@ class RolesSeeder extends Seeder
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $perfis = [
-            'super_admin', 
+            'super_admin',
             'Administrador Geral',
             'Gestor de Filial',
             'Subscritor',
@@ -26,7 +26,7 @@ class RolesSeeder extends Seeder
             'Cliente',
         ];
 
-        foreach ($perfis as $perfil){
+        foreach ($perfis as $perfil) {
             Role::firstOrCreate(['name' => $perfil, 'guard_name' => 'web']);
         }
     }

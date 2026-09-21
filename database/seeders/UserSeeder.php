@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Filial;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
@@ -60,9 +60,9 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            if (!$user->filiais()->exists()) {
+            if (! $user->filiais()->exists()) {
                 $user->filiais()->attach($filialPadrao->id, [
-                    'perfil_acesso' => $dados['perfil']
+                    'perfil_acesso' => $dados['perfil'],
                 ]);
             }
 
@@ -70,10 +70,10 @@ class UserSeeder extends Seeder
         }
 
         $perfisOperacionais = [
-            'Gestor de Filial', 
+            'Gestor de Filial',
             'Subscritor',
             'Analista de Sinistros',
-            'Financeiro'
+            'Financeiro',
         ];
 
         foreach ($filiais as $filial) {
@@ -83,7 +83,7 @@ class UserSeeder extends Seeder
                 ]);
 
                 $user->filiais()->attach($filial->id, [
-                    'perfil_acesso' => $perfil
+                    'perfil_acesso' => $perfil,
                 ]);
 
                 $user->assignRole($perfil);
@@ -95,7 +95,7 @@ class UserSeeder extends Seeder
             $filialSorteada = $filiais->random();
 
             $user->filiais()->attach($filialSorteada->id, [
-                'perfil_acesso' => 'Corretor'
+                'perfil_acesso' => 'Corretor',
             ]);
 
             $user->assignRole('Corretor');

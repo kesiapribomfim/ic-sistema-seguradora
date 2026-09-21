@@ -10,16 +10,16 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::table('cotacoes', function (Blueprint $table) {
-        $table->text('observacao_cliente')->nullable()->after('status'); 
-    });
-}
+    {
+        Schema::table('cotacoes', function (Blueprint $table) {
+            $table->text('observacao_cliente')->nullable()->after('status');
+        });
+    }
 
-public function down(): void
-{
-    Schema::table('cotacoes', function (Blueprint $table) {
-        $table->dropColumn('observacao_cliente');
-    });
-}
+    public function down(): void
+    {
+        Schema::table('cotacoes', function (Blueprint $table) {
+            $table->dropColumn('observacao_cliente');
+        });
+    }
 };

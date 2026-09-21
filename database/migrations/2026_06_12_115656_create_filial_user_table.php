@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('filial_user', function (Blueprint $table) {
-            //fk
+            // fk
             $table->foreignId('filial_id')
                 ->constrained('filiais')
                 ->onDelete('cascade');
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('perfil_acesso');
             $table->timestamps();
 
-            //primary key
+            // primary key
             $table->primary(['filial_id', 'user_id']);
 
         });

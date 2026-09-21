@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Produto extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'nome',
         'codigo',
@@ -18,7 +18,7 @@ class Produto extends Model
         'versao',
         'parametros_calculo',
         'valor_alcada',
-        'valor_alcada_aprovacao' //atributo específico para sinistros
+        'valor_alcada_aprovacao', // atributo específico para sinistros
     ];
 
     protected $casts = [
@@ -27,21 +27,20 @@ class Produto extends Model
         'valor_alcada' => 'decimal:2',
     ];
 
-    public function cotacoes(){
+    public function cotacoes()
+    {
         return $this->hasMany(Cotacao::class);
     }
 
-    public function coberturas(){
+    public function coberturas()
+    {
         return $this->belongsToMany(Cobertura::class, 'cobertura_produto')
-        ->withPivot('limite_maximo','obrigatoria')
-        ->withTimestamps();
+            ->withPivot('limite_maximo', 'obrigatoria')
+            ->withTimestamps();
     }
-
-
 }
 
-
-//TODO: Adicionar atributo taxa_base, tirando do JSONB de parametros_calculo
+// TODO: Adicionar atributo taxa_base, tirando do JSONB de parametros_calculo
 // Migration: Criar uma nova migration (add_taxa_base_to_produtos_table).
 // Model: Adicionar ao $fillable e colocar um $casts de float.
 // Seeder: Tirar o valor de dentro do array JSON e passar para a coluna nova.

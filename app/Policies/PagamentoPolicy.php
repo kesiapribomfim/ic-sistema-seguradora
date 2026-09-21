@@ -4,13 +4,12 @@ namespace App\Policies;
 
 use App\Models\Pagamento;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class PagamentoPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        //Acesso geral para suporte
+        // Acesso geral para suporte
         if ($user->hasRole('super_admin')) {
             return true;
         }
@@ -20,12 +19,12 @@ class PagamentoPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador Geral','Gestor de Filial', 'Financeiro', 'Cliente']);
+        return $user->hasAnyRole(['Administrador Geral', 'Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function view(User $user, Pagamento $pagamento): bool
     {
-        return $user->hasAnyRole(['Administrador Geral','Gestor de Filial', 'Financeiro', 'Cliente']);
+        return $user->hasAnyRole(['Administrador Geral', 'Gestor de Filial', 'Financeiro', 'Cliente']);
     }
 
     public function create(User $user): bool

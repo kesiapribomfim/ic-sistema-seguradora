@@ -4,11 +4,8 @@ namespace App\Observers;
 
 use App\Models\Segurado;
 use App\Models\User;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Log;
-
-
+use Illuminate\Support\Str;
 
 class SeguradoObserver
 {
@@ -23,22 +20,22 @@ class SeguradoObserver
             return;
         }
 
-        $user = \App\Models\User::create([
+        $user = User::create([
             'name' => 'Cliente',
             'email' => $segurado->email,
-            'password' => bcrypt(\Illuminate\Support\Str::password(32)),
+            'password' => bcrypt(Str::password(32)),
         ]);
 
         $user->assignRole('Cliente');
 
-        $corretor = \App\Models\User::find($segurado->corretor_id);
+        $corretor = User::find($segurado->corretor_id);
 
         if ($corretor) {
-            $filialCorretor = $corretor->filiais()->first(); 
-            
+            $filialCorretor = $corretor->filiais()->first();
+
             if ($filialCorretor) {
                 $user->filiais()->attach($filialCorretor->id, [
-                    'perfil_acesso' => 'Cliente'
+                    'perfil_acesso' => 'Cliente',
                 ]);
                 Log::info("Usuário Cliente ID {$user->id} vinculado à Filial ID {$filialCorretor->id}");
             }

@@ -12,16 +12,16 @@ class PagamentoObserver
     public function created(Pagamento $pagamento): void
     {
         if ($pagamento->sinistro_id) {
-            
+
             $sinistro = $pagamento->sinistro;
 
             $sinistro->update([
-                'status' => 'Pago', 
-                'valor_pago' => $pagamento->valor, 
+                'status' => 'Pago',
+                'valor_pago' => $pagamento->valor,
             ]);
 
             $valorFormatado = number_format($pagamento->valor, 2, ',', '.');
-            
+
             $sinistro->movimentacoes()->create([
                 'user_id' => auth()->id() ?? 1,
                 'data_hr_movimentacao' => now(),
@@ -30,6 +30,7 @@ class PagamentoObserver
             ]);
         }
     }
+
     /**
      * Handle the Pagamento "updated" event.
      */

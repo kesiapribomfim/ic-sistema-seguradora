@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Filial extends Model
-{   
+{
     use HasFactory;
 
     protected $table = 'filiais';
@@ -29,17 +29,18 @@ class Filial extends Model
     protected $casts = [
         'telefone' => 'string',
     ];
-    
-    //Many-to-Many relationship with User model
+
+    // Many-to-Many relationship with User model
     public function users()
     {
-        return $this->belongsToMany(User::class,'filial_user')
-        ->withPivot('perfil_acesso')
-        ->withTimestamps();
+        return $this->belongsToMany(User::class, 'filial_user')
+            ->withPivot('perfil_acesso')
+            ->withTimestamps();
     }
 
-    public function cotacoes(){
-        return $this->hasMany(Cotacao::class); //uma filial tem muitas cotações
+    public function cotacoes()
+    {
+        return $this->hasMany(Cotacao::class); // uma filial tem muitas cotações
     }
 
     public function apolices()
@@ -59,7 +60,6 @@ class Filial extends Model
         return $this->hasManyThrough(Sinistro::class, Apolice::class);
     }
 
-
     /**
      * Carteira de Segurados (Clientes) desta filial.
      * Como o cadastro é centralizado, a ligação ocorre através das apólices.
@@ -67,7 +67,7 @@ class Filial extends Model
     public function segurados(): BelongsToMany
     {
         return $this->belongsToMany(
-            Segurado::class, 
+            Segurado::class,
             'apolices',      // Usamos a tabela de apólices como "ponte"
             'filial_id',     // A chave da filial na tabela de apólices
             'segurado_id'    // A chave do segurado na tabela de apólices

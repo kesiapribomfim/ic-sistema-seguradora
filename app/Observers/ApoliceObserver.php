@@ -2,9 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Apolice;
-use App\Models\Pagamento;
 use App\Jobs\EnviarApoliceEmailJob;
+use App\Models\Apolice;
 
 class ApoliceObserver
 {
@@ -15,7 +14,7 @@ class ApoliceObserver
     {
         // Verifica se é uma renovação (ou seja, se possui uma apólice de origem)
         if ($apolice->apolice_origem_id !== null) {
-            
+
             // Mudar o status da apólice velha
             $apoliceOrigem = Apolice::find($apolice->apolice_origem_id);
             if ($apoliceOrigem) {

@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('segurado_id')
                 ->constrained('segurados')
                 ->onDelete('cascade');
-            
+
             $table->string('cnpj', length: 14)->unique();
             $table->string('razao_social');
-            $table->string('inscricao_estadual', length:14)->unique();
+            $table->string('inscricao_estadual', length: 14)->unique();
             $table->timestamps();
         });
     }

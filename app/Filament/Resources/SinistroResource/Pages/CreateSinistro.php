@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\SinistroResource\Pages;
 
 use App\Filament\Resources\SinistroResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSinistro extends CreateRecord
@@ -11,7 +10,7 @@ class CreateSinistro extends CreateRecord
     protected static string $resource = SinistroResource::class;
 
     /**
-     * Este Hook roda exatamente 1 milissegundo depois que o Sinistro 
+     * Este Hook roda exatamente 1 milissegundo depois que o Sinistro
      * e a Movimentação inicial (do Observer) foram salvos no banco.
      */
     protected function afterCreate(): void
@@ -28,7 +27,7 @@ class CreateSinistro extends CreateRecord
 
             if ($movimentacaoAbertura) {
                 $movimentacaoAbertura->update([
-                    'anexos' => $anexos
+                    'anexos' => $anexos,
                 ]);
             }
         }

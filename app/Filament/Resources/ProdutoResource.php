@@ -6,17 +6,14 @@ use App\Filament\Resources\ProdutoResource\Pages;
 use App\Filament\Resources\ProdutoResource\RelationManagers;
 use App\Models\Produto;
 use Filament\Forms;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Toggle;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Table;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProdutoResource extends Resource
@@ -30,22 +27,19 @@ class ProdutoResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Informações Básicas')
-                    ->columns(2) 
+                    ->columns(2)
                     ->schema([
-                                              
 
                         Forms\Components\TextInput::make('nome')
                             ->required()
                             ->maxLength(255),
-                            
+
                         Forms\Components\TextInput::make('codigo')
                             ->label('Código do Produto')
                             ->required()
-                            ->unique(ignoreRecord: true) 
+                            ->unique(ignoreRecord: true)
                             ->maxLength(50),
-                            
-                        
-                            
+
                         Forms\Components\TextInput::make('versao')
                             ->label('Versão')
                             ->default('1.0')
@@ -56,21 +50,21 @@ class ProdutoResource extends Resource
                             ->columnSpanFull(),
                     ]),
 
-                //campos especificos por ramo
+                // campos especificos por ramo
                 Forms\Components\Select::make('ramo')
-                ->label('Ramo')
-                ->options([
-                    'Auto' => 'Auto',
-                    'Vida' => 'Vida',
-                    'Residencial' => 'Residencial',
-                ])
-                ->required()
-                ->live(),
+                    ->label('Ramo')
+                    ->options([
+                        'Auto' => 'Auto',
+                        'Vida' => 'Vida',
+                        'Residencial' => 'Residencial',
+                    ])
+                    ->required()
+                    ->live(),
 
                 // =========================================================================
                 // SECTIONS: Fatores de Risco e Desconto por perfil de cliente, por ramo de seguro
                 // =========================================================================
-                //AUTO
+                // AUTO
                 Forms\Components\Section::make('Parâmetros: Seguro Auto')
                     ->schema([
                         Forms\Components\Fieldset::make('Fatores de Risco (Agravantes)')
@@ -79,13 +73,13 @@ class ProdutoResource extends Resource
                                 // Forms\Components\TextInput::make('parametros_calculo.fator_idade')
                                 //     ->label('Agravante por Idade do Condutor (%)')
                                 //     ->numeric()
-                                //     ->helperText('Ex: Se preencher 5%, um cliente com idade 20 anos receberá 100% de acréscimo no prêmio final.'), 
-                                
+                                //     ->helperText('Ex: Se preencher 5%, um cliente com idade 20 anos receberá 100% de acréscimo no prêmio final.'),
+
                                 Forms\Components\TextInput::make('parametros_calculo.fator_veiculo_antigo')
                                     ->label('Agravante para Veículo Antigo (%)')
                                     ->numeric()
                                     ->helperText('Aplicado se o veículo tiver mais de 10 anos de fabricação.'),
-                                
+
                                 Forms\Components\TextInput::make('parametros_calculo.fator_tipo_moto')
                                     ->label('Agravante para Motos (%)')
                                     ->numeric(),
@@ -246,7 +240,7 @@ class ProdutoResource extends Resource
                     ])
                     ->columns(1)
                     ->visible(fn (Forms\Get $get) => $get('ramo') === 'Residencial'),
-                
+
                 Forms\Components\Section::make('Parâmetros Financeiros (Base)')
                     ->columns(2)
                     ->schema([
@@ -254,7 +248,7 @@ class ProdutoResource extends Resource
                             ->label('Taxa Base (%)')
                             ->numeric()
                             ->required(),
-                            
+
                         Forms\Components\TextInput::make('parametros_calculo.valor_franquia')
                             ->label('Valor Base da Franquia (R$)')
                             ->numeric(),
@@ -268,21 +262,20 @@ class ProdutoResource extends Resource
                             ->numeric()
                             ->prefix('R$')
                             ->nullable(),
-                    Forms\Components\TextInput::make('valor_alcada_aprovacao')
-                        ->label('Valor de Sinistro')
-                        ->helperText('Se a soma das coberturas passar deste valor, o sinistro exigerá aprovação do Gestor')
-                        ->numeric()
-                        ->prefix('R$')
-                        ->nullable(),
+                        Forms\Components\TextInput::make('valor_alcada_aprovacao')
+                            ->label('Valor de Sinistro')
+                            ->helperText('Se a soma das coberturas passar deste valor, o sinistro exigerá aprovação do Gestor')
+                            ->numeric()
+                            ->prefix('R$')
+                            ->nullable(),
                         Toggle::make('status')
                             ->label('Produto Ativo')
-                            ->default(false) 
-                            ->hiddenOn('create') 
+                            ->default(false)
+                            ->hiddenOn('create')
                             ->helperText('O produto só deve ser ativado após o cadastro das coberturas.'),
-                    ])
-            
-                
-            ]);// TODO: Mudar rediecionamento de produito criado para a edit e não para a view
+                    ]),
+
+            ]); // TODO: Mudar rediecionamento de produito criado para a edit e não para a view
     }
 
     public static function table(Table $table): Table
@@ -294,18 +287,18 @@ class ProdutoResource extends Resource
                 Tables\Columns\TextColumn::make('codigo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('ramo')
-                ->badge()
+                    ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Vida' => 'danger',    // Vermelho
                         'Residencial' => 'info', // Azul
-                        'Auto' => 'success', //Verde
+                        'Auto' => 'success', // Verde
                     }),
                 Tables\Columns\IconColumn::make('status')
                     ->label('Ativo')
                     ->boolean(),
             ])
             ->recordUrl(null)
-            ->recordAction(Tables\Actions\ViewAction::class)
+            ->recordAction(ViewAction::class)
             ->filters([
                 Tables\Filters\SelectFilter::make('ramo')
                     ->options([
@@ -317,13 +310,13 @@ class ProdutoResource extends Resource
                     ->options([
                         1 => 'Ativo',
                         0 => 'Inativo',
-                    ])
+                    ]),
             ])
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
                     ViewAction::make(),
-                ])
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

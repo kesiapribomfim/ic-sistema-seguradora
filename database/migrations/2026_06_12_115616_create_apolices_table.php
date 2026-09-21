@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('apolices', function (Blueprint $table) {
             $table->id();
 
-            //fk
+            // fk
             $table->foreignId('segurado_id')
                 ->constrained('segurados')
                 ->restrictOnDelete('cascade');

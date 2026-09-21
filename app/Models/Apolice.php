@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Apolice extends Model
 {
     use HasFactory;
 
-   protected $fillable = [
+    protected $fillable = [
         'segurado_id',
         'user_id',
         'filial_id',
@@ -30,24 +30,26 @@ class Apolice extends Model
     ];
 
     protected $casts = [
-        'data_emissao' =>'date',
+        'data_emissao' => 'date',
         'data_inicio' => 'date',
-        'data_fim'=> 'date',
-        'snapshot'=> 'array',
-        'dados_bem_assegurado'=>'array',
-        'beneficiarios'=>'array',
+        'data_fim' => 'date',
+        'snapshot' => 'array',
+        'dados_bem_assegurado' => 'array',
+        'beneficiarios' => 'array',
     ];
 
-
-    public function segurado(){
+    public function segurado()
+    {
         return $this->belongsTo(Segurado::class);
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function filial(){
+    public function filial()
+    {
         return $this->belongsTo(Filial::class);
     }
 
@@ -78,4 +80,3 @@ class Apolice extends Model
             ->withTimestamps();
     }
 }
-

@@ -2,24 +2,25 @@
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
+use App\Filament\Resources\FilialResource;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Filament\Resources\Components\Tab;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\AttachAction;
 use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\Action;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class FiliaisRelationManager extends RelationManager
 {
     protected static string $relationship = 'filiais';
+
     protected static ?string $title = 'Vínculos com Filiais';
+
     protected static ?string $icon = 'heroicon-o-building-office';
 
     public function form(Form $form): Form
@@ -37,7 +38,7 @@ class FiliaisRelationManager extends RelationManager
                     ->label('Nome da Filial'),
                 Tables\Columns\TextColumn::make('perfil_acesso')
                     ->label('Perfil de Acesso')
-                    ->badge() 
+                    ->badge(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('perfil_acesso')
@@ -47,14 +48,14 @@ class FiliaisRelationManager extends RelationManager
                         'Gestor de Filial' => 'Gestor de Filial',
                         'Analista de Sinistro' => 'Analista de Sinistro',
                         'Subscritor' => 'Subscritor',
-                    ])
+                    ]),
             ])
             ->headerActions([
-                Tables\Actions\AttachAction::make()
+                AttachAction::make()
                     ->preloadRecordSelect()
-                    ->form(fn (Tables\Actions\AttachAction $action): array => [
-                        $action->getRecordSelect(), 
-                        
+                    ->form(fn (AttachAction $action): array => [
+                        $action->getRecordSelect(),
+
                         Forms\Components\Select::make('perfil_acesso')
                             ->label('Perfil nesta Filial')
                             ->options([
@@ -73,18 +74,18 @@ class FiliaisRelationManager extends RelationManager
             ->actions([
                 ActionGroup::make([
                     EditAction::make(),
-                    
+
                     Action::make('ver_filial')
                         ->label('Ver Filial')
                         ->icon('heroicon-o-eye')
-                        ->url(fn (Model $record) => \App\Filament\Resources\FilialResource::getUrl('view', ['record' => $record->id]))
-                        ->openUrlInNewTab(), 
-                        
+                        ->url(fn (Model $record) => FilialResource::getUrl('view', ['record' => $record->id]))
+                        ->openUrlInNewTab(),
+
                     DetachAction::make()
-                        ->before(function (RelationManager $livewire, Model $record){
+                        ->before(function (RelationManager $livewire, Model $record) {
                             $livewire->getOwnerRecord()->removeRole($record->pivot->perfil_acesso);
                         }),
-                ])
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

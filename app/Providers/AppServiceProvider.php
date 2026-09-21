@@ -2,16 +2,16 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use App\Models\Apolice;
-use App\Observers\ApoliceObserver;
 use App\Models\Segurado;
 use App\Models\SeguradoPf;
 use App\Models\SeguradoPj;
+use App\Observers\ApoliceObserver;
 use App\Observers\SeguradoObserver;
 use App\Observers\SeguradoPfObserver;
 use App\Observers\SeguradoPjObserver;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {

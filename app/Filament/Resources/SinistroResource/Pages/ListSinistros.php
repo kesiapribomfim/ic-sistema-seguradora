@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\SinistroResource\Pages;
 
 use App\Filament\Resources\SinistroResource;
-use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
-use Filament\Resources\Components\Tab; // <-- O IMPORT CORRETO DA ABA!
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\Sinistro;
+use App\Models\User;
+use Filament\Actions; // <-- O IMPORT CORRETO DA ABA!
+use Filament\Resources\Components\Tab;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class ListSinistros extends ListRecords
@@ -26,31 +27,31 @@ class ListSinistros extends ListRecords
      */
     public function getTabs(): array
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->hasRole('Analista de Sinistros')) {
-            
+
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
 
-            $quantidadeFilaEspera = \App\Models\Sinistro::whereNull('analista_id')
+            $quantidadeFilaEspera = Sinistro::whereNull('analista_id')
                 ->where('status', 'Aberto')
                 ->whereHas('apolice', function ($q) use ($filiaisIds) {
                     $q->whereIn('filial_id', $filiaisIds);
                 })->count();
 
             return [
-                'todos' => \Filament\Resources\Components\Tab::make('Todos os Sinistros'),
-                    
-                'meus_sinistros' => \Filament\Resources\Components\Tab::make('Meus Sinistros')
-                    ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('analista_id', $user->id)),
-                
-                'fila_espera' => \Filament\Resources\Components\Tab::make('Fila de Espera')
-                    ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
+                'todos' => Tab::make('Todos os Sinistros'),
+
+                'meus_sinistros' => Tab::make('Meus Sinistros')
+                    ->modifyQueryUsing(fn (Builder $query) => $query->where('analista_id', $user->id)),
+
+                'fila_espera' => Tab::make('Fila de Espera')
+                    ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
                     ->badge($quantidadeFilaEspera),
             ];
         }
-        
+
         return [];
     }
 }

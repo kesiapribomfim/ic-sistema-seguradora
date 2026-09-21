@@ -1,15 +1,14 @@
 <?php
 
 namespace App\Services;
-use Illuminate\Support\Facades\Log;
 
+use App\Enums\RamoEnum;
 use App\Models\Produto;
 use App\Models\Segurado;
-use App\Enums\RamoEnum;
+use Illuminate\Support\Facades\Log;
 
 class CalculadoraPremioService
 {
-
     public function calcular(Produto $produto, array $dados, Segurado $segurado): float
     {
         $score = $segurado->score ?? 0;
@@ -19,22 +18,20 @@ class CalculadoraPremioService
 
         $dadosEspecificos = $dados['dados_especificos'] ?? [];
         $dados = array_merge($dados, $dadosEspecificos);
-        
+
         $taxaBasePercentual = $this->formatarNumero($parametros['taxa_base'] ?? 0);
         $valorBaseRisco = $this->formatarNumero($dados['valor_base_risco'] ?? 0);
-
 
         $premioBase = $valorBaseRisco * ($taxaBasePercentual / 100);
 
         $totaisRamo = match ($produto->ramo) {
-            RamoEnum::AUTO->value        => $this->calcularRamoAuto($dados, $parametros),
+            RamoEnum::AUTO->value => $this->calcularRamoAuto($dados, $parametros),
             RamoEnum::RESIDENCIAL->value => $this->calcularRamoResidencial($dados, $parametros),
-            RamoEnum::VIDA->value        => $this->calcularRamoVida($dados, $parametros),
+            RamoEnum::VIDA->value => $this->calcularRamoVida($dados, $parametros),
         };
 
         $totalAgravantes = $totaisRamo['agravante'];
         $totalDescontos = $totaisRamo['desconto'];
-        
 
         $adicionaisCoberturas = $this->calcularCoberturasAdicionais($dados['cobertura_selecionada'] ?? []);
 
@@ -58,33 +55,36 @@ class CalculadoraPremioService
         return ($premioBase * $fatorMultiplicador) + $adicionaisCoberturas;
     }
 
-    //function para formatar numeros em caso de digitação com vírgula
+    // function para formatar numeros em caso de digitação com vírgula
     private function formatarNumero(float $valor): float
     {
-        if (empty($valor)) return 0.0;
+        if (empty($valor)) {
+            return 0.0;
+        }
+
         return (float) str_replace(',', '.', (string) $valor);
     }
 
-    //function para calcular score do segurado
-    private function calcularImpactoScore (int $score): float
+    // function para calcular score do segurado
+    private function calcularImpactoScore(int $score): float
     {
         $fatorScore = 0.0;
 
         if ($score >= 80) {
             $fatorScore = -0.075; // 7.5% de desconto para score >= 80
         } elseif ($score < 50) {
-             $fatorScore = 0.10; // 10% de acréscimo para score menor que 50
+            $fatorScore = 0.10; // 10% de acréscimo para score menor que 50
         }
+
         return $fatorScore;
 
     }
 
-    //function para calcular agravantes e descontos do ramo Auto
-    private function calcularRamoAuto (array $dados, array $parametros): array
+    // function para calcular agravantes e descontos do ramo Auto
+    private function calcularRamoAuto(array $dados, array $parametros): array
     {
         $totalAgravantes = 0.0;
         $totalDescontos = 0.0;
-
 
         $anoVeiculo = (int) ($dados['ano'] ?? date('Y'));
         if ((date('Y') - $anoVeiculo) > 10) {
@@ -98,10 +98,16 @@ class CalculadoraPremioService
             $totalAgravantes += (float) ($parametros['fator_tipo_caminhao'] ?? 0);
         }
 
-        if (!empty($dados['kit_gas'])) $totalAgravantes += (float) ($parametros['fator_kit_gas'] ?? 0);
-        if (!empty($dados['blindado'])) $totalAgravantes += (float) ($parametros['fator_blindado'] ?? 0);
+        if (! empty($dados['kit_gas'])) {
+            $totalAgravantes += (float) ($parametros['fator_kit_gas'] ?? 0);
+        }
+        if (! empty($dados['blindado'])) {
+            $totalAgravantes += (float) ($parametros['fator_blindado'] ?? 0);
+        }
 
-        if (!empty($dados['zero'])) $totalDescontos += (float) ($parametros['desconto_zero_km'] ?? 0);
+        if (! empty($dados['zero'])) {
+            $totalDescontos += (float) ($parametros['desconto_zero_km'] ?? 0);
+        }
 
         $uso = $dados['uso'] ?? [];
         if (is_array($uso) && in_array('comercial', $uso)) {
@@ -116,7 +122,7 @@ class CalculadoraPremioService
         }
 
         $usoAnterior = $dados['uso_anterior'] ?? 'nao';
-        if ($usoAnterior !== 'nao' && !empty($dados['seguro_antigo'])) {
+        if ($usoAnterior !== 'nao' && ! empty($dados['seguro_antigo'])) {
             $totalAgravantes += (float) ($parametros['fator_sinistro_anterior'] ?? 0);
         }
 
@@ -127,11 +133,11 @@ class CalculadoraPremioService
         }
 
         return ['agravante' => $totalAgravantes, 'desconto' => $totalDescontos];
-        
+
     }
 
-    //function para calcular agravantes e descontos do ramo Residencial
-    private function calcularRamoResidencial (array $dados, array $parametros): array
+    // function para calcular agravantes e descontos do ramo Residencial
+    private function calcularRamoResidencial(array $dados, array $parametros): array
     {
         $totalAgravantes = 0.0;
         $totalDescontos = 0.0;
@@ -176,12 +182,11 @@ class CalculadoraPremioService
         return ['agravante' => $totalAgravantes, 'desconto' => $totalDescontos];
     }
 
-    //function para calcular agravantes e descontos do ramo Vida
-    private function calcularRamoVida (array $dados, array $parametros): array
+    // function para calcular agravantes e descontos do ramo Vida
+    private function calcularRamoVida(array $dados, array $parametros): array
     {
         $totalAgravantes = 0.0;
         $totalDescontos = 0.0;
-
 
         // Lógica isolada para processar a saúde de qualquer pessoa (Titular ou Dependente)
         $processarRiscoSaude = function (array $pessoa) use ($parametros, &$totalAgravantes, &$totalDescontos) {
@@ -206,7 +211,7 @@ class CalculadoraPremioService
             }
 
             // Doenças Preexistentes
-            $possuiDoenca = !empty($pessoa['possui_doenca_preexistente']);
+            $possuiDoenca = ! empty($pessoa['possui_doenca_preexistente']);
             if ($possuiDoenca) {
                 $doencasDiagnosticadas = $pessoa['doencas_diagnosticadas'] ?? [];
                 $doencasGraves = ['cancer', 'avc', 'infarto', 'alzheimer', 'parkinson', 'esclerose_multipla'];
@@ -221,15 +226,21 @@ class CalculadoraPremioService
                 }
             }
 
-            $fumante = !empty($pessoa['fumante']);
-            $alcool = !empty($pessoa['consome_alcool']);
-            $esportesRadicais = !empty($pessoa['pratica_esportes_radicais']);
+            $fumante = ! empty($pessoa['fumante']);
+            $alcool = ! empty($pessoa['consome_alcool']);
+            $esportesRadicais = ! empty($pessoa['pratica_esportes_radicais']);
 
-            if ($fumante) $totalAgravantes += (float) ($parametros['fator_fumante'] ?? 0);
-            if ($alcool) $totalAgravantes += (float) ($parametros['fator_alcool'] ?? 0);
-            if ($esportesRadicais) $totalAgravantes += (float) ($parametros['fator_esportes_radicais'] ?? 0);
+            if ($fumante) {
+                $totalAgravantes += (float) ($parametros['fator_fumante'] ?? 0);
+            }
+            if ($alcool) {
+                $totalAgravantes += (float) ($parametros['fator_alcool'] ?? 0);
+            }
+            if ($esportesRadicais) {
+                $totalAgravantes += (float) ($parametros['fator_esportes_radicais'] ?? 0);
+            }
 
-            if (!$fumante && !$alcool && !$possuiDoenca) {
+            if (! $fumante && ! $alcool && ! $possuiDoenca) {
                 $totalDescontos += (float) ($parametros['desconto_perfil_saudavel'] ?? 0);
             }
         };
@@ -239,7 +250,7 @@ class CalculadoraPremioService
 
         // Avalia o risco da família (Dependentes)
         $dependentes = $dados['dependentes_vida'] ?? [];
-        if (is_array($dependentes) && !empty($dependentes)) {
+        if (is_array($dependentes) && ! empty($dependentes)) {
             foreach ($dependentes as $dependente) {
                 // Adiciona o agravante percentual base por familiar estar no plano
                 $parentesco = $dependente['parentesco'] ?? '';
@@ -253,30 +264,31 @@ class CalculadoraPremioService
         return ['agravante' => $totalAgravantes, 'desconto' => $totalDescontos];
     }
 
-    //function para calcular coberturas adicionais
+    // function para calcular coberturas adicionais
     private function calcularCoberturasAdicionais(array $coberturas): float
     {
         $adicionais = 0.0;
 
         if (is_array($coberturas)) {
             foreach ($coberturas as $cob) {
-                if (!empty($cob['contratada']) && empty($cob['obrigatoria'])) {
+                if (! empty($cob['contratada']) && empty($cob['obrigatoria'])) {
                     $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
                     $adicionais += ($limite * 0.01);
                 }
             }
         }
+
         return $adicionais;
     }
 
-    //function para limitar desconto para no máximo 90% do prêmio base
+    // function para limitar desconto para no máximo 90% do prêmio base
     private function limitarDesconto(float $valor): float
     {
         return max($valor, 0.1);
     }
 
-    //function para log
-    private function informarCalculo (array $dados): void
+    // function para log
+    private function informarCalculo(array $dados): void
     {
         Log::info('CalculadoraPremioService::calcular', $dados);
     }

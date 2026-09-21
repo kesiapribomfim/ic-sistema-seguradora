@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Segurado;
-use App\Models\User;
-use App\Models\SeguradoPj;
 use App\Models\SeguradoPf;
-USE Illuminate\Database\Eloquent\Builder;
+use App\Models\SeguradoPj;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Seeder;
 
 class SeguradoSeeder extends Seeder
 {
@@ -23,6 +22,7 @@ class SeguradoSeeder extends Seeder
 
         if ($corretores->isEmpty()) {
             $this->command->warn('Nenhum corretor encontrado! Rode a UserSeeder primeiro.');
+
             return;
         }
 

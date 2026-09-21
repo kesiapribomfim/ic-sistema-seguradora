@@ -2,10 +2,10 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Apolice;
 use App\Models\Pagamento;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ClienteStatsWidget extends BaseWidget
 {
@@ -21,8 +21,8 @@ class ClienteStatsWidget extends BaseWidget
 
         return [
             Stat::make('Minhas Apólices', Apolice::whereHas('segurado', function ($query) use ($userId) {
-                    $query->where('user_id', $userId);
-                })
+                $query->where('user_id', $userId);
+            })
                 ->where('status', 'Vigente')
                 ->count())
                 ->description('Contratos ativos')
@@ -30,10 +30,10 @@ class ClienteStatsWidget extends BaseWidget
                 ->color('success'),
 
             Stat::make('Faturas em Aberto', Pagamento::whereHas('apolice.segurado', function ($query) use ($userId) {
-                    $query->where('user_id', $userId);
-                })
-                ->where('status', 'Aberta')
-                ->count())
+                $query->where('user_id', $userId);
+            })
+            ->where('status', 'Aberta')
+            ->count())
                 ->description('Aguardando pagamento')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('warning'),

@@ -18,7 +18,7 @@ class AnalistaStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $user = auth()->user();
-        
+
         $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
 
         $sinistrosQuery = Sinistro::whereHas('apolice', function ($query) use ($filiaisIds) {

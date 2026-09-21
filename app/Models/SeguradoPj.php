@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class SeguradoPj extends Model
 {
@@ -11,17 +11,16 @@ class SeguradoPj extends Model
 
     protected $table = 'segurado_pj';
 
-
     protected $fillable = [
         'segurado_id',
         'cnpj',
         'razao_social',
-        'inscricao_estadual'
-       
+        'inscricao_estadual',
+
     ];
 
-    protected $casts=[
-        'telefone'=>'string',
+    protected $casts = [
+        'telefone' => 'string',
     ];
 
     public function segurado()

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Sinistro;
-use App\Models\Pagamento; // AJUSTE AQUI SE O SEU MODEL TIVER OUTRO NOME
+use App\Models\Pagamento;
+use App\Models\Sinistro; // AJUSTE AQUI SE O SEU MODEL TIVER OUTRO NOME
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -19,7 +19,7 @@ class FinanceiroStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $user = auth()->user();
-        
+
         $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
 
         $sinistrosQuery = Sinistro::whereHas('apolice', function ($query) use ($filiaisIds) {
@@ -31,7 +31,7 @@ class FinanceiroStatsWidget extends BaseWidget
         });
 
         return [
-            Stat::make('Indenizações a Pagar', 'R$ ' . number_format((clone $sinistrosQuery)->where('status', 'Aprovado')->sum('valor_indenizacao'), 2, ',', '.'))
+            Stat::make('Indenizações a Pagar', 'R$ '.number_format((clone $sinistrosQuery)->where('status', 'Aprovado')->sum('valor_indenizacao'), 2, ',', '.'))
                 ->description('Sinistros regulados pendentes de repasse')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('warning'),
@@ -41,7 +41,7 @@ class FinanceiroStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-x-circle')
                 ->color('danger'),
 
-            Stat::make('Contas a Receber', 'R$ ' . number_format((clone $pagamentosQuery)->where('status', 'Aberta')->sum('valor'), 2, ',', '.'))
+            Stat::make('Contas a Receber', 'R$ '.number_format((clone $pagamentosQuery)->where('status', 'Aberta')->sum('valor'), 2, ',', '.'))
                 ->description('Previsão de entrada de parcelas')
                 ->color('info'),
         ];

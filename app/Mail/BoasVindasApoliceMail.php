@@ -2,15 +2,15 @@
 
 namespace App\Mail;
 
+use App\Models\Apolice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Apolice;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
 class BoasVindasApoliceMail extends Mailable implements ShouldQueue
 {
@@ -52,7 +52,7 @@ class BoasVindasApoliceMail extends Mailable implements ShouldQueue
     public function attachments(): array
     {
         $this->apolice->load('pagamentos');
-        
+
         $pdf = Pdf::loadView('pdf.apolice', ['apolice' => $this->apolice]);
 
         return [

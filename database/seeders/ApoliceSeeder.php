@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Apolice;
 use App\Models\Cotacao;
+use App\Models\Pagamento;
+use Illuminate\Database\Seeder;
 
 class ApoliceSeeder extends Seeder
 {
@@ -17,6 +18,7 @@ class ApoliceSeeder extends Seeder
 
         if ($cotacoesAceitas->isEmpty()) {
             $this->command->warn('Nenhuma Cotação com status "Aceita" encontrada. Apólices não foram geradas.');
+
             return;
         }
 
@@ -65,7 +67,7 @@ class ApoliceSeeder extends Seeder
                 'filial_id' => $cotacao->filial_id,
                 'cotacao_id' => $cotacao->id,
                 'apolice_origem_id' => null,
-                'numero_apolice' => 'AP-' . $dataEmissao->format('Ymd') . '-' . fake()->unique()->numerify('####'),
+                'numero_apolice' => 'AP-'.$dataEmissao->format('Ymd').'-'.fake()->unique()->numerify('####'),
                 'data_emissao' => $dataEmissao,
                 'data_inicio' => $dataInicio,
                 'data_fim' => $dataFim,
@@ -81,19 +83,19 @@ class ApoliceSeeder extends Seeder
 
             for ($i = 1; $i <= $quantidadeParcelas; $i++) {
                 $isPrimeiraParcela = ($i === 1);
-                
+
                 $dataVencimento = (clone $dataEmissao)->addMonths($i - 1);
 
-                \App\Models\Pagamento::create([
-                    'apolice_id'        => $apolice->id,
-                    'num_parcela'       => $i,
+                Pagamento::create([
+                    'apolice_id' => $apolice->id,
+                    'num_parcela' => $i,
                     'tipo_movimentacao' => 'Recebimento',
-                    'valor'             => $valorParcela,
-                    'data_vencimento'   => $dataVencimento,
-                    
-                    'status'            => ($isPrimeiraParcela || $status === 'Renovada') ? 'Paga' : 'Aberta',
-                    'data_pagamento'    => ($isPrimeiraParcela || $status === 'Renovada') ? clone $dataVencimento : null,
-                    'metodo_baixa'      => ($isPrimeiraParcela || $status === 'Renovada') ? 'Automática' : null,
+                    'valor' => $valorParcela,
+                    'data_vencimento' => $dataVencimento,
+
+                    'status' => ($isPrimeiraParcela || $status === 'Renovada') ? 'Paga' : 'Aberta',
+                    'data_pagamento' => ($isPrimeiraParcela || $status === 'Renovada') ? clone $dataVencimento : null,
+                    'metodo_baixa' => ($isPrimeiraParcela || $status === 'Renovada') ? 'Automática' : null,
                 ]);
             }
 

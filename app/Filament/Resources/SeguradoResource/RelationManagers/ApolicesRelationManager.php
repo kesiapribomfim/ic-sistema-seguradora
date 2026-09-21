@@ -7,14 +7,13 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Eloquent\Model;
 
 class ApolicesRelationManager extends RelationManager
 {
     protected static string $relationship = 'apolices';
+
     protected static ?string $title = 'Apólices';
+
     protected static ?string $icon = 'heroicon-o-document-text';
 
     public function form(Form $form): Form
@@ -33,9 +32,9 @@ class ApolicesRelationManager extends RelationManager
             ->recordTitleAttribute('numero_apolice')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
-                ->label('Data de Criação')
-                ->date('d/m/Y')
-                ->sortable(),
+                    ->label('Data de Criação')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('numero_apolice')
                     ->label('Nº da Apólice')
                     ->searchable()
@@ -60,9 +59,9 @@ class ApolicesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Vigente' => 'info',      
-                        'Cancelada' => 'warning', 
-                        'Renovada' => 'success', 
+                        'Vigente' => 'info',
+                        'Cancelada' => 'warning',
+                        'Renovada' => 'success',
                         'Suspensa por inadimplência' => 'danger',
                         'Expirada' => 'gray',
                     }),
@@ -91,6 +90,5 @@ class ApolicesRelationManager extends RelationManager
                 ]),
             ]);
 
-            
     }
 }
