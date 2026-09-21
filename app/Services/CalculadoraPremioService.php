@@ -74,6 +74,7 @@ class CalculadoraPremioService
         if ($score < 50) {
             return 0.10; // 10% de acréscimo para score menor que 50
         }
+
         return 0.0;
     }
 
@@ -272,13 +273,14 @@ class CalculadoraPremioService
 
         if (is_array($coberturas)) {
             foreach ($coberturas as $cob) {
-                if (empty($cob['contratada']) || !empty($cob['obrigatoria'])) {
+                if (empty($cob['contratada']) || ! empty($cob['obrigatoria'])) {
                     continue;
                 }
 
                 $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
                 $adicionais += ($limite * 0.01);
             }
+
             return $adicionais;
         }
     }

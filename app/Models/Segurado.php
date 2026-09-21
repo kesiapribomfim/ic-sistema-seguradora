@@ -22,7 +22,7 @@ class Segurado extends Model
         'cep',
         'score',
         'status',
-        'user_id', 
+        'user_id',
         'corretor_id',
     ];
 
@@ -69,11 +69,11 @@ class Segurado extends Model
     // filtragem de dados por filial
     public function scopePorFiliais($query, array $filiaisIds)
     {
-        return $query->where(function($q) use ($filiaisIds){
+        return $query->where(function ($q) use ($filiaisIds) {
             $q->whereHas('corretor.filiais', fn ($q2) => $q2->whereIn('filiais.id', $filiaisIds))
-              ->orWhereHas('apolices', fn ($q3) => $q3->whereIn('filial_id', $filiaisIds))
-              ->orWhereHas('cotacoes', fn ($q4) => $q4->whereIn('filial_id', $filiaisIds))
-              ->orWhereHas('user.filiais', fn ($q5) => $q5->whereIn('filiais.id', $filiaisIds));
+                ->orWhereHas('apolices', fn ($q3) => $q3->whereIn('filial_id', $filiaisIds))
+                ->orWhereHas('cotacoes', fn ($q4) => $q4->whereIn('filial_id', $filiaisIds))
+                ->orWhereHas('user.filiais', fn ($q5) => $q5->whereIn('filiais.id', $filiaisIds));
         });
     }
 }

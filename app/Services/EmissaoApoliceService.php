@@ -31,11 +31,12 @@ class EmissaoApoliceService
     {
         $snapshot = [
             'produto' => [
-                'id'    => $cotacao->produto->id ?? null,
-                'nome'  => $cotacao->produto->nome ?? 'Produto Desconhecido',
+                'id' => $cotacao->produto->id ?? null,
+                'nome' => $cotacao->produto->nome ?? 'Produto Desconhecido',
             ],
             'coberturas' => $cotacao->cobertura_selecionada,
         ];
+
         return $snapshot;
     }
 
@@ -53,7 +54,7 @@ class EmissaoApoliceService
             'filial_id' => $cotacao->filial_id,
             'cotacao_id' => $cotacao->id,
             'apolice_origem_id' => $apoliceOrigemId,
-            'numero_apolice' => 'AP-' . str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
+            'numero_apolice' => 'AP-'.str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
             'data_emissao' => Carbon::now(),
             'data_inicio' => Carbon::now(),
             'data_fim' => Carbon::now()->addYear(),
@@ -94,21 +95,21 @@ class EmissaoApoliceService
         }
     }
 
-    private function gerarParcelas(Apolice $apolice, int $quantidadeParcelas): void 
+    private function gerarParcelas(Apolice $apolice, int $quantidadeParcelas): void
     {
         for ($i = 1; $i <= $quantidadeParcelas; $i++) {
-                $isPrimeiraParcela = ($i === 1);
+            $isPrimeiraParcela = ($i === 1);
 
-                Pagamento::create([
-                    'apolice_id' => $apolice->id,
-                    'num_parcela' => $i,
-                    'tipo_movimentacao' => 'Recebimento',
-                    'valor' => $apolice->valor_parcela,
-                    'data_vencimento' => Carbon::now()->addMonths($i - 1),
-                    'status' => $isPrimeiraParcela ? 'Paga' : 'Aberta',
-                    'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
-                    'metodo_baixa' => $isPrimeiraParcela ? 'Automática' : null,
-                ]);
-            }
+            Pagamento::create([
+                'apolice_id' => $apolice->id,
+                'num_parcela' => $i,
+                'tipo_movimentacao' => 'Recebimento',
+                'valor' => $apolice->valor_parcela,
+                'data_vencimento' => Carbon::now()->addMonths($i - 1),
+                'status' => $isPrimeiraParcela ? 'Paga' : 'Aberta',
+                'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
+                'metodo_baixa' => $isPrimeiraParcela ? 'Automática' : null,
+            ]);
+        }
     }
 }
