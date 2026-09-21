@@ -68,15 +68,13 @@ class CalculadoraPremioService
     //function para calcular score do segurado
     private function calcularImpactoScore (int $score): float
     {
-        $fatorScore = 0.0;
-
         if ($score >= 80) {
-            $fatorScore = -0.075; // 7.5% de desconto para score >= 80
-        } elseif ($score < 50) {
-             $fatorScore = 0.10; // 10% de acréscimo para score menor que 50
+            return -0.075; // 7.5% de desconto para score >= 80
         }
-        return $fatorScore;
-
+        if ($score < 50) {
+            return 0.10; // 10% de acréscimo para score menor que 50
+        }
+        return 0.0;
     }
 
     //function para calcular agravantes e descontos do ramo Auto
@@ -256,17 +254,23 @@ class CalculadoraPremioService
     //function para calcular coberturas adicionais
     private function calcularCoberturasAdicionais(array $coberturas): float
     {
+        if (empty($coberturas)) {
+            return 0.0;
+        }
+
         $adicionais = 0.0;
 
         if (is_array($coberturas)) {
             foreach ($coberturas as $cob) {
-                if (!empty($cob['contratada']) && empty($cob['obrigatoria'])) {
-                    $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
-                    $adicionais += ($limite * 0.01);
+                if (empty($cob['contratada']) || !empty($cob['obrigatoria'])) {
+                    continue;
                 }
+
+                $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
+                $adicionais += ($limite * 0.01);
             }
+            return $adicionais;
         }
-        return $adicionais;
     }
 
     //function para limitar desconto para no máximo 90% do prêmio base
