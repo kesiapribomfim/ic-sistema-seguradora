@@ -116,6 +116,7 @@ beforeEach(function () {
     //+5 segurados (vinculados a filial via corretor_id)
     $seguradosLocais = Segurado::factory()->count(5)->create([
         'corretor_id' => $corretorLocal->id,
+        'status'      => true,
     ]);
 
     $userLocal = User::factory()->create();
@@ -123,9 +124,9 @@ beforeEach(function () {
         'perfil_acesso' => 'Cliente'
     ]);
     //+1 segurado (vinculado a perfil de user local)
-    Segurado::factory()->create(['user_id' => $userLocal->id]);
+    Segurado::factory()->create(['user_id' => $userLocal->id, 'status' => true]);
 
-    $seguradoCotacaoLocal = Segurado::factory()->create();
+    $seguradoCotacaoLocal = Segurado::factory()->create(['status' => true]);
     Cotacao::factory()->create([
         'segurado_id' => $seguradoCotacaoLocal->id,
         'filial_id'   => $filialLocal->id,
@@ -138,7 +139,7 @@ beforeEach(function () {
     $qtdSinistrosEmAnaliseLocal = 0;
 
     //+5 segurados (com apolices locais vinculadas a eles)
-    $seguradosApoliceLocal = Segurado::factory()->count(5)->create();
+    $seguradosApoliceLocal = Segurado::factory()->count(5)->create(['status' => true]);
 
     foreach ($seguradosApoliceLocal as $segurado) {
         $cotacao = Cotacao::factory()->create([
@@ -227,6 +228,15 @@ test('deve retornar sinistralidade zero se nao houver faturamento', function() {
     $service = new EstatisticaDashboardService();
     $resultado = $service->obterEstatisticas([$filial->id], false);
 
-    expect($resultado['sinistralidade'])->toBe(0);
-    expect($resultado['faturamento_total'])->toBe(0);
+    expect($resultado['sinistralidade'])->toBe(0.0);
+    expect($resultado['faturamento_total'])->toBe(0.0);
+});
+
+test('deve desconsiderar segurados inativos', function() {
+    //segurados inativos
+    Segurado::factory()->count(10)->create(['status'=> false]);
+    $service = new EstatisticaDashboardService();
+    $resultado = $service->obterEstatisticas([], true);
+
+    expect($resultado)->toEqual($this->dadosGlobais);
 });
