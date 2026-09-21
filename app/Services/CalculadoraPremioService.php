@@ -272,14 +272,8 @@ class CalculadoraPremioService
 
         if (is_array($coberturas)) {
             foreach ($coberturas as $cob) {
-<<<<<<< HEAD
-                if (! empty($cob['contratada']) && empty($cob['obrigatoria'])) {
-                    $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
-                    $adicionais += ($limite * 0.01);
-=======
                 if (empty($cob['contratada']) || !empty($cob['obrigatoria'])) {
                     continue;
->>>>>>> refactor/calculadora-premio
                 }
 
                 $limite = $this->formatarNumero($cob['limite_maximo'] ?? 0);
@@ -287,11 +281,6 @@ class CalculadoraPremioService
             }
             return $adicionais;
         }
-<<<<<<< HEAD
-
-        return $adicionais;
-=======
->>>>>>> refactor/calculadora-premio
     }
 
     // function para limitar desconto para no máximo 90% do prêmio base
