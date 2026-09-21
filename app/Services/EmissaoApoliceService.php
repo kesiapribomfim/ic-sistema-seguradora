@@ -17,40 +17,7 @@ class EmissaoApoliceService
 
         return DB::transaction(function () use ($cotacao, $formaPagamento, $quantidadeParcelas) {
 
-            // Snapshot do Produto
-            $snapshot = [
-                'produto' => [
-                    'id' => $cotacao->produto->id ?? null,
-                    'nome' => $cotacao->produto->nome ?? 'Produto Desconhecido',
-                ],
-                'coberturas' => $cotacao->cobertura_selecionada,
-            ];
-
-            $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
-            $dadosEspecificos = $cotacao->dados_especificos ?? [];
-            $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
-
-            unset($dadosEspecificos['apolice_origem_id_temporario']);
-
-            $apolice = Apolice::create([
-                'segurado_id' => $cotacao->segurado_id,
-                'user_id' => $cotacao->user_id,
-                'filial_id' => $cotacao->filial_id,
-                'cotacao_id' => $cotacao->id,
-                'apolice_origem_id' => $apoliceOrigemId,
-                'numero_apolice' => 'AP-'.str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
-                'data_emissao' => Carbon::now(),
-                'data_inicio' => Carbon::now(),
-                'data_fim' => Carbon::now()->addYear(),
-                'status' => 'Vigente',
-                'snapshot' => $snapshot,
-                'dados_bem_assegurado' => $dadosEspecificos,
-                'beneficiarios' => [],
-                'forma_pagamento' => $formaPagamento,
-                'quantidade_parcelas' => $quantidadeParcelas,
-                'valor_parcela' => $valorParcela,
-                'valor_total' => $cotacao->valor_total,
-            ]);
+            $apolice = $this->gerarApolice($cotacao, $formaPagamento, $quantidadeParcelas);
 
             $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
 
@@ -91,5 +58,72 @@ class EmissaoApoliceService
 
             return $apolice;
         });
+    }
+
+    private function emitirSnapshot(Cotacao $cotacao): array
+    {
+        $snapshot = [
+            'produto' => [
+                'id'    => $cotacao->produto->id ?? null,
+                'nome'  => $cotacao->produto->nome ?? 'Produto Desconhecido',
+            ],
+            'coberturas' => $cotacao->cobertura_selecionada,
+        ];
+        return $snapshot;
+    }
+
+    private function gerarApolice(Cotacao $cotacao, String $formaPagamento, int $quantidadeParcelas): Apolice
+    {
+        $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
+        $dadosEspecificos = $cotacao->dados_especificos ?? [];
+        $apoliceOrigemId = $dadosEspecificos['apolice_origem_id_temporario'] ?? null;
+
+        unset($dadosEspecificos['apolice_origem_id_temporario']);
+
+        $apolice = Apolice::create([
+            'segurado_id' => $cotacao->segurado_id,
+            'user_id' => $cotacao->user_id,
+            'filial_id' => $cotacao->filial_id,
+            'cotacao_id' => $cotacao->id,
+            'apolice_origem_id' => $apoliceOrigemId,
+            'numero_apolice' => 'AP-' . str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
+            'data_emissao' => Carbon::now(),
+            'data_inicio' => Carbon::now(),
+            'data_fim' => Carbon::now()->addYear(),
+            'status' => 'Vigente',
+            'snapshot' => $this->emitirSnapshot($cotacao),
+            'dados_bem_assegurado' => $dadosEspecificos,
+            'beneficiarios' => [],
+            'forma_pagamento' => $formaPagamento,
+            'quantidade_parcelas' => $quantidadeParcelas,
+            'valor_parcela' => $valorParcela,
+            'valor_total' => $cotacao->valor_total,
+        ]);
+
+        return $apolice;
+    }
+
+    private function vincularBeneficiarios(Apolice $apolice, array $beneficiariosJson)
+    {
+        $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
+
+        foreach ($beneficiariosJson as $ben) {
+            if (empty($ben['cpf']) || empty($ben['nome'])) {
+                continue;
+            }
+
+            $beneficiario = Beneficiario::firstOrCreate(
+                ['cpf' => $ben['cpf']],
+                [
+                    'nome' => $ben['nome'],
+                    'data_nascimento' => null,
+                ]
+            );
+
+            $apolice->beneficiarios()->attach($beneficiario->id, [
+                'percentual_rateio' => $ben['percentual_rateio'],
+                'parentesco' => $ben['parentesco'],
+            ]);
+        }
     }
 }
