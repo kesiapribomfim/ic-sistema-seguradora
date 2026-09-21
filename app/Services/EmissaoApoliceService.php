@@ -19,42 +19,9 @@ class EmissaoApoliceService
 
             $apolice = $this->gerarApolice($cotacao, $formaPagamento, $quantidadeParcelas);
 
-            $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
+            $this->vincularBeneficiarios($apolice, $cotacao);
 
-            foreach ($beneficiariosJson as $ben) {
-                if (empty($ben['cpf']) || empty($ben['nome'])) {
-                    continue;
-                }
-
-                $beneficiario = Beneficiario::firstOrCreate(
-                    ['cpf' => $ben['cpf']],
-                    [
-                        'nome' => $ben['nome'],
-                        'data_nascimento' => null,
-                    ]
-                );
-
-                $apolice->beneficiarios()->attach($beneficiario->id, [
-                    'percentual_rateio' => $ben['percentual_rateio'],
-                    'parentesco' => $ben['parentesco'],
-                ]);
-            }
-
-            for ($i = 1; $i <= $quantidadeParcelas; $i++) {
-                $isPrimeiraParcela = ($i === 1);
-
-                Pagamento::create([
-                    'apolice_id' => $apolice->id,
-                    'num_parcela' => $i,
-                    'tipo_movimentacao' => 'Recebimento',
-                    'valor' => $valorParcela,
-                    'data_vencimento' => Carbon::now()->addMonths($i - 1), // Vencimentos mensais
-                    // A primeira parcela já nasce paga devido ao aceite no checkout
-                    'status' => $isPrimeiraParcela ? 'Paga' : 'Aberta',
-                    'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
-                    'metodo_baixa' => $isPrimeiraParcela ? 'Automática' : null,
-                ]);
-            }
+            $this->gerarParcelas($apolice, $quantidadeParcelas);
 
             return $apolice;
         });
@@ -72,7 +39,7 @@ class EmissaoApoliceService
         return $snapshot;
     }
 
-    private function gerarApolice(Cotacao $cotacao, String $formaPagamento, int $quantidadeParcelas): Apolice
+    private function gerarApolice(Cotacao $cotacao, string $formaPagamento, int $quantidadeParcelas): Apolice
     {
         $valorParcela = $cotacao->valor_total / $quantidadeParcelas;
         $dadosEspecificos = $cotacao->dados_especificos ?? [];
@@ -103,9 +70,9 @@ class EmissaoApoliceService
         return $apolice;
     }
 
-    private function vincularBeneficiarios(Apolice $apolice, array $beneficiariosJson)
+    private function vincularBeneficiarios(Apolice $apolice, Cotacao $cotacao): void
     {
-        $beneficiariosJson = $dadosEspecificos['beneficiarios_vida'] ?? [];
+        $beneficiariosJson = $cotacao->dados_especificos['beneficiarios_vida'] ?? [];
 
         foreach ($beneficiariosJson as $ben) {
             if (empty($ben['cpf']) || empty($ben['nome'])) {
@@ -125,5 +92,23 @@ class EmissaoApoliceService
                 'parentesco' => $ben['parentesco'],
             ]);
         }
+    }
+
+    private function gerarParcelas(Apolice $apolice, int $quantidadeParcelas): void 
+    {
+        for ($i = 1; $i <= $quantidadeParcelas; $i++) {
+                $isPrimeiraParcela = ($i === 1);
+
+                Pagamento::create([
+                    'apolice_id' => $apolice->id,
+                    'num_parcela' => $i,
+                    'tipo_movimentacao' => 'Recebimento',
+                    'valor' => $apolice->valor_parcela,
+                    'data_vencimento' => Carbon::now()->addMonths($i - 1),
+                    'status' => $isPrimeiraParcela ? 'Paga' : 'Aberta',
+                    'data_pagamento' => $isPrimeiraParcela ? Carbon::now() : null,
+                    'metodo_baixa' => $isPrimeiraParcela ? 'Automática' : null,
+                ]);
+            }
     }
 }
