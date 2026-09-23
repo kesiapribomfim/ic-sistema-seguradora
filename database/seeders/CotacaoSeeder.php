@@ -24,7 +24,7 @@ class CotacaoSeeder extends Seeder
         }
 
         $calculadora = new CalculadoraPremioService;
-        $statusDisponiveis = ['Em Elaboração', 'Enviada ao Cliente', 'Em Subscrição', 'Aceita', 'Recusada'];
+        $statusDisponiveis = [Cotacao::STATUS_ELABORACAO, Cotacao::STATUS_ENVIADA, Cotacao::STATUS_EM_SUBSCRICAO, Cotacao::STATUS_ACEITA, Cotacao::STATUS_RECUSADA];
 
         $this->command->info('Gerando Cotações dinâmicas e calculando prêmios reais...');
 
@@ -52,7 +52,7 @@ class CotacaoSeeder extends Seeder
 
             $valorTotal = $calculadora->calcular($produto, $dadosFormularioMock, $segurado);
 
-            $status = ($i < 5) ? 'Aceita' : fake()->randomElement($statusDisponiveis);
+            $status = ($i < 5) ? Cotacao::STATUS_ACEITA : fake()->randomElement($statusDisponiveis);
 
             Cotacao::create([
                 'segurado_id' => $segurado->id,

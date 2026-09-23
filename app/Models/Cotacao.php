@@ -44,6 +44,14 @@ class Cotacao extends Model
         });
     }
 
+    //constants
+    public const STATUS_ELABORACAO = 'Em Elaboração';
+    public const STATUS_ENVIADA = 'Enviada ao Cliente';
+    public const STATUS_EM_SUBSCRICAO = 'Em Subscrição';
+    public const STATUS_ACEITA = 'Aceita';
+    public const STATUS_RECUSADA = 'Recusada';
+    public const STATUS_EXPIRADA = 'Expirada';
+
     // fk
     public function segurado()
     {

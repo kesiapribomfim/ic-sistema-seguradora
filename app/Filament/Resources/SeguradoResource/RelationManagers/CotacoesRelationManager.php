@@ -48,11 +48,12 @@ class CotacoesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Em Elaboração' => 'info',
-                        'Enviada ao Cliente' => 'warning',
-                        'Aceita' => 'success',
-                        'Recusada' => 'danger',
-                        'Expirada' => 'gray',
+                        Cotacao::STATUS_ELABORACAO => 'info',
+                        Cotacao::STATUS_ENVIADA => 'warning',
+                        Cotacao::STATUS_EM_SUBSCRICAO => '#ebb284',
+                        Cotacao::STATUS_ACEITA => 'success',
+                        Cotacao::STATUS_RECUSADA => 'danger',
+                        Cotacao::STATUS_EXPIRADA => 'gray',
                         default => 'gray',
                     }),
             ])
@@ -60,11 +61,12 @@ class CotacoesRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status da Cotação')
                     ->options([
-                        'Em Elaboração' => 'Em Elaboração',
-                        'Enviada ao Cliente' => 'Enviada ao Cliente',
-                        'Aceita' => 'Aceita',
-                        'Recusada' => 'Recusada',
-                        'Expirada' => 'Expirada',
+                        Cotacao::STATUS_ELABORACAO => 'Em Elaboração',
+                        Cotacao::STATUS_ENVIADA => 'Enviada ao Cliente',
+                        Cotacao::STATUS_EM_SUBSCRICAO => 'Em Subscrição',
+                        Cotacao::STATUS_ACEITA => 'Aceita',
+                        Cotacao::STATUS_RECUSADA => 'Recusada',
+                        Cotacao::STATUS_EXPIRADA => 'Expirada',
                     ]),
             ])
             ->headerActions([

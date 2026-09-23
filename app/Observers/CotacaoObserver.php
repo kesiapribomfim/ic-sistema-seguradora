@@ -18,18 +18,18 @@ class CotacaoObserver
 
     public function updating(Cotacao $cotacao): void
     {
-        if ($cotacao->isDirty('status') && $cotacao->status === 'Aceita') {
+        if ($cotacao->isDirty('status') && $cotacao->status === Cotacao::STATUS_ACEITA) {
 
             $statusAnterior = $cotacao->getOriginal('status');
             // Fluxo Elaboração->Subscrição->Aceite
-            if ($statusAnterior === 'Em Subscrição') {
+            if ($statusAnterior === Cotacao::STATUS_EM_SUBSCRICAO) {
                 $usuario = Auth::user();
 
                 if ($usuario && $usuario->hasRole('Subscritor')) {
                     return;
                 } else {
                     // Se foi o cliente (sem login) ou um corretor tentando forçar a barra:
-                    $cotacao->status = 'Em Subscrição';
+                    $cotacao->status = Cotacao::STATUS_EM_SUBSCRICAO;
 
                     return;
                 }
@@ -42,7 +42,7 @@ class CotacaoObserver
             $riscoTotal = collect($coberturas)->sum(fn ($c) => (float) ($c['limite_maximo'] ?? 0));
 
             if ($riscoTotal > $limiteAlcada) {
-                $cotacao->status = 'Em Subscrição';
+                $cotacao->status = Cotacao::STATUS_EM_SUBSCRICAO;
 
                 Log::info('Cotação enviada para subscrição por excesso de alçada.', [
                     'cotacao_id' => $cotacao->id,

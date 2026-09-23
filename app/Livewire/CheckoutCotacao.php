@@ -27,9 +27,9 @@ class CheckoutCotacao extends Component
     {
         $this->cotacao = $cotacao;
 
-        if ($this->cotacao->status === 'Aceita') {
+        if ($this->cotacao->status === Cotacao::STATUS_ACEITA) {
             $this->pagamentoConcluido = true;
-        } elseif ($this->cotacao->status === 'Em Subscrição') {
+        } elseif ($this->cotacao->status === Cotacao::STATUS_EM_SUBSCRICAO) {
             $this->emSubscricao = true;
         }
     }
@@ -37,7 +37,7 @@ class CheckoutCotacao extends Component
     // pega os parametros selecionados pelo cliente na pagina externa (wire:click)
     public function processarAceite(EmissaoApoliceService $service)
     {
-        if ($this->cotacao->status === 'Em Subscrição' || $this->emSubscricao) {
+        if ($this->cotacao->status === Cotacao::STATUS_EM_SUBSCRICAO || $this->emSubscricao) {
             $this->emSubscricao = true;
 
             return;
@@ -52,21 +52,21 @@ class CheckoutCotacao extends Component
             // 1. Salva intenções e tenta dar o aceite
             $this->cotacao->forma_pagamento_preferida = $this->formaPagamento;
             $this->cotacao->quantidade_parcelas_preferida = (int) $this->quantidadeParcelas;
-            $this->cotacao->status = 'Aceita';
+            $this->cotacao->status = Cotacao::STATUS_ACEITA;
             $this->cotacao->save();
 
             // 2. Tira a cotação da memória e puxa fresca do banco de dados
             $this->cotacao = $this->cotacao->fresh();
 
             // 3. Verifica o que o Observer fez com ela
-            if ($this->cotacao->status === 'Em Subscrição') {
+            if ($this->cotacao->status === Cotacao::STATUS_EM_SUBSCRICAO) {
                 $this->emSubscricao = true;
 
                 return; // Corta o fluxo aqui! O cliente vê o aviso.
             }
 
             // 4. Se o Observer deixou passar (continuou Aceita)
-            if ($this->cotacao->status === 'Aceita') {
+            if ($this->cotacao->status === Cotacao::STATUS_ACEITA) {
                 $service->emitir(
                     $this->cotacao,
                     $this->formaPagamento,

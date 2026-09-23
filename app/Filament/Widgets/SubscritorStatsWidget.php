@@ -19,7 +19,7 @@ class SubscritorStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Fila de Subscrição', Cotacao::where('status', 'Aguardando Subscrição')->count())
+            Stat::make('Fila de Subscrição', Cotacao::where('status', Cotacao::STATUS_EM_SUBSCRICAO)->count())
                 ->description('Cotações acima da alçada comercial')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('danger'),
@@ -29,7 +29,7 @@ class SubscritorStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-cube')
                 ->color('success'),
 
-            Stat::make('Cotações Recusadas (Mês)', Cotacao::where('status', 'Recusada')->whereMonth('updated_at', now()->month)->count())
+            Stat::make('Cotações Recusadas (Mês)', Cotacao::where('status', Cotacao::STATUS_RECUSADA)->whereMonth('updated_at', now()->month)->count())
                 ->description('Riscos não aceitos')
                 ->color('gray'),
         ];

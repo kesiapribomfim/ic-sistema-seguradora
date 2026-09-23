@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ApoliceResource\Pages;
 use App\Filament\Resources\ApoliceResource\RelationManagers;
 use App\Models\Apolice;
+use App\Models\Cotacao;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -54,7 +55,7 @@ class ApoliceResource extends Resource
                             Forms\Components\Placeholder::make('status_visual')
                                 ->label('Status da Apólice')
                                 ->content(function ($record) {
-                                    $status = $record ? $record->status : 'Em Elaboração';
+                                    $status = $record ? $record->status : Cotacao::STATUS_ELABORACAO;
 
                                     $cor = match ($status) {
                                         'Vigente' => '#3b82f6',

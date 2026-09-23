@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CotacaoResource\Pages;
 
 use App\Filament\Resources\CotacaoResource;
+use App\Models\Cotacao;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCotacao extends CreateRecord
@@ -12,7 +13,7 @@ class CreateCotacao extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Garante que toda cotação nasça corretamente no primeiro estágio do funil
-        $data['status'] = 'Em Elaboração';
+        $data['status'] = Cotacao::STATUS_ELABORACAO;
 
         return $data;
     }

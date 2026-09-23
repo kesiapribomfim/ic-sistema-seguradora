@@ -13,7 +13,7 @@ class ApoliceSeeder extends Seeder
     {
         // Busca apenas as cotações que tiveram o status "Aceita"
         $cotacoesAceitas = Cotacao::with(['produto', 'segurado', 'user', 'filial'])
-            ->where('status', 'Aceita')
+            ->where('status', Cotacao::STATUS_ACEITA)
             ->get();
 
         if ($cotacoesAceitas->isEmpty()) {

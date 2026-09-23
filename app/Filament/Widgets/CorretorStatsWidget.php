@@ -27,7 +27,7 @@ class CorretorStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-users')
                 ->color('primary'),
 
-            Stat::make('Cotações Pendentes', Cotacao::where('user_id', $userId)->whereIn('status', ['Em Elaboração', 'Enviada ao Cliente'])->count())
+            Stat::make('Cotações Pendentes', Cotacao::where('user_id', $userId)->whereIn('status', [Cotacao::STATUS_ELABORACAO, Cotacao::STATUS_ENVIADA])->count())
                 ->description('Aguardando fechamento')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),

@@ -79,7 +79,7 @@ class CotacaoPolicy
 
     public function update(User $user, Cotacao $cotacao): bool
     {
-        if (in_array($cotacao->status, ['Aceita', 'Recusada', 'Expirada'])) {
+        if (in_array($cotacao->status, [Cotacao::STATUS_ACEITA, Cotacao::STATUS_RECUSADA, Cotacao::STATUS_EXPIRADA])) {
             return false;
         }
 
@@ -88,7 +88,7 @@ class CotacaoPolicy
         }
 
         if ($user->hasRole('Subscritor')) {
-            return $cotacao->status === 'Em Subscrição';
+            return $cotacao->status === Cotacao::STATUS_EM_SUBSCRICAO;
         }
 
         return true;

@@ -56,7 +56,7 @@ class ProcessarRenovacoes extends Command
 
         foreach ($apolicesParaRenovar as $apolice) {
             $jaPossuiRenovacao = Cotacao::whereJsonContains('dados_especificos->apolice_origem_id_temporario', $apolice->id)
-                ->whereIn('status', ['Em Elaboração', 'Enviada ao Cliente', 'Aceita'])
+                ->whereIn('status', [Cotacao::STATUS_ELABORACAO, Cotacao::STATUS_ENVIADA, Cotacao::STATUS_ACEITA])
                 ->exists();
 
             if ($jaPossuiRenovacao) {

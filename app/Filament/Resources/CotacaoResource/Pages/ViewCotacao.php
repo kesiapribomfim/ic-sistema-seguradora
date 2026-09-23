@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CotacaoResource\Pages;
 
 use App\Filament\Resources\CotacaoResource;
 use App\Jobs\EnviarCotacaoEmailJob;
+use App\Models\Cotacao;
 use App\Services\EmissaoApoliceService;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
@@ -28,14 +29,14 @@ class ViewCotacao extends ViewRecord
                 ->label('Enviar para o Cliente')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn () => $this->record->status === 'Em Elaboração' && auth()->user()->hasRole('Corretor'))
+                ->visible(fn () => $this->record->status === Cotacao::STATUS_ELABORACAO && auth()->user()->hasRole('Corretor'))
                 ->requiresConfirmation()
                 ->modalHeading('Enviar Cotação')
                 ->modalDescription('Tem certeza que deseja enviar esta proposta?')
                 ->action(function () {
                     $cotacao = $this->record;
 
-                    $cotacao->update(['status' => 'Enviada ao Cliente']);
+                    $cotacao->update(['status' => Cotacao::STATUS_ENVIADA]);
 
                     EnviarCotacaoEmailJob::dispatch($cotacao);
 
@@ -52,21 +53,21 @@ class ViewCotacao extends ViewRecord
                 ->label('Avaliar Risco')
                 ->icon('heroicon-o-shield-check')
                 ->color('info')
-                ->visible(fn () => auth()->user()->hasRole('Subscritor') && $this->record->status === 'Em Subscrição')
+                ->visible(fn () => auth()->user()->hasRole('Subscritor') && $this->record->status === Cotacao::STATUS_EM_SUBSCRICAO)
                 ->form([
                     Select::make('decisao')
                         ->label('Parecer da Subscrição')
                         ->options([
-                            'Aceita' => 'Aprovar',
-                            'Recusada' => 'Recusar',
+                            Cotacao::STATUS_ACEITA => 'Aprovar',
+                            Cotacao::STATUS_RECUSADA => 'Recusar',
                         ])
                         ->required(),
                 ])
                 ->action(function (array $data, EmissaoApoliceService $emissaoService) {
                     $cotacao = $this->record;
 
-                    if ($data['decisao'] === 'Recusada') {
-                        $cotacao->update(['status' => 'Recusada']);
+                    if ($data['decisao'] === Cotacao::STATUS_RECUSADA) {
+                        $cotacao->update(['status' => Cotacao::STATUS_RECUSADA]);
 
                         Notification::make()
                             ->title('Risco recusado.')
@@ -76,8 +77,8 @@ class ViewCotacao extends ViewRecord
                         return; // Encerra a execução aqui
                     }
 
-                    if ($data['decisao'] === 'Aceita') {
-                        $cotacao->update(['status' => 'Aceita']);
+                    if ($data['decisao'] === Cotacao::STATUS_ACEITA) {
+                        $cotacao->update(['status' => Cotacao::STATUS_ACEITA]);
 
                         $formaPagamento = $cotacao->forma_pagamento_preferida ?? 'Boleto Bancário';
                         $parcelas = $cotacao->quantidade_parcelas_preferida ?? 1;

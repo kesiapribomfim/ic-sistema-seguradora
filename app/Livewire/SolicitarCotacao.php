@@ -125,7 +125,7 @@ class SolicitarCotacao extends Component implements HasForms
         Cotacao::create([
             'segurado_id' => $segurado->id,
             'filial_id' => $dados['filial_id'],
-            'status' => 'Em Elaboração',
+            'status' => Cotacao::STATUS_ELABORACAO,
             'dados_especificos' => ['observacao_cliente' => $dados['dados_iniciais']],
             'ramo' => $dados['ramo'],
             'validade' => now()->addDays(30),

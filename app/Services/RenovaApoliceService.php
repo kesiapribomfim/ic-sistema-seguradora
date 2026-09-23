@@ -50,7 +50,7 @@ class RenovaApoliceService
             'produto_id' => $apolice->cotacao->produto_id,
             'cobertura_selecionada' => $apolice->snapshot['coberturas'] ?? [],
             'dados_especificos' => $dadosEspecificos,
-            'status' => 'Em Elaboração',
+            'status' => Cotacao::STATUS_ELABORACAO,
             'validade' => Carbon::now()->addDays(30),
             'valor_total' => $apolice->valor_total,
         ]);
@@ -64,6 +64,6 @@ class RenovaApoliceService
                 // delay
                 RenovacaoEmailJob::dispatch($apolice, $cotacao)->delay(now()->addSeconds($atrasoEmSegundos));
 
-                Log::info("Nova COTAÇÃO de renovação (#{$cotacao->id}) criada em estado 'Em elaboração' a partir da Apólice #{$apolice->numero_apolice}");
+                Log::info("Nova COTAÇÃO de renovação (#{$cotacao->id}) criada em estado 'Em Elaboração' a partir da Apólice #{$apolice->numero_apolice}");
     }
 }

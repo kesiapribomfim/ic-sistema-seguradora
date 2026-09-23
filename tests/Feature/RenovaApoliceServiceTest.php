@@ -69,7 +69,7 @@ describe(
             Log::shouldReceive('info')
                 ->once()
                 ->withArgs(function ($mensagem) {
-                    return str_contains($mensagem, "criada em estado 'Em elaboração' a partir da Apólice #AP-TEST456");
+                    return str_contains($mensagem, "criada em estado 'Em Elaboração' a partir da Apólice #AP-TEST456");
                 });
 
             $service = new RenovaApoliceService;
@@ -83,7 +83,7 @@ test('deve gerar cotacao em elaboracao corretamente segundo a apolice antiga', f
     $service = new RenovaApoliceService;
     $resultado = $service->gerarCotacao($this->apoliceBoa);
 
-    expect($resultado->status)->toBe('Em Elaboração');
+    expect($resultado->status)->toBe(Cotacao::STATUS_ELABORACAO);
 
     expect($resultado->dados_especificos['apolice_origem_id_temporario'])->toBe($this->apoliceBoa->id);
 

@@ -52,7 +52,7 @@ class CotacaoResource extends Resource
             $filiaisIds = $user->filiais()->pluck('filiais.id');
 
             $count = static::getModel()::whereIn('filial_id', $filiaisIds)
-                ->where('status', 'Aguardando Subscrição')
+                ->where('status', Cotacao::STATUS_EM_SUBSCRICAO)
                 ->count();
 
             return $count > 0 ? (string) $count : null;
@@ -236,15 +236,15 @@ class CotacaoResource extends Resource
                     Forms\Components\Placeholder::make('status_visual')
                         ->label('Status da Cotação')
                         ->content(function ($record) {
-                            $status = $record ? $record->status : 'Em Elaboração';
+                            $status = $record ? $record->status : Cotacao::STATUS_ELABORACAO;
 
                             $cor = match ($status) {
-                                'Em Elaboração' => '#f59e0b',      // Corresponde ao 'info' (Azul)
-                                'Enviada ao Cliente' => '#3b82f6', // Corresponde ao 'warning' (Laranja)
-                                'Em Subscrição' => '#eb84e6',
-                                'Aceita' => '#10b981',             // Corresponde ao 'success' (Verde)
-                                'Recusada' => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
-                                'Expirada' => '#6b7280',           // Corresponde ao 'gray' (Cinza)
+                                Cotacao::STATUS_ELABORACAO => '#f59e0b',      // Corresponde ao 'info' (Azul)
+                                Cotacao::STATUS_ENVIADA => '#3b82f6', // Corresponde ao 'warning' (Laranja)
+                                Cotacao::STATUS_EM_SUBSCRICAO => '#eb84e6',
+                                Cotacao::STATUS_ACEITA => '#10b981',             // Corresponde ao 'success' (Verde)
+                                Cotacao::STATUS_RECUSADA => '#ef4444',           // Corresponde ao 'danger' (Vermelho)
+                                Cotacao::STATUS_EXPIRADA => '#6b7280',           // Corresponde ao 'gray' (Cinza)
                                 default => '#6b7280',
                             };
 
@@ -254,7 +254,7 @@ class CotacaoResource extends Resource
                         }),
 
                     Forms\Components\Hidden::make('status')
-                        ->default('Em Elaboração'),
+                        ->default(Cotacao::STATUS_ELABORACAO),
 
                     Forms\Components\Hidden::make('user_id')
                         ->default(fn () => Auth::id()),
@@ -942,12 +942,12 @@ class CotacaoResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Em Elaboração' => 'info',
-                        'Enviada ao Cliente' => 'warning',
-                        'Em Subscrição' => '#ebb284',
-                        'Aceita' => 'success',
-                        'Recusada' => 'danger',
-                        'Expirada' => 'gray',
+                        Cotacao::STATUS_ELABORACAO => 'info',
+                        Cotacao::STATUS_ENVIADA => 'warning',
+                        Cotacao::STATUS_EM_SUBSCRICAO => '#ebb284',
+                        Cotacao::STATUS_ACEITA => 'success',
+                        Cotacao::STATUS_RECUSADA => 'danger',
+                        Cotacao::STATUS_EXPIRADA => 'gray',
                         default => 'gray',
                     }),
             ])
@@ -957,12 +957,12 @@ class CotacaoResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status da Cotação')
                     ->options([
-                        'Em Elaboração' => 'Em Elaboração',
-                        'Enviada ao Cliente' => 'Enviada ao Cliente',
-                        'Em Subscrição' => 'Em Subscrição',
-                        'Aceita' => 'Aceita',
-                        'Recusada' => 'Recusada',
-                        'Expirada' => 'Expirada',
+                        Cotacao::STATUS_ELABORACAO => 'Em Elaboração',
+                        Cotacao::STATUS_ENVIADA => 'Enviada ao Cliente',
+                        Cotacao::STATUS_EM_SUBSCRICAO => 'Em Subscrição',
+                        Cotacao::STATUS_ACEITA => 'Aceita',
+                        Cotacao::STATUS_RECUSADA => 'Recusada',
+                        Cotacao::STATUS_EXPIRADA => 'Expirada',
                     ]),
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Corretor Responsável')
@@ -991,13 +991,13 @@ class CotacaoResource extends Resource
 
                             $user = auth()->user();
 
-                            if (! in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente', 'Aprovada'])) {
+                            if (! in_array($record->status, [Cotacao::STATUS_ELABORACAO, Cotacao::STATUS_ENVIADA, Cotacao::STATUS_ACEITA])) {
                                 return false;
                             }
 
                             $limite = $record->produto?->valor_alcada;
 
-                            if ($limite && $record->valor_total > $limite && $record->status !== 'Aprovada') {
+                            if ($limite && $record->valor_total > $limite && $record->status !== Cotacao::STATUS_ACEITA) {
                                 return false;
                             }
 
@@ -1061,7 +1061,7 @@ class CotacaoResource extends Resource
                             if (! $user->hasRole('Corretor')) {
                                 return false;
                             }
-                            if (! in_array($record->status, ['Em Elaboração', 'Enviada ao Cliente'])) {
+                            if (! in_array($record->status, [Cotacao::STATUS_ELABORACAO, Cotacao::STATUS_ENVIADA])) {
                                 return false;
                             }
 
