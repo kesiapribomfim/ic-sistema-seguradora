@@ -63,7 +63,7 @@ class EmissaoApoliceService
             'data_emissao' => Carbon::now(),
             'data_inicio' => $dataInicio,
             'data_fim' => $dataFim,
-            'status' => 'Vigente',
+            'status' => Apolice::STATUS_VIGENTE,
             'snapshot' => $this->emitirSnapshot($cotacao),
             'dados_bem_assegurado' => $dadosEspecificos,
             'beneficiarios' => [],

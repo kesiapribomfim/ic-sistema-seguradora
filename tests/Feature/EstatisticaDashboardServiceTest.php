@@ -49,7 +49,7 @@ beforeEach(function () {
             'cotacao_id' => $cotacao->id,
             'data_emissao' => now()->format('Y-m-d'),
             'valor_total' => 100.00,
-            'status' => 'Vigente',
+            'status' => Apolice::STATUS_VIGENTE,
         ]);
         $faturamentoTotal += $apoliceVigente->valor_total;
         $qtdApoliceVigenteTotal++;
@@ -80,7 +80,7 @@ beforeEach(function () {
         'cotacao_id' => $cotacao->id,
         'data_emissao' => now()->format('Y-m-d'),
         'valor_total' => 100.0,
-        'status' => 'Cancelada',
+        'status' => Apolice::STATUS_CANCELADA,
     ]);
 
     // apolice antiga
@@ -89,7 +89,7 @@ beforeEach(function () {
         'cotacao_id' => $cotacao->id,
         'data_emissao' => '2025-10-01',
         'valor_total' => 100.0,
-        'status' => 'Vigente',
+        'status' => Apolice::STATUS_VIGENTE,
     ]);
 
     // sinistro negado
@@ -149,7 +149,7 @@ beforeEach(function () {
             'cotacao_id' => $cotacao->id,
             'data_emissao' => now()->format('Y-m-d'),
             'valor_total' => 100.00,
-            'status' => 'Vigente',
+            'status' => Apolice::STATUS_VIGENTE,
             'filial_id' => $filialLocal->id,
         ]);
         $faturamentoLocal += $apoliceLocalVigente->valor_total;
@@ -212,7 +212,7 @@ test('deve contabilizar as estatisticas globalmente de forma correta', function 
     expect($resultado)->toEqual($this->dadosGlobais);
 });
 
-test('deve contabilizar as esteticas localmente de forma correta', function () {
+test('deve contabilizar as estatisticas localmente de forma correta', function () {
     $service = new EstatisticaDashboardService;
     $resultado = $service->obterEstatisticas([$this->filialLocalId], false);
 

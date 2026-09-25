@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FilialResource\RelationManagers;
 
+use App\Models\Apolice;
 use App\Filament\Resources\ApoliceResource;
 use App\Filament\Resources\CotacaoResource;
 use Filament\Forms;
@@ -62,22 +63,25 @@ class ApolicesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Vigente' => 'info',
-                        'Cancelada' => 'warning',
-                        'Renovada' => 'success',
-                        'Suspensa por inadimplência' => 'danger',
-                        'Expirada' => 'gray',
+                        Apolice::STATUS_VIGENTE => 'info',
+                        Apolice::STATUS_CANCELADA => 'warning',
+                        Apolice::STATUS_RENOVADA => 'success',
+                        Apolice::STATUS_SUSPENSA => 'danger',
+                        Apolice::STATUS_EXPIRADA => 'gray',
+                        Apolice::STATUS_SUBSTITUIDA => 'gray',
+                        default => 'gray',
                     }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status da Apólice')
                     ->options([
-                        'Vigente' => 'Vigente',
-                        'Cancelada' => 'Cancelada',
-                        'Renovada' => 'Renovada',
-                        'Suspensa por inadimplência' => 'Suspensa por inadimplência',
-                        'Expirada' => 'Expirada',
+                        Apolice::STATUS_VIGENTE => 'Vigente',
+                        Apolice::STATUS_CANCELADA => 'Cancelada',
+                        Apolice::STATUS_RENOVADA => 'Renovada',
+                        Apolice::STATUS_SUSPENSA => 'Suspensa por inadimplência',
+                        Apolice::STATUS_EXPIRADA => 'Expirada',
+                        Apolice::STATUS_SUBSTITUIDA => 'Substituída',
                     ]),
             ])
             ->headerActions([

@@ -30,16 +30,16 @@ class ApoliceSeeder extends Seeder
 
             if ($contador === 0) {
                 $dataEmissao = now()->subMonths(11)->subDays(25); // Quase vencendo
-                $status = 'Vigente';
+                $status = Apolice::STATUS_VIGENTE;
             } elseif ($contador === 1) {
                 $dataEmissao = now()->subMonths(13); // Expirada
-                $status = 'Expirada';
+                $status = Apolice::STATUS_EXPIRADA;
             } elseif ($contador === 2) {
                 $dataEmissao = now()->subMonths(6); // Cancelada
-                $status = 'Cancelada';
+                $status = Apolice::STATUS_CANCELADA;
             } else {
                 $dataEmissao = now()->subMonths(fake()->numberBetween(1, 3)); // Novas
-                $status = 'Vigente';
+                $status = Apolice::STATUS_VIGENTE;
             }
 
             $dataInicio = clone $dataEmissao;

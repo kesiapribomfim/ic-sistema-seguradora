@@ -11,7 +11,7 @@ class SinistroSeeder extends Seeder
 {
     public function run(): void
     {
-        $apolicesVigentes = Apolice::where('status', 'Vigente')->get();
+        $apolicesVigentes = Apolice::where('status', Apolice::STATUS_VIGENTE)->get();
 
         if ($apolicesVigentes->isEmpty()) {
             $this->command->warn('Nenhuma Apólice vigente encontrada. Sinistros não foram gerados.');

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ApoliceResource\Pages;
 
+use App\Models\Apolice;
 use App\Filament\Resources\ApoliceResource;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions;
@@ -18,7 +19,7 @@ class ViewApolice extends ViewRecord
                 ->label('Baixar PDF')
                 ->color('danger')
                 ->icon('heroicon-o-document-arrow-down')
-                ->visible(fn () => $this->getRecord()->status !== 'Cancelada')
+                ->visible(fn () => $this->getRecord()->status !== Apolice::STATUS_CANCELADA)
                 ->action(function () {
                     $record = $this->getRecord();
 

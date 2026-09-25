@@ -23,7 +23,7 @@ class ClienteStatsWidget extends BaseWidget
             Stat::make('Minhas Apólices', Apolice::whereHas('segurado', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
-                ->where('status', 'Vigente')
+                ->where('status', Apolice::STATUS_VIGENTE)
                 ->count())
                 ->description('Contratos ativos')
                 ->descriptionIcon('heroicon-m-shield-check')

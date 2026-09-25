@@ -108,7 +108,7 @@ class SinistroResource extends Resource
                                     modifyQueryUsing: function (Builder $query) {
                                         $user = auth()->user();
 
-                                        $query->where('status', 'Vigente');
+                                        $query->where('status', Apolice::STATUS_VIGENTE);
 
                                         if ($user->hasRole('Corretor')) {
                                             $query->where('user_id', $user->id);

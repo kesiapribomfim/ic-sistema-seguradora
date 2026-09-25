@@ -36,7 +36,7 @@ class ProcessarRenovacoes extends Command
         $data30Dias = Carbon::now()->addDays(30)->toDateString();
         $data15Dias = Carbon::now()->addDays(15)->toDateString();
 
-        $apolicesParaRenovar = Apolice::where('status', 'Vigente')
+        $apolicesParaRenovar = Apolice::where('status', Apolice::STATUS_VIGENTE)
             ->whereIn(DB::raw('DATE(data_fim)'), [
                 $data60Dias,
                 $data30Dias,

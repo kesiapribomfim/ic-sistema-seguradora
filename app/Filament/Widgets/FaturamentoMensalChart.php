@@ -28,7 +28,7 @@ class FaturamentoMensalChart extends ChartWidget
         $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
         $anoAtual = Carbon::now()->year;
 
-        $query = Apolice::whereNotIn('status', ['Cancelada', 'Em Elaboração']) //TODO: Corrigir status Apolice
+        $query = Apolice::whereNotIn('status', [Apolice::STATUS_CANCELADA]) 
             ->whereYear('data_emissao', $anoAtual);
 
         if (! $isGlobal) {

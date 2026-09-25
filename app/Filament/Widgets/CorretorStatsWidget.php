@@ -32,7 +32,7 @@ class CorretorStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('warning'),
 
-            Stat::make('Minhas Apólices Vigentes', Apolice::where('user_id', $userId)->where('status', 'Vigente')->count())
+            Stat::make('Minhas Apólices Vigentes', Apolice::where('user_id', $userId)->where('status', Apolice::STATUS_VIGENTE)->count())
                 ->description('Carteira ativa')
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color('success'),

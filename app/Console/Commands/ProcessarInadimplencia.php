@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\EnviarAvisoVencimentoJob;
+use App\Models\Apolice;
 use App\Models\Pagamento;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -59,9 +60,9 @@ class ProcessarInadimplencia extends Command
 
                 $parcela->update(['status' => 'Vencida']);
 
-                if ($parcela->apolice->status === 'Vigente' && ! in_array($parcela->apolice->id, $apolicesProcessadas)) {
+                if ($parcela->apolice->status === Apolice::STATUS_VIGENTE && ! in_array($parcela->apolice->id, $apolicesProcessadas)) {
 
-                    $parcela->apolice->update(['status' => 'Suspensa por inadimplência']);
+                    $parcela->apolice->update(['status' => Apolice::STATUS_SUSPENSA]);
 
                     $segurado = $parcela->apolice->segurado;
                     if ($segurado && $segurado->score > 0) {

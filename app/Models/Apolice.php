@@ -38,6 +38,14 @@ class Apolice extends Model
         'beneficiarios' => 'array',
     ];
 
+    public const STATUS_VIGENTE = 'Vigente';
+    public const STATUS_CANCELADA = 'Cancelada';
+    public const STATUS_RENOVADA = 'Renovada';
+    public const STATUS_SUSPENSA = 'Suspensa por inadimplência';
+    public const STATUS_EXPIRADA = 'Expirada';
+    public const STATUS_SUBSTITUIDA = 'Substituída';
+
+
     public function segurado()
     {
         return $this->belongsTo(Segurado::class);

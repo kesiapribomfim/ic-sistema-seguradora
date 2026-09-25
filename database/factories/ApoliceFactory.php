@@ -38,7 +38,7 @@ class ApoliceFactory extends Factory
             'data_emissao' => $this->faker->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
             'data_inicio' => $dataInicio->format('Y-m-d'),
             'data_fim' => $this->faker->dateTimeBetween($dataInicio, '+1 year')->format('Y-m-d'),
-            'status' => $this->faker->randomElement(['Vigente', 'Cancelada', 'Suspensa por inadimplência', 'Renovada', 'Expirada']),
+            'status' => $this->faker->randomElement([Apolice::STATUS_VIGENTE, Apolice::STATUS_CANCELADA, Apolice::STATUS_SUSPENSA, Apolice::STATUS_RENOVADA, Apolice::STATUS_EXPIRADA]),
             'snapshot' => [
 
             ],

@@ -18,7 +18,7 @@ class EstatisticaDashboardService
             ->when($aplicarFiltro, fn ($q) => $q->porFiliais($filiaisIds))
             ->count();
 
-        $apolicesVigentes = Apolice::where('status', 'Vigente')
+        $apolicesVigentes = Apolice::where('status', Apolice::STATUS_VIGENTE)
             ->when($aplicarFiltro, fn ($q) => $q->whereIn('filial_id', $filiaisIds))
             ->count();
 
@@ -26,7 +26,7 @@ class EstatisticaDashboardService
             ->when($aplicarFiltro, fn ($q) => $q->whereHas('apolice', fn ($a) => $a->whereIn('filial_id', $filiaisIds)))
             ->count();
 
-        $faturamentoTotal = (float) Apolice::whereNotIn('status', ['Cancelada', 'Em Elaboração']) //TODO: Corrigir status
+        $faturamentoTotal = (float) Apolice::whereNotIn('status', [Apolice::STATUS_CANCELADA])
             ->whereYear('data_emissao', $anoAtual)
             ->when($aplicarFiltro, fn ($q) => $q->whereIn('filial_id', $filiaisIds))
             ->sum('valor_total');

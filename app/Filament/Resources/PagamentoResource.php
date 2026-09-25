@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PagamentoResource\Pages;
+use App\Models\Apolice;
 use App\Models\Pagamento;
 use App\Models\Sinistro;
 use App\Models\User;
@@ -56,14 +57,13 @@ class PagamentoResource extends Resource
                                     name: 'apolice',
                                     titleAttribute: 'numero_apolice',
                                     modifyQueryUsing: fn (Builder $query, Forms\Get $get) => $get('tipo_movimentacao') === 'Recebimento'
-                                            ? $query->where('status', 'Vigente')
+                                            ? $query->where('status', Apolice::STATUS_VIGENTE)
                                             : $query
                                 )
                                 ->label('Apólice Vinculada')
                                 ->searchable()
                                 ->preload()
                                 ->required()
-                                // Em vez de esconder, bloqueamos o campo. Fica visível como leitura.
                                 ->disabled(fn (Forms\Get $get) => $get('tipo_movimentacao') === 'Pagamento Indenização')
                                 ->dehydrated(), // Garante o salvamento do campo bloqueado
 

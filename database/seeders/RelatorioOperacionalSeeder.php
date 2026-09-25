@@ -53,7 +53,7 @@ class RelatorioOperacionalSeeder extends Seeder
                 'cotacao_id' => $cotacao->id,
                 'snapshot' => $snapshotExemplo,
                 'dados_bem_assegurado' => $dadosBemExemplo,
-                'status' => 'Vigente',
+                'status' => Apolice::STATUS_VIGENTE,
                 'data_emissao' => Carbon::now()->subMonths(11),
                 'data_inicio' => Carbon::now()->subMonths(11),
                 'data_fim' => Carbon::now()->addDays($i * 5),
@@ -64,7 +64,7 @@ class RelatorioOperacionalSeeder extends Seeder
             ]);
         }
 
-        $apoliceVigente = Apolice::where('status', 'Vigente')->first();
+        $apoliceVigente = Apolice::where('status', Apolice::STATUS_VIGENTE)->first();
 
         if ($apoliceVigente) {
             Sinistro::create([

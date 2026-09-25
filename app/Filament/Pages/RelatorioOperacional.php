@@ -181,7 +181,7 @@ class RelatorioOperacional extends Page implements HasForms
         $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
 
         $apolicesQuery = Apolice::with(['segurado.seguradoPf', 'segurado.seguradoPj', 'user', 'filial'])
-            ->where('status', 'Vigente')
+            ->where('status', Apolice::STATUS_VIGENTE)
             ->whereBetween('data_fim', [now(), now()->addDays(30)])
             ->orderBy('data_fim', 'asc');
 

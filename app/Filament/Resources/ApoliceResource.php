@@ -58,12 +58,12 @@ class ApoliceResource extends Resource
                                     $status = $record ? $record->status : Cotacao::STATUS_ELABORACAO;
 
                                     $cor = match ($status) {
-                                        'Vigente' => '#3b82f6',
-                                        'Cancelada' => '#f59e0b',
-                                        'Renovada' => '#10b981',
-                                        'Suspensa por inadimplência' => '#ef4444',
-                                        'Expirada' => '#6b7280',
-                                        'Substituída' => 'gray',
+                                        Apolice::STATUS_VIGENTE => '#3b82f6',
+                                        Apolice::STATUS_CANCELADA => '#f59e0b',
+                                        Apolice::STATUS_RENOVADA => '#10b981',
+                                        Apolice::STATUS_SUSPENSA => '#ef4444',
+                                        Apolice::STATUS_EXPIRADA => '#6b7280',
+                                        Apolice::STATUS_SUBSTITUIDA => 'gray',
                                         default => '#6b7280',
                                     };
 
@@ -184,12 +184,12 @@ class ApoliceResource extends Resource
                                 ->label('Status da Apólice')
                                 ->badge()
                                 ->color(fn (string $state): string => match ($state) {
-                                    'Vigente' => 'info',
-                                    'Cancelada' => 'warning',
-                                    'Renovada' => 'success',
-                                    'Suspensa por inadimplência' => 'danger',
-                                    'Expirada' => 'gray',
-                                    'Substituída' => 'gray',
+                                    Apolice::STATUS_VIGENTE => 'info',
+                                    Apolice::STATUS_CANCELADA => 'warning',
+                                    Apolice::STATUS_RENOVADA => 'success',
+                                    Apolice::STATUS_SUSPENSA => 'danger',
+                                    Apolice::STATUS_EXPIRADA => 'gray',
+                                    Apolice::STATUS_SUBSTITUIDA => 'gray',
                                     default => 'gray',
                                 }),
 
@@ -434,12 +434,12 @@ class ApoliceResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Vigente' => 'info',
-                        'Cancelada' => 'warning',
-                        'Renovada' => 'success',
-                        'Suspensa por inadimplência' => 'danger',
-                        'Expirada' => 'gray',
-                        'Substituída' => 'gray',
+                        Apolice::STATUS_VIGENTE => 'info',
+                        Apolice::STATUS_CANCELADA => 'warning',
+                        Apolice::STATUS_RENOVADA => 'success',
+                        Apolice::STATUS_SUSPENSA => 'danger',
+                        Apolice::STATUS_EXPIRADA => 'gray',
+                        Apolice::STATUS_SUBSTITUIDA => 'gray',
                     }),
             ])
             ->recordUrl(fn ($record): string => static::getUrl('view', ['record' => $record]))
@@ -456,7 +456,7 @@ class ApoliceResource extends Resource
                         ->label('Baixar PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('danger')
-                        ->visible(fn ($record) => $record->status !== 'Cancelada')
+                        ->visible(fn ($record) => $record->status !== Apolice::STATUS_CANCELADA)
                         ->url(fn ($record) => URL::signedRoute('apolices.pdf', ['apolice' => $record]))
                         ->openUrlInNewTab(),
                     Tables\Actions\Action::make('ver_cotacao')
@@ -471,7 +471,7 @@ class ApoliceResource extends Resource
                         ->icon('heroicon-o-document-duplicate')
                         ->color('warning')
                         ->visible(
-                            fn (Model $record) => $record->status === 'Vigente' &&
+                            fn (Model $record) => $record->status === Apolice::STATUS_VIGENTE &&
                                 auth()->user()->hasAnyRole(['Corretor', 'Gestor de Filial', 'Administrador Geral', 'super_admin'])
                         )
                         ->form([
@@ -512,7 +512,7 @@ class ApoliceResource extends Resource
                             $novaApolice->save();
 
                             $record->update([
-                                'status' => 'Substituída',
+                                'status' => Apolice::STATUS_SUBSTITUIDA,
                             ]);
 
                             Notification::make()

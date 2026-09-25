@@ -18,7 +18,7 @@ class ApoliceObserver
             // Mudar o status da apólice velha
             $apoliceOrigem = Apolice::find($apolice->apolice_origem_id);
             if ($apoliceOrigem) {
-                $apoliceOrigem->update(['status' => 'Renovada']);
+                $apoliceOrigem->update(['status' => Apolice::STATUS_RENOVADA]);
             }
 
             // TODO: No futuro, criar uma 'RenovacaoEmailJob' específica aqui.
