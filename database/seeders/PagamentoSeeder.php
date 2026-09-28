@@ -15,7 +15,7 @@ class PagamentoSeeder extends Seeder
     public function run(): void
     {
         $apolices = Apolice::where('status', Apolice::STATUS_VIGENTE)->get();
-        $sinistros = Sinistro::where('status', 'Aprovado')->get();
+        $sinistros = Sinistro::where('status', Sinistro::STATUS_APROVADO)->get();
 
         foreach ($apolices as $apolice) {
             Pagamento::factory()->create([

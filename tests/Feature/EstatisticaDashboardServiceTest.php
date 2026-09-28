@@ -56,7 +56,7 @@ beforeEach(function () {
 
         Sinistro::factory()->createQuietly([
             'apolice_id' => $apoliceVigente->id,
-            'status' => 'Em análise',
+            'status' => Sinistro::STATUS_ANALISE,
             'valor_indenizacao' => 0.0,
             'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
 
@@ -65,7 +65,7 @@ beforeEach(function () {
 
         $sinistrosPago = Sinistro::factory()->createQuietly([
             'apolice_id' => $apoliceVigente->id,
-            'status' => 'Pago',
+            'status' => Sinistro::STATUS_PAGO,
             'valor_indenizacao' => 50.0,
             'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
         ]);
@@ -95,7 +95,7 @@ beforeEach(function () {
     // sinistro negado
     Sinistro::factory()->createQuietly([
         'apolice_id' => $apoliceAntiga->id,
-        'status' => 'Negado',
+        'status' => Sinistro::STATUS_NEGADO,
         'valor_indenizacao' => 50.0,
         'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
     ]);
@@ -157,7 +157,7 @@ beforeEach(function () {
 
         Sinistro::factory()->createQuietly([
             'apolice_id' => $apoliceLocalVigente->id,
-            'status' => 'Em análise',
+            'status' => Sinistro::STATUS_ANALISE,
             'valor_indenizacao' => 0.0,
             'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
 
@@ -166,7 +166,7 @@ beforeEach(function () {
 
         $sinistrosPago = Sinistro::factory()->createQuietly([
             'apolice_id' => $apoliceLocalVigente->id,
-            'status' => 'Pago',
+            'status' => Sinistro::STATUS_PAGO,
             'valor_indenizacao' => 50.0,
             'data_hora_ocorrencia' => now()->format('Y-m-d H:i:s'),
         ]);

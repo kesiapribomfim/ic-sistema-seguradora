@@ -31,7 +31,7 @@ class FinanceiroStatsWidget extends BaseWidget
         });
 
         return [
-            Stat::make('Indenizações a Pagar', 'R$ '.number_format((clone $sinistrosQuery)->where('status', 'Aprovado')->sum('valor_indenizacao'), 2, ',', '.'))
+            Stat::make('Indenizações a Pagar', 'R$ '.number_format((clone $sinistrosQuery)->where('status', Sinistro::STATUS_APROVADO)->sum('valor_indenizacao'), 2, ',', '.'))
                 ->description('Sinistros regulados pendentes de repasse')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('warning'),

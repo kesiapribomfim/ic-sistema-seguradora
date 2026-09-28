@@ -43,6 +43,15 @@ class Sinistro extends Model
         'coberturas_envolvidas' => 'array',
     ];
 
+    public const STATUS_ABERTO = 'Aberto';
+    public const STATUS_ANALISE = 'Em análise';
+    public const STATUS_PERICIA = 'Em perícia';
+    public const STATUS_GESTOR = 'Aguardando Gestor';
+    public const STATUS_APROVADO = 'Aprovado';
+    public const STATUS_PAGO = 'Pago';
+    public const STATUS_NEGADO = 'Negado';
+    public const STATUS_ENCERRADO = 'Encerrado';
+
     /**
      * Configura como o log será gerado
      */

@@ -5,7 +5,7 @@ namespace App\Filament\Resources\SinistroResource\Pages;
 use App\Filament\Resources\SinistroResource;
 use App\Models\Sinistro;
 use App\Models\User;
-use Filament\Actions; // <-- O IMPORT CORRETO DA ABA!
+use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,7 +35,7 @@ class ListSinistros extends ListRecords
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
 
             $quantidadeFilaEspera = Sinistro::whereNull('analista_id')
-                ->where('status', 'Aberto')
+                ->where('status', Sinistro::STATUS_ABERTO)
                 ->whereHas('apolice', function ($q) use ($filiaisIds) {
                     $q->whereIn('filial_id', $filiaisIds);
                 })->count();
@@ -47,7 +47,7 @@ class ListSinistros extends ListRecords
                     ->modifyQueryUsing(fn (Builder $query) => $query->where('analista_id', $user->id)),
 
                 'fila_espera' => Tab::make('Fila de Espera')
-                    ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', 'Aberto'))
+                    ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('analista_id')->where('status', Sinistro::STATUS_ABERTO))
                     ->badge($quantidadeFilaEspera),
             ];
         }

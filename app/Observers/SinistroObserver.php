@@ -25,7 +25,7 @@ class SinistroObserver
      */
     public function updated(Sinistro $sinistro): void
     {
-        if ($sinistro->wasChanged('status') && in_array($sinistro->status, ['Pago'])) {
+        if ($sinistro->wasChanged('status') && in_array($sinistro->status, [Sinistro::STATUS_PAGO])) {
 
             if ($sinistro->apolice && $sinistro->apolice->segurado_id) {
                 $seguradoId = $sinistro->apolice->segurado_id;
@@ -34,14 +34,6 @@ class SinistroObserver
             }
         }
     }
-
-    // public function created(Sinistro $sinistro): void
-    // {
-    //     if (in_array($sinistro->status, ['Aprovado', 'Pago', 'Encerrado'])) {
-    //         $seguradoId = $sinistro->apolice->segurado_id;
-    //         RecalcularScoreRiscoJob::dispatch($seguradoId);
-    //     }
-    // }
 
     /**
      * Handle the Sinistro "deleted" event.

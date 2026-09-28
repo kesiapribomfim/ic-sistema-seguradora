@@ -29,7 +29,7 @@ class FilaSinistrosWidget extends BaseWidget
         $user = Auth::user();
         $isGlobal = $user->hasAnyRole(['super_admin', 'Administrador Geral']);
 
-        $query = Sinistro::with('apolice')->whereIn('status', ['Aberto', 'Em análise'])->latest();
+        $query = Sinistro::with('apolice')->whereIn('status', [Sinistro::STATUS_ABERTO, Sinistro::STATUS_ANALISE])->latest();
 
         if (! $isGlobal) {
             $filiaisIds = $user->filiais()->pluck('filiais.id')->toArray();
@@ -53,8 +53,8 @@ class FilaSinistrosWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Aberto' => 'warning',
-                        'Em análise' => 'info',
+                        Sinistro::STATUS_ABERTO => 'warning',
+                        Sinistro::STATUS_ANALISE => 'info',
                         default => 'gray',
                     }),
 

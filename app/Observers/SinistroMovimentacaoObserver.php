@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\SinistroMovimentacao;
+use App\Models\Sinistro;
 
 class SinistroMovimentacaoObserver
 {
@@ -15,13 +16,13 @@ class SinistroMovimentacaoObserver
 
         // Mapeia a ação da movimentação para o Status correspondente no Sinistro
         $novoStatus = match ($movimentacao->acao_realizada) {
-            'Abertura' => 'Aberto',
-            'Análise' => 'Em análise',
-            'Perícia' => 'Em perícia',
-            'Aprovação' => 'Aprovado',
-            'Negação' => 'Negado',
-            'Pagamento' => 'Pago',
-            'Encerramento' => 'Encerrado',
+            'Abertura' => Sinistro::STATUS_ABERTO,
+            'Análise' => Sinistro::STATUS_ANALISE,
+            'Perícia' => Sinistro::STATUS_PERICIA,
+            'Aprovação' => Sinistro::STATUS_APROVADO,
+            'Negação' => Sinistro::STATUS_NEGADO,
+            'Pagamento' => Sinistro::STATUS_PAGO,
+            'Encerramento' => Sinistro::STATUS_ENCERRADO,
             default => null,
         };
 

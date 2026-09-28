@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\ApoliceResource\RelationManagers;
 
+use App\Models\Apolice;
 use App\Models\User;
+use App\Policies\ApolicePolicy;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -24,7 +26,7 @@ class BeneficiariosRelationManager extends RelationManager
         /** @var User $user */
         $user = Auth::user();
 
-        if (in_array($apolice->status, ['Pago', 'Negado', 'Encerrado'])) {
+        if ($apolice->status!==Apolice::STATUS_VIGENTE) {
             return true;
         }
 

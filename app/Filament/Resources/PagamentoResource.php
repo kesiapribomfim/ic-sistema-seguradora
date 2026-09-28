@@ -72,7 +72,7 @@ class PagamentoResource extends Resource
                                     name: 'sinistro',
                                     titleAttribute: 'id',
                                     modifyQueryUsing: fn (Builder $query) => $query
-                                        ->where('status', 'Aprovado')) // Só mostra sinistros aprovados
+                                        ->where('status', Sinistro::STATUS_APROVADO)) // Só mostra sinistros aprovados
                                 ->label('Sinistro Vinculado')
                                 ->searchable()
                                 ->preload()

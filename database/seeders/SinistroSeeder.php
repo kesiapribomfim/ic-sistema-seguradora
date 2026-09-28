@@ -36,22 +36,24 @@ class SinistroSeeder extends Seeder
             $limiteCobertura = (float) ($coberturaAfetada['limite_maximo'] ?? 10000);
 
             $status = fake()->randomElement([
-                'Em análise',
-                'Aguardando Gestor',
-                'Aprovado',
-                'Negado',
-                'Pago',
-                'Encerrado',
+                Sinistro::STATUS_ANALISE,
+                Sinistro::STATUS_ABERTO,
+                Sinistro::STATUS_GESTOR,
+                Sinistro::STATUS_APROVADO,
+                Sinistro::STATUS_ENCERRADO,
+                Sinistro::STATUS_NEGADO,
+                Sinistro::STATUS_PAGO,
+                Sinistro::STATUS_PERICIA
             ]);
 
             $valorIndenizacao = null;
             $valorPago = null;
 
-            if (in_array($status, ['Aprovado', 'Pago', 'Encerrado', 'Aguardando Gestor'])) {
+            if (in_array($status, [Sinistro::STATUS_APROVADO, Sinistro::STATUS_PAGO, Sinistro::STATUS_ENCERRADO, Sinistro::STATUS_GESTOR])) {
                 $valorIndenizacao = fake()->randomFloat(2, 500, $limiteCobertura);
             }
 
-            if (in_array($status, ['Pago', 'Encerrado'])) {
+            if (in_array($status, [Sinistro::STATUS_PAGO, Sinistro::STATUS_ENCERRADO])) {
                 $valorPago = $valorIndenizacao;
             }
 

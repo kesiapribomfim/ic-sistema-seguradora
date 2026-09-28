@@ -61,7 +61,7 @@ class SinistroPolicy
 
     public function update(User $user, Sinistro $sinistro): bool
     {
-        $statusFinalizados = ['Negado', 'Encerrado'];
+        $statusFinalizados = [Sinistro::STATUS_NEGADO, Sinistro::STATUS_ENCERRADO];
         if (in_array($sinistro->status, $statusFinalizados)) {
             return false;
         }

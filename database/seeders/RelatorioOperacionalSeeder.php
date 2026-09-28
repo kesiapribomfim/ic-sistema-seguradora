@@ -70,7 +70,7 @@ class RelatorioOperacionalSeeder extends Seeder
             Sinistro::create([
                 'apolice_id' => $apoliceVigente->id,
                 'data_hora_ocorrencia' => Carbon::now()->subDays(2),
-                'status' => 'Em análise',
+                'status' => Sinistro::STATUS_ANALISE,
                 'rua' => 'Av. das Américas',
                 'numero' => '1000',
                 'bairro' => 'Centro',

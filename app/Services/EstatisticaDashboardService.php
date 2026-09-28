@@ -22,7 +22,7 @@ class EstatisticaDashboardService
             ->when($aplicarFiltro, fn ($q) => $q->whereIn('filial_id', $filiaisIds))
             ->count();
 
-        $sinistrosAnalise = Sinistro::where('status', 'Em análise')
+        $sinistrosAnalise = Sinistro::where('status', Sinistro::STATUS_ANALISE)
             ->when($aplicarFiltro, fn ($q) => $q->whereHas('apolice', fn ($a) => $a->whereIn('filial_id', $filiaisIds)))
             ->count();
 
@@ -31,7 +31,7 @@ class EstatisticaDashboardService
             ->when($aplicarFiltro, fn ($q) => $q->whereIn('filial_id', $filiaisIds))
             ->sum('valor_total');
 
-        $custoTotalSinistros = (float) Sinistro::whereIn('status', ['Aprovado', 'Pago', 'Encerrado'])
+        $custoTotalSinistros = (float) Sinistro::whereIn('status', [Sinistro::STATUS_ABERTO, Sinistro::STATUS_PAGO, Sinistro::STATUS_ENCERRADO])
             ->whereYear('data_hora_ocorrencia', $anoAtual)
             ->when($aplicarFiltro, fn ($q) => $q->whereHas('apolice', fn ($a) => $a->whereIn('filial_id', $filiaisIds)))
             ->sum('valor_indenizacao');

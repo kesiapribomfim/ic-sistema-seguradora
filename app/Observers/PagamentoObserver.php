@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Pagamento;
+use App\Models\Sinistro;
 
 class PagamentoObserver
 {
@@ -16,7 +17,7 @@ class PagamentoObserver
             $sinistro = $pagamento->sinistro;
 
             $sinistro->update([
-                'status' => 'Pago',
+                'status' => Sinistro::STATUS_PAGO,
                 'valor_pago' => $pagamento->valor,
             ]);
 

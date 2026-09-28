@@ -18,15 +18,15 @@ class SinistroFactory extends Factory
      */
     public function definition(): array
     {
-        $status = $this->faker->randomElement(['Em análise', 'Em perícia', 'Aprovado', 'Negado', 'Pago', 'Encerrado']);
+        $status = $this->faker->randomElement([Sinistro::STATUS_ABERTO, Sinistro::STATUS_ANALISE, Sinistro::STATUS_PERICIA, Sinistro::STATUS_APROVADO, Sinistro::STATUS_NEGADO, Sinistro::STATUS_PAGO, Sinistro::STATUS_ENCERRADO, Sinistro::STATUS_GESTOR]);
 
         $valorIndenizacao = $this->faker->randomFloat(2, 2000, 50000);
 
         $valorPago = 0; // Por padrão, começa em zero
 
-        if (in_array($status, ['Pago', 'Encerrado'])) {
+        if (in_array($status, [Sinistro::STATUS_PAGO, Sinistro::STATUS_ENCERRADO])) {
             $valorPago = $valorIndenizacao;
-        } elseif ($status === 'Aprovado') {
+        } elseif ($status === Sinistro::STATUS_APROVADO) {
             $valorPago = $this->faker->randomElement([0, ($valorIndenizacao / 2)]);
         }
 

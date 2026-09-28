@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SinistroResource\RelationManagers;
 
 use App\Models\User;
+use App\Models\Sinistro;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -24,7 +25,7 @@ class MovimentacoesRelationManager extends RelationManager
         /** @var User $user */
         $user = Auth::user();
 
-        if (in_array($sinistro->status, ['Pago', 'Negado', 'Encerrado'])) {
+        if (in_array($sinistro->status, [Sinistro::STATUS_PAGO, Sinistro::STATUS_NEGADO, Sinistro::STATUS_ENCERRADO])) {
             return true;
         }
 
@@ -123,13 +124,13 @@ class MovimentacoesRelationManager extends RelationManager
                             $valorFormatado = 'R$ '.number_format($valor, 2, ',', '.');
                             $limiteFormatado = 'R$ '.number_format($limite, 2, ',', '.');
 
-                            if ($limite > 0 && $valor > $limite && ! $sinistro->aprovado_gestor_id && $sinistro->status !== 'Aguardando Gestor') {
+                            if ($limite > 0 && $valor > $limite && ! $sinistro->aprovado_gestor_id && $sinistro->status !== Sinistro::STATUS_GESTOR) {
                                 $data['acao_realizada'] = 'Alçada Excedida';
                                 $data['descricao'] = "Indenização calculada ({$valorFormatado}) excede a alçada comercial ({$limiteFormatado}).\n\nParecer do Analista: ".$data['descricao'];
 
                                 $sinistro->update([
                                     'valor_indenizacao' => $valor,
-                                    'status' => 'Aguardando Gestor',
+                                    'status' => Sinistro::STATUS_GESTOR,
                                 ]);
 
                                 Notification::make()
@@ -142,7 +143,7 @@ class MovimentacoesRelationManager extends RelationManager
 
                                 $sinistro->update([
                                     'valor_indenizacao' => $valor,
-                                    'status' => 'Aprovado',
+                                    'status' => Sinistro::STATUS_APROVADO,
                                 ]);
 
                                 Notification::make()

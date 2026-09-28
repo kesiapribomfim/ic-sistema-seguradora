@@ -43,19 +43,19 @@ class SinistroResource extends Resource
         }
 
         if ($user->hasRole('Gestor de Filial')) {
-            $quantidade = (clone $query)->where('status', 'Aguardando Gestor')->count();
+            $quantidade = (clone $query)->where('status', Sinistro::STATUS_GESTOR)->count();
 
             return $quantidade > 0 ? (string) $quantidade : null;
         }
 
         if ($user->hasRole('Analista de Sinistros')) {
-            $quantidade = (clone $query)->where('status', 'Aberto')->count();
+            $quantidade = (clone $query)->where('status', Sinistro::STATUS_ABERTO)->count();
 
             return $quantidade > 0 ? (string) $quantidade : null;
         }
 
         if ($user->hasRole('Financeiro')) {
-            $aprovado = (clone $query)->where('status', 'Aprovado')->count();
+            $aprovado = (clone $query)->where('status', Sinistro::STATUS_APROVADO)->count();
 
             return $aprovado > 0 ? (string) $aprovado : null;
         }
@@ -80,9 +80,9 @@ class SinistroResource extends Resource
         $quantidade = 0;
 
         if ($user->hasRole('Analista de Sinistros')) {
-            $quantidade = (clone $query)->where('status', 'Aberto')->count();
+            $quantidade = (clone $query)->where('status', Sinistro::STATUS_ABERTO)->count();
         } elseif ($user->hasRole('Financeiro')) {
-            $quantidade = (clone $query)->where('status', 'Aprovado')->count();
+            $quantidade = (clone $query)->where('status', Sinistro::STATUS_APROVADO)->count();
         }
 
         if ($quantidade > 5) {
@@ -99,7 +99,7 @@ class SinistroResource extends Resource
                 Forms\Components\Group::make()->schema([
                     Forms\Components\Section::make('Informações Gerais do Evento')
                         ->icon('heroicon-o-exclamation-triangle')
-                        ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
+                        ->disabled(fn ($record) => $record && $record->status !== Sinistro::STATUS_ABERTO)
                         ->schema([
                             Forms\Components\Select::make('apolice_id')
                                 ->relationship(
@@ -197,17 +197,17 @@ class SinistroResource extends Resource
                             Forms\Components\Placeholder::make('status_visual')
                                 ->label('Status do Sinistro')
                                 ->content(function ($record) {
-                                    $status = $record ? $record->status : 'Em Elaboração';
+                                    $status = $record ? $record->status : Sinistro::STATUS_ABERTO;
 
                                     $cor = match ($status) {
-                                        'Aberto' => 'warning',
-                                        'Em análise' => 'info',
-                                        'Em perícia' => '#735bff',
-                                        'Aguardando Gestor' => '#f97316',
-                                        'Aprovado', 'Pago' => 'success',
-                                        'Negado' => 'danger',
-                                        'Encerrado' => 'gray',
-                                        default => 'gray',
+                                        Sinistro::STATUS_ABERTO => '#f59e0b',    // Laranja 
+                                        Sinistro::STATUS_ANALISE => '#3b82f6',   // Azul 
+                                        Sinistro::STATUS_PERICIA => '#735bff',   // Roxo
+                                        Sinistro::STATUS_GESTOR => '#f97316',    // Laranja escuro
+                                        Sinistro::STATUS_APROVADO, Sinistro::STATUS_PAGO => '#10b981', // Verde 
+                                        Sinistro::STATUS_NEGADO => '#ef4444',    // Vermelho
+                                        Sinistro::STATUS_ENCERRADO => '#6b7280', // Cinza
+                                        default => '#6b7280',                    // Cinza
                                     };
 
                                     return new HtmlString(
@@ -215,12 +215,12 @@ class SinistroResource extends Resource
                                     );
                                 }),
                             Forms\Components\Hidden::make('status')
-                                ->default('Aberto'),
+                                ->default(Sinistro::STATUS_ABERTO),
                         ])->columns(3),
 
                     Forms\Components\Section::make('Local da Ocorrência')
                         ->icon('heroicon-o-map-pin')
-                        ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
+                        ->disabled(fn ($record) => $record && $record->status !== Sinistro::STATUS_ABERTO)
                         ->schema([
                         Forms\Components\Grid::make(3)->schema([
                                 Forms\Components\TextInput::make('rua')
@@ -247,7 +247,7 @@ class SinistroResource extends Resource
 
                     Forms\Components\Section::make('Detalhamento do Sinistro')
                         ->icon('heroicon-o-document-text')
-                        ->disabled(fn ($record) => $record && $record->status !== 'Aberto')
+                        ->disabled(fn ($record) => $record && $record->status !== Sinistro::STATUS_ABERTO)
                         ->schema([
                         Forms\Components\CheckboxList::make('coberturas_envolvidas')
                                 ->label('Coberturas Acionadas')
@@ -300,7 +300,7 @@ class SinistroResource extends Resource
                                 ->label('Valor Efetivamente Pago')
                                 ->numeric()
                                 ->prefix('R$')
-                                ->disabled(fn (Get $get) => ! (auth()->user()->hasRole('Financeiro') && $get('status') === 'Aprovado'))
+                                ->disabled(fn (Get $get) => ! (auth()->user()->hasRole('Financeiro') && $get('status') === Sinistro::STATUS_APROVADO))
                                 ->dehydrated(),
                     ]),
 
@@ -369,11 +369,11 @@ class SinistroResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Aberto' => 'warning',
-                        'Em análise', 'Em perícia' => 'info',
-                        'Aprovado', 'Pago' => 'success',
-                        'Negado' => 'danger',
-                        'Encerrado' => 'gray',
+                        Sinistro::STATUS_ABERTO => 'warning',
+                        Sinistro::STATUS_ANALISE, Sinistro::STATUS_PERICIA => 'info',
+                        Sinistro::STATUS_APROVADO, Sinistro::STATUS_PAGO => 'success',
+                        Sinistro::STATUS_NEGADO => 'danger',
+                        Sinistro::STATUS_ENCERRADO => 'gray',
                         default => 'gray',
                     }),
             ])
@@ -383,13 +383,14 @@ class SinistroResource extends Resource
             Tables\Filters\SelectFilter::make('status')
                     ->label('Status do Sinistro')
                     ->options([
-                        'Aberto' => 'Aberto',
-                        'Em análise' => 'Em análise',
-                        'Em perícia' => 'Em perícia',
-                        'Aprovado' => 'Aprovado',
-                        'Pago' => 'Pago',
-                        'Negado' => 'Negado',
-                        'Encerrado' => 'Encerrado',
+                        Sinistro::STATUS_ABERTO => 'Aberto',
+                        Sinistro::STATUS_ANALISE => 'Em análise',
+                        Sinistro::STATUS_PERICIA => 'Em perícia',
+                        Sinistro::STATUS_GESTOR => 'Aguardando Gestor',
+                        Sinistro::STATUS_APROVADO => 'Aprovado',
+                        Sinistro::STATUS_PAGO => 'Pago',
+                        Sinistro::STATUS_NEGADO => 'Negado',
+                        Sinistro::STATUS_ENCERRADO => 'Encerrado',
                     ]),
         ])
             ->actions([
@@ -397,7 +398,6 @@ class SinistroResource extends Resource
                     EditAction::make(),
                     ViewAction::make(),
 
-                    // 1. Ação existente de Assumir
                     Tables\Actions\Action::make('assumir')
                         ->label('Assumir Sinistro')
                         ->icon('heroicon-o-hand-raised')
@@ -409,7 +409,7 @@ class SinistroResource extends Resource
                         ->action(function (Model $record) {
                             $record->update([
                                 'analista_id' => auth()->id(),
-                                'status' => 'Em análise',
+                                'status' => Sinistro::STATUS_ANALISE,
                             ]);
 
                             $record->movimentacoes()->create([
@@ -428,7 +428,7 @@ class SinistroResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(
-                            fn (Model $record) => in_array($record->status, ['Em análise', 'Em perícia', 'Aguardando Documentação']) &&
+                            fn (Model $record) => in_array($record->status, [Sinistro::STATUS_ANALISE, Sinistro::STATUS_PERICIA]) &&
                             auth()->user()->hasAnyRole(['Analista de Sinistros', 'Gestor de Filial'])
                         )
                         ->form([
@@ -445,7 +445,7 @@ class SinistroResource extends Resource
                             if ($limite && $valor > $limite && ! $record->aprovado_gestor_id) {
                                 $record->update([
                                     'valor_indenizacao' => $valor,
-                                    'status' => 'Aguardando Gestor',
+                                    'status' => Sinistro::STATUS_GESTOR,
                                 ]);
 
                                 $record->movimentacoes()->create([
@@ -463,7 +463,7 @@ class SinistroResource extends Resource
                             } else {
                                 $record->update([
                                     'valor_indenizacao' => $valor,
-                                    'status' => 'Aprovado',
+                                    'status' => Sinistro::STATUS_ABERTO,
                                 ]);
 
                                 $record->movimentacoes()->create([
@@ -485,7 +485,7 @@ class SinistroResource extends Resource
                         ->icon('heroicon-o-shield-check')
                         ->color('warning')
                         ->visible(
-                            fn (Model $record) => $record->status === 'Aguardando Gestor' &&
+                            fn (Model $record) => $record->status === Sinistro::STATUS_GESTOR &&
                                 auth()->user()->hasAnyRole(['Gestor de Filial', 'Administrador Geral'])
                         )
                         ->requiresConfirmation()
@@ -495,7 +495,7 @@ class SinistroResource extends Resource
                             $record->update([
                                 'aprovado_gestor_id' => auth()->id(),
                                 'data_aprovacao_gestor' => now(),
-                                'status' => 'Aprovado',
+                                'status' => Sinistro::STATUS_ABERTO,
                             ]);
 
                             $record->movimentacoes()->create([

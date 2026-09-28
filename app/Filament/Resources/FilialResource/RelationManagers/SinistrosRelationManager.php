@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FilialResource\RelationManagers;
 
+use App\Models\Sinistro;
 use App\Filament\Resources\ApoliceResource;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -82,11 +83,11 @@ class SinistrosRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Aberto' => 'warning',
-                        'Em análise', 'Em perícia' => 'info',
-                        'Aprovado', 'Pago' => 'success',
-                        'Negado' => 'danger',
-                        'Encerrado' => 'gray',
+                        Sinistro::STATUS_ABERTO => 'warning',
+                        Sinistro::STATUS_ANALISE, Sinistro::STATUS_PERICIA => 'info',
+                        Sinistro::STATUS_APROVADO, Sinistro::STATUS_PAGO => 'success',
+                        Sinistro::STATUS_NEGADO => 'danger',
+                        Sinistro::STATUS_ENCERRADO => 'gray',
                         default => 'gray',
                     }),
             ])
@@ -95,13 +96,14 @@ class SinistrosRelationManager extends RelationManager
                     ->label('Status do Sinistro')
                     ->attribute('sinistros.status')
                     ->options([
-                        'Aberto' => 'Aberto',
-                        'Em análise' => 'Em análise',
-                        'Em perícia' => 'Em perícia',
-                        'Aprovado' => 'Aprovado',
-                        'Negado' => 'Negado',
-                        'Pago' => 'Pago',
-                        'Encerrado' => 'Encerrado',
+                        Sinistro::STATUS_ABERTO => 'Aberto',
+                        Sinistro::STATUS_ANALISE => 'Em análise',
+                        Sinistro::STATUS_PERICIA => 'Em perícia',
+                        Sinistro::STATUS_GESTOR => 'Aguardando Gestor',
+                        Sinistro::STATUS_APROVADO => 'Aprovado',
+                        Sinistro::STATUS_PAGO => 'Pago',
+                        Sinistro::STATUS_NEGADO => 'Negado',
+                        Sinistro::STATUS_ENCERRADO => 'Encerrado',
                     ]),
             ])
             ->headerActions([

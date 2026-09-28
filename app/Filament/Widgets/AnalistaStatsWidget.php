@@ -26,16 +26,16 @@ class AnalistaStatsWidget extends BaseWidget
         });
 
         return [
-            Stat::make('Meus Sinistros', (clone $sinistrosQuery)->where('analista_id', $user->id)->where('status', 'Em análise')->count())
+            Stat::make('Meus Sinistros', (clone $sinistrosQuery)->where('analista_id', $user->id)->where('status', Sinistro::STATUS_ANALISE)->count())
                 ->description('Em análise')
                 ->descriptionIcon('heroicon-m-document-magnifying-glass')
                 ->color('info'),
 
-            Stat::make('Fila Geral de Abertos', (clone $sinistrosQuery)->where('status', 'Aberto')->count())
+            Stat::make('Fila Geral de Abertos', (clone $sinistrosQuery)->where('status', Sinistro::STATUS_ABERTO)->count())
                 ->description('Aguardando triagem inicial')
                 ->color('warning'),
 
-            Stat::make('Aguardando Gestor', (clone $sinistrosQuery)->where('status', 'Aguardando Gestor')->count())
+            Stat::make('Aguardando Gestor', (clone $sinistrosQuery)->where('status', Sinistro::STATUS_GESTOR)->count())
                 ->description('Bloqueados por alçada')
                 ->color('danger'),
         ];
